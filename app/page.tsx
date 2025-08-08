@@ -1,27 +1,35 @@
-'use client'
+"use client";
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { MapPin, Clock, Star, Zap, Shield, Users } from 'lucide-react'
-import Link from "next/link"
-import { useAuth } from '@/contexts/AuthContext'
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { useAuth } from "@/contexts/AuthContext";
+import { MapPin, Shield, Star, Users, Zap } from "lucide-react";
+import Link from "next/link";
 
 function AuthButtons() {
-  const { user, logout } = useAuth()
+  const { user, logout } = useAuth();
 
   if (user) {
     return (
       <div className="flex items-center space-x-3">
         <span className="text-sm text-gray-600">Xin chào, {user.name}</span>
-        {user.role === 'owner' && (
+        {/* {user.role === "owner" && (
           <Link href="/owner/dashboard">
             <Button variant="outline">Dashboard</Button>
           </Link>
-        )}
-        <Button variant="ghost" onClick={logout}>Đăng xuất</Button>
+        )} */}
+        <Button variant="ghost" onClick={logout}>
+          Đăng xuất
+        </Button>
       </div>
-    )
+    );
   }
 
   return (
@@ -33,41 +41,43 @@ function AuthButtons() {
         <Button className="bg-green-600 hover:bg-green-700">Đăng ký</Button>
       </Link>
     </div>
-  )
+  );
 }
 
 export default function HomePage() {
+  const { user } = useAuth();
   const sports = [
     { name: "Bóng đá mini", icon: "⚽", count: "120+ sân" },
     { name: "Cầu lông", icon: "🏸", count: "85+ sân" },
     { name: "Tennis", icon: "🎾", count: "45+ sân" },
     { name: "Bóng rổ", icon: "🏀", count: "60+ sân" },
     { name: "Bóng chuyền", icon: "🏐", count: "35+ sân" },
-    { name: "Pickleball", icon: "🏓", count: "25+ sân" }
-  ]
+    { name: "Pickleball", icon: "🏓", count: "25+ sân" },
+  ];
 
   const features = [
     {
       icon: <Zap className="h-6 w-6" />,
       title: "AI Gợi ý thông minh",
-      description: "Hệ thống AI gợi ý khung giờ tối ưu dựa trên thời tiết và lịch sử"
+      description:
+        "Hệ thống AI gợi ý khung giờ tối ưu dựa trên thời tiết và lịch sử",
     },
     {
       icon: <MapPin className="h-6 w-6" />,
       title: "Tìm sân gần nhất",
-      description: "Bản đồ tích hợp giúp tìm sân thể thao gần vị trí của bạn"
+      description: "Bản đồ tích hợp giúp tìm sân thể thao gần vị trí của bạn",
     },
     {
       icon: <Shield className="h-6 w-6" />,
       title: "Thanh toán an toàn",
-      description: "Đặt sân và thanh toán online nhanh chóng, bảo mật"
+      description: "Đặt sân và thanh toán online nhanh chóng, bảo mật",
     },
     {
       icon: <Star className="h-6 w-6" />,
       title: "Đánh giá chất lượng",
-      description: "Xem đánh giá từ cộng đồng để chọn sân phù hợp"
-    }
-  ]
+      description: "Xem đánh giá từ cộng đồng để chọn sân phù hợp",
+    },
+  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
@@ -78,12 +88,23 @@ export default function HomePage() {
             <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold">🏟️</span>
             </div>
-            <span className="text-xl font-bold text-gray-900">SportBooking</span>
+            <span className="text-xl font-bold text-gray-900">
+              SportBooking
+            </span>
           </div>
           <nav className="hidden md:flex items-center space-x-6">
-            <Link href="/search" className="text-gray-600 hover:text-green-600">Tìm sân</Link>
-            <Link href="/about" className="text-gray-600 hover:text-green-600">Về chúng tôi</Link>
-            <Link href="/contact" className="text-gray-600 hover:text-green-600">Liên hệ</Link>
+            <Link href="/search" className="text-gray-600 hover:text-green-600">
+              Tìm sân
+            </Link>
+            <Link href="/about" className="text-gray-600 hover:text-green-600">
+              Về chúng tôi
+            </Link>
+            <Link
+              href="/contact"
+              className="text-gray-600 hover:text-green-600"
+            >
+              Liên hệ
+            </Link>
           </nav>
           <AuthButtons />
         </div>
@@ -100,22 +121,37 @@ export default function HomePage() {
             <span className="text-green-600"> thông minh</span>
           </h1>
           <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-            Tìm kiếm và đặt sân thể thao gần bạn với AI gợi ý khung giờ tối ưu, 
+            Tìm kiếm và đặt sân thể thao gần bạn với AI gợi ý khung giờ tối ưu,
             theo dõi thời tiết và đánh giá chất lượng từ cộng đồng.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/search">
-              <Button size="lg" className="bg-green-600 hover:bg-green-700 text-lg px-8">
+              <Button
+                size="lg"
+                className="bg-green-600 hover:bg-green-700 text-lg px-8"
+              >
                 <MapPin className="mr-2 h-5 w-5" />
                 Tìm sân ngay
               </Button>
             </Link>
-            <Link href="/owner/register">
-              <Button size="lg" variant="outline" className="text-lg px-8">
-                <Users className="mr-2 h-5 w-5" />
-                Dành cho chủ sân
-              </Button>
-            </Link>
+
+            {user?.role === "owner" && (
+              <Link href="/owner/dashboard">
+                <Button size="lg" variant="outline" className="text-lg px-8">
+                  <Users className="mr-2 h-5 w-5" />
+                  Xem trang quản lý
+                </Button>
+              </Link>
+            )}
+
+            {user?.role === "user" && (
+              <Link href="/bookings">
+                <Button size="lg" variant="outline" className="text-lg px-8">
+                  <Users className="mr-2 h-5 w-5" />
+                  Xem sân đã đặt
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
       </section>
@@ -123,10 +159,15 @@ export default function HomePage() {
       {/* Sports Categories */}
       <section className="py-16 px-4 bg-white">
         <div className="container mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12">Các môn thể thao phổ biến</h2>
+          <h2 className="text-3xl font-bold text-center mb-12">
+            Các môn thể thao phổ biến
+          </h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
             {sports.map((sport, index) => (
-              <Card key={index} className="text-center hover:shadow-lg transition-shadow cursor-pointer">
+              <Card
+                key={index}
+                className="text-center hover:shadow-lg transition-shadow cursor-pointer"
+              >
                 <CardContent className="p-6">
                   <div className="text-4xl mb-3">{sport.icon}</div>
                   <h3 className="font-semibold mb-2">{sport.name}</h3>
@@ -141,7 +182,9 @@ export default function HomePage() {
       {/* Features */}
       <section className="py-16 px-4">
         <div className="container mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12">Tại sao chọn SportBooking?</h2>
+          <h2 className="text-3xl font-bold text-center mb-12">
+            Tại sao chọn SportBooking?
+          </h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             {features.map((feature, index) => (
               <Card key={index} className="text-center">
@@ -185,7 +228,7 @@ export default function HomePage() {
       </section>
 
       {/* CTA */}
-      <section className="py-16 px-4 bg-gray-900 text-white">
+      {/* <section className="py-16 px-4 bg-gray-900 text-white">
         <div className="container mx-auto text-center">
           <h2 className="text-3xl font-bold mb-4">Sẵn sàng bắt đầu?</h2>
           <p className="text-xl text-gray-300 mb-8">
@@ -197,7 +240,7 @@ export default function HomePage() {
             </Button>
           </Link>
         </div>
-      </section>
+      </section> */}
 
       {/* Footer */}
       <footer className="bg-gray-50 py-12 px-4">
@@ -217,17 +260,29 @@ export default function HomePage() {
             <div>
               <h3 className="font-semibold mb-4">Sản phẩm</h3>
               <ul className="space-y-2 text-gray-600">
-                <li><Link href="/search">Tìm sân</Link></li>
-                <li><Link href="/mobile">Ứng dụng mobile</Link></li>
-                <li><Link href="/owner">Dành cho chủ sân</Link></li>
+                <li>
+                  <Link href="/search">Tìm sân</Link>
+                </li>
+                <li>
+                  <Link href="/mobile">Ứng dụng mobile</Link>
+                </li>
+                <li>
+                  <Link href="/owner">Dành cho chủ sân</Link>
+                </li>
               </ul>
             </div>
             <div>
               <h3 className="font-semibold mb-4">Hỗ trợ</h3>
               <ul className="space-y-2 text-gray-600">
-                <li><Link href="/help">Trung tâm trợ giúp</Link></li>
-                <li><Link href="/contact">Liên hệ</Link></li>
-                <li><Link href="/terms">Điều khoản</Link></li>
+                <li>
+                  <Link href="/help">Trung tâm trợ giúp</Link>
+                </li>
+                <li>
+                  <Link href="/contact">Liên hệ</Link>
+                </li>
+                <li>
+                  <Link href="/terms">Điều khoản</Link>
+                </li>
               </ul>
             </div>
             <div>
@@ -245,5 +300,5 @@ export default function HomePage() {
         </div>
       </footer>
     </div>
-  )
+  );
 }
