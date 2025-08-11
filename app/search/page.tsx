@@ -1,14 +1,14 @@
 'use client'
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { MapPin, Clock, Star, Filter, Cloud, Sun, CloudRain } from 'lucide-react'
-import Link from "next/link"
+import { Cloud, CloudRain, MapPin, Star, Sun } from 'lucide-react'
 import dynamic from 'next/dynamic'
+import Link from "next/link"
+import { useEffect, useState } from "react"
 
 // Dynamic import for map to avoid SSR issues
 const MapComponent = dynamic(() => import('@/components/map-component'), { 
@@ -206,10 +206,10 @@ export default function SearchPage() {
               <h2 className="text-xl font-semibold">
                 Tìm thấy {courts.length} sân phù hợp
               </h2>
-              <Button variant="outline" size="sm">
+              {/* <Button variant="outline" size="sm">
                 <Filter className="h-4 w-4 mr-2" />
                 Bộ lọc
-              </Button>
+              </Button> */}
             </div>
 
             {loading ? (
@@ -232,9 +232,9 @@ export default function SearchPage() {
                 {courts.map((court) => (
                   <Card key={court._id} className="hover:shadow-lg transition-shadow">
                     <div className="flex flex-col md:flex-row">
-                      <div className="w-full md:w-48 h-48 md:h-32">
+                      <div className="w-full md:w-72 h-48 md:h-44">
                         <img
-                          src={court.images[0] || "/placeholder.svg?height=200&width=300&query=sports court"}
+                          src={court.images[0] || "/placeholder.svg?height=200&width=400&query=sports court"}
                           alt={court.name}
                           className="w-full h-full object-cover rounded-t-lg md:rounded-l-lg md:rounded-t-none"
                         />
