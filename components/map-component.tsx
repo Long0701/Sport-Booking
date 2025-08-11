@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { useEffect, useRef, useState } from "react";
 
-// Fix for default markers in Leaflet (nếu dùng icon mặc định)
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl:
@@ -16,14 +15,15 @@ L.Icon.Default.mergeOptions({
 });
 
 interface Court {
-  id: string;
+  _id: string;
   name: string;
   type: string;
   address: string;
-  price: number;
+  pricePerHour: number;
   rating: number;
-  lat: number;
-  lng: number;
+  location: {
+    coordinates: [string, string]; // [lng, lat] dạng chuỗi
+  };
 }
 
 interface MapComponentProps {
@@ -32,53 +32,42 @@ interface MapComponentProps {
 }
 
 const sports = [
-  { name: "Bóng đá mini", icon: "⚽", type: "football", count: "120+ sân" },
-  { name: "Cầu lông", icon: "🏸", type: "badminton", count: "85+ sân" },
-  { name: "Tennis", icon: "🎾", type: "tennis", count: "45+ sân" },
-  { name: "Bóng rổ", icon: "🏀", type: "basketball", count: "60+ sân" },
-  { name: "Bóng chuyền", icon: "🏐", type: "volleyball", count: "35+ sân" },
-  { name: "Pickleball", icon: "🏓", type: "pickleball", count: "25+ sân" },
+  { name: "Bóng đá mini", icon: "⚽", type: "football" },
+  { name: "Cầu lông", icon: "🏸", type: "badminton" },
+  { name: "Tennis", icon: "🎾", type: "tennis" },
+  { name: "Bóng rổ", icon: "🏀", type: "basketball" },
+  { name: "Bóng chuyền", icon: "🏐", type: "volleyball" },
+  { name: "Pickleball", icon: "🏓", type: "pickleball" },
 ];
 
-export default function MapComponent({
-  courts,
-  searchQuery,
-}: MapComponentProps) {
+export default function MapComponent({ courts, searchQuery }: MapComponentProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markersLayerRef = useRef<L.LayerGroup | null>(null);
-
   const [center, setCenter] = useState<[number, number]>([10.7769, 106.7009]);
 
-  // Lấy tọa độ từ searchQuery
+  // Tìm tọa độ khi search
   useEffect(() => {
+    if (!searchQuery?.trim()) return;
     const fetchLocation = async () => {
-      if (!searchQuery?.trim()) return;
-
       try {
         const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-            searchQuery
-          )}&limit=1`
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1`
         );
         const data = await res.json();
         if (data.length > 0) {
-          const lat = parseFloat(data[0].lat);
-          const lon = parseFloat(data[0].lon);
-          setCenter([lat, lon]);
+          setCenter([parseFloat(data[0].lat), parseFloat(data[0].lon)]);
         }
       } catch (err) {
         console.error("Error fetching geocode:", err);
       }
     };
-
     fetchLocation();
   }, [searchQuery]);
 
-  // Khởi tạo map + legend
+  // Khởi tạo map
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
-
     const map = L.map(mapRef.current).setView(center, 12);
     mapInstanceRef.current = map;
 
@@ -88,14 +77,9 @@ export default function MapComponent({
 
     markersLayerRef.current = L.layerGroup().addTo(map);
 
-    // 📌 Legend ở góc trái
     const legend = new L.Control({ position: "bottomleft" });
-
     legend.onAdd = () => {
-      const div = L.DomUtil.create(
-        "div",
-        "bg-white p-2 rounded shadow text-sm"
-      );
+      const div = L.DomUtil.create("div", "bg-white p-2 rounded shadow text-sm");
       div.innerHTML = `
         <div style="font-weight:600; margin-bottom:4px;">Chú thích</div>
         ${sports
@@ -111,11 +95,10 @@ export default function MapComponent({
       `;
       return div;
     };
-
     legend.addTo(map);
   }, []);
 
-  // Fly đến center khi thay đổi
+  // Fly đến center
   useEffect(() => {
     if (mapInstanceRef.current) {
       mapInstanceRef.current.flyTo(center, 13, { duration: 0.8 });
@@ -125,40 +108,43 @@ export default function MapComponent({
   // Render markers
   useEffect(() => {
     if (!markersLayerRef.current) return;
-
     markersLayerRef.current.clearLayers();
 
     courts.forEach((court) => {
-      const marker = L.marker([court.lat, court.lng], {
+      if (!court.location?.coordinates) return;
+
+      const lng = parseFloat(court.location?.coordinates[0]) || 0;
+      const lat = parseFloat(court.location?.coordinates[1]) || 0;
+      if (isNaN(lat) || isNaN(lng)) return;
+
+      const marker = L.marker([lat, lng], {
         icon: getSportIcon(court.type),
       });
 
       const popupContent = `
         <div class="p-2">
           <h3 class="font-semibold text-sm">${court.name}</h3>
-          <p class="text-xs text-gray-600 mb-1">${court.type}</p>
           <p class="text-xs text-gray-600 mb-2">${court.address}</p>
           <div class="flex items-center justify-between">
-            <span class="text-sm font-bold text-green-600">${
-              court.price || 0
-            }đ/giờ</span>
+            <span class="text-sm font-bold text-green-600">${court.pricePerHour || 0}đ/giờ</span>
             <span class="text-xs">⭐ ${court.rating}</span>
           </div>
-          <button class="w-full mt-2 bg-green-600 text-white text-xs py-1 px-2 rounded hover:bg-green-700">
-            Xem chi tiết
-          </button>
+        <div>
+          <a href="/court/${court._id}" 
+       style="display:block; width:100%; color: white;" 
+       class="mt-2 px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-xs text-center">
+      Đặt sân
+    </a>
         </div>
       `;
 
       marker.bindPopup(popupContent);
-
-      // 📌 Click marker → zoom gần + mở popup
       marker.on("click", () => {
         const map = mapInstanceRef.current;
         if (!map) return;
         const targetZoom = Math.max(map.getZoom(), 16);
         map.once("moveend", () => marker.openPopup());
-        map.flyTo([court.lat, court.lng], targetZoom, { duration: 0.6 });
+        map.flyTo([lat, lng], targetZoom, { duration: 0.6 });
       });
 
       marker.addTo(markersLayerRef.current!);
@@ -176,5 +162,5 @@ export default function MapComponent({
     });
   };
 
-  return <div ref={mapRef} className="h-96 w-full rounded-lg" />;
+  return <div ref={mapRef} className="h-[calc(100vh-324px)] w-full rounded-lg" />;
 }
