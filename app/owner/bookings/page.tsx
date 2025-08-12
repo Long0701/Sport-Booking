@@ -26,6 +26,8 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
+import { Popover, PopoverContent, PopoverTrigger } from "@radix-ui/react-popover";
+import { format } from "date-fns";
 import {
   ArrowLeft,
   CalendarIcon,
@@ -812,27 +814,48 @@ export default function OwnerBookingsPage() {
                   </Select>
                 </div>
 
-                <div>
-                  <label className="text-sm font-medium mb-2 block">
-                    Chọn ngày
-                  </label>
-                  <Calendar
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={setSelectedDate}
-                    className="rounded-md border"
-                  />
-                  {selectedDate && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full mt-2 bg-transparent"
-                      onClick={() => setSelectedDate(undefined)}
-                    >
-                      Xóa bộ lọc ngày
-                    </Button>
-                  )}
-                </div>
+                 {/* Chọn ngày */}
+                  <div className="w-full space-y-2">
+                    <label className="text-sm font-medium mb-1 block">
+                      Chọn ngày
+                    </label>
+
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <div className="relative w-full">
+                          <Button
+                            variant="outline"
+                            className="w-full justify-start text-left font-normal pr-10"
+                          >
+                            {selectedDate
+                              ? format(selectedDate, "dd/MM/yyyy")
+                              : "Chọn ngày"}
+                          </Button>
+
+                          {/* Dấu × hiện bên phải nếu đã chọn ngày */}
+                          {selectedDate && (
+                            <button
+                              type="button"
+                              onClick={() => setSelectedDate(undefined)}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                            >
+                              ×
+                            </button>
+                          )}
+                        </div>
+                      </PopoverTrigger>
+
+                      <PopoverContent className="p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={selectedDate}
+                          onSelect={setSelectedDate}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
               </CardContent>
             </Card>
 
