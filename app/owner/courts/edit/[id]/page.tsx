@@ -1,18 +1,17 @@
 'use client'
 
-import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Building, MapPin, Clock, DollarSign, ArrowLeft, Phone, ImageIcon, X } from 'lucide-react'
-import Link from "next/link"
+import { Textarea } from "@/components/ui/textarea"
 import { useAuth } from '@/contexts/AuthContext'
-import { useRouter, useParams } from 'next/navigation'
+import { ArrowLeft, Building, Clock, DollarSign, MapPin, Phone, X } from 'lucide-react'
+import Link from "next/link"
+import { useParams, useRouter } from 'next/navigation'
+import { useEffect, useState } from "react"
 
 export default function EditCourtPage() {
   const [loading, setLoading] = useState(false)
@@ -20,6 +19,8 @@ export default function EditCourtPage() {
   const { user } = useAuth()
   const router = useRouter()
   const params = useParams()
+    const [uploadingImage, setUploadingImage] = useState(false);
+
   
   const [courtData, setCourtData] = useState({
     name: "",
@@ -102,6 +103,60 @@ export default function EditCourtPage() {
       setFetchLoading(false)
     }
   }
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      alert("Vui lòng chọn file hình ảnh");
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Kích thước file không được vượt quá 5MB");
+      return;
+    }
+
+    setUploadingImage(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setCourtData((prev) => ({
+          ...prev,
+          images: [...prev.images, data.imageUrl],
+        }));
+        alert("Tải ảnh lên thành công!");
+      } else {
+        alert(data.error || "Có lỗi xảy ra khi tải ảnh lên");
+      }
+    } catch (error) {
+      alert("Có lỗi xảy ra khi tải ảnh lên. Vui lòng thử lại.");
+    } finally {
+      setUploadingImage(false);
+      event.target.value = "";
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setCourtData((prev) => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index),
+    }));
+  };
+
 
   if (!user || user.role !== 'owner') {
     return (
@@ -213,12 +268,7 @@ export default function EditCourtPage() {
     }))
   }
 
-  const removeImage = (index: number) => {
-    setCourtData(prev => ({
-      ...prev,
-      images: prev.images.filter((_, i) => i !== index)
-    }))
-  }
+
 
   if (fetchLoading) {
     return (
@@ -437,18 +487,29 @@ export default function EditCourtPage() {
                     ))}
                     
                     {courtData.images.length < 5 && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="h-32 border-dashed"
-                        onClick={addImagePlaceholder}
-                      >
-                        <div className="text-center">
-                          <ImageIcon className="h-6 w-6 mx-auto mb-2 text-gray-400" />
-                          <span className="text-sm text-gray-600">Thêm ảnh</span>
-                        </div>
-                      </Button>
-                    )}
+          <div className="relative">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              disabled={uploadingImage}
+            />
+            <div className="flex flex-col items-center justify-center h-32 border-2 border-dashed rounded-lg bg-gray-50">
+              {uploadingImage ? (
+                <>
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600 mb-2"></div>
+                  <span className="text-sm text-gray-600">Đang tải...</span>
+                </>
+              ) : (
+                <>
+                  <span className="text-2xl text-gray-400 mb-2">+</span>
+                  <span className="text-sm text-gray-600">Thêm ảnh</span>
+                </>
+              )}
+            </div>
+          </div>
+        )}
                   </div>
                 </div>
 
