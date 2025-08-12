@@ -1,15 +1,15 @@
 'use client'
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
-import { MapPin, Clock, Star, Wifi, Car, ShowerHeadIcon as Shower, Users, Phone, Sun, Cloud } from 'lucide-react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useAuth } from "@/contexts/AuthContext"
+import { Car, Clock, MapPin, Phone, ShowerHeadIcon as Shower, Star, Sun, Users, Wifi } from 'lucide-react'
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
-import { useAuth } from "@/contexts/AuthContext"
+import { useEffect, useState } from "react"
 interface Court {
   _id: string
   name: string
@@ -129,24 +129,26 @@ export default function CourtDetailPage() {
     }
   }
 
-  const generateTimeSlots = () => {
-    if (!court) return []
+const generateTimeSlots = () => {
+  if (!court) return []
+
+  const slots = []
+  const openHour = parseInt(court.openTime.split(':')[0])
+  const closeHour = parseInt(court.closeTime.split(':')[0])
+
+  for (let hour = openHour; hour < closeHour; hour++) {
+    // Tạo timeSlot có dạng 'HH:mm:ss' để so sánh đúng với bookedSlots
+    const timeSlot = `${hour.toString().padStart(2, '0')}:00:00`
     
-    const slots = []
-    const openHour = parseInt(court.openTime.split(':')[0])
-    const closeHour = parseInt(court.closeTime.split(':')[0])
-    
-    for (let hour = openHour; hour < closeHour; hour++) {
-      const timeSlot = `${hour.toString().padStart(2, '0')}:00`
-      slots.push({
-        time: timeSlot,
-        available: !court.bookedSlots.includes(timeSlot),
-        price: court.pricePerHour
-      })
-    }
-    
-    return slots
+    slots.push({
+      time: timeSlot,
+      available: !court.bookedSlots.includes(timeSlot),
+      price: court.pricePerHour
+    })
   }
+
+  return slots
+}
 
   const getAmenityIcon = (amenity: string) => {
     switch (amenity.toLowerCase()) {
@@ -224,8 +226,10 @@ export default function CourtDetailPage() {
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <div className="flex flex-col md:flex-row justify-between items-start mb-4">
             <div>
-              <h1 className="text-2xl font-bold mb-2">{court.name}</h1>
+              <div className="flex gap-6">
+                <h1 className="text-2xl font-bold mb-2">{court.name}</h1>
               <Badge className="mb-2">{getSportTypeInVietnamese(court.type)}</Badge>
+              </div>
               <div className="flex items-center text-gray-600 mb-2">
                 <MapPin className="h-4 w-4 mr-1" />
                 <span>{court.address}</span>
@@ -254,7 +258,7 @@ export default function CourtDetailPage() {
           </div>
 
           {/* Images */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 ">
             {court.images.map((image, index) => (
               <img
                 key={index}
@@ -356,6 +360,33 @@ export default function CourtDetailPage() {
                 </div>
               </TabsContent>
             </Tabs>
+              {/* AI Suggestions */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <span>🤖</span>
+                  <span>Gợi ý AI</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3 text-sm">
+                  <div className="p-3 bg-blue-50 rounded-lg">
+                    <span className="font-medium text-blue-800">💡 Khung giờ tốt nhất:</span>
+                    <p className="text-blue-700">19:00 - Thời tiết mát mẻ, giá hợp lý</p>
+                  </div>
+                  {weather && weather.forecast.some((f: any) => f.condition.includes('mưa')) && (
+                    <div className="p-3 bg-yellow-50 rounded-lg">
+                      <span className="font-medium text-yellow-800">⚠️ Lưu ý:</span>
+                      <p className="text-yellow-700">Có thể có mưa trong một số khung giờ</p>
+                    </div>
+                  )}
+                  <div className="p-3 bg-green-50 rounded-lg">
+                    <span className="font-medium text-green-800">⭐ Đánh giá cao:</span>
+                    <p className="text-green-700">Sân này được đánh giá {court.rating}/5 sao</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Booking Sidebar */}
@@ -418,33 +449,7 @@ export default function CourtDetailPage() {
               </CardContent>
             </Card>
 
-            {/* AI Suggestions */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <span>🤖</span>
-                  <span>Gợi ý AI</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3 text-sm">
-                  <div className="p-3 bg-blue-50 rounded-lg">
-                    <span className="font-medium text-blue-800">💡 Khung giờ tốt nhất:</span>
-                    <p className="text-blue-700">19:00 - Thời tiết mát mẻ, giá hợp lý</p>
-                  </div>
-                  {weather && weather.forecast.some((f: any) => f.condition.includes('mưa')) && (
-                    <div className="p-3 bg-yellow-50 rounded-lg">
-                      <span className="font-medium text-yellow-800">⚠️ Lưu ý:</span>
-                      <p className="text-yellow-700">Có thể có mưa trong một số khung giờ</p>
-                    </div>
-                  )}
-                  <div className="p-3 bg-green-50 rounded-lg">
-                    <span className="font-medium text-green-800">⭐ Đánh giá cao:</span>
-                    <p className="text-green-700">Sân này được đánh giá {court.rating}/5 sao</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          
           </div>
         </div>
       </div>

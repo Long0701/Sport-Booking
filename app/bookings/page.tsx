@@ -1,29 +1,6 @@
 'use client'
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { 
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
-} from "@/components/ui/dropdown-menu"
-import { 
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -34,9 +11,31 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { ArrowLeft, Search, MoreHorizontal, MapPin, Clock, Star, Phone, X, Eye, MessageCircle, Calendar, DollarSign } from 'lucide-react'
-import Link from "next/link"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from "@/components/ui/dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Textarea } from "@/components/ui/textarea"
 import { useAuth } from '@/contexts/AuthContext'
+import { ArrowLeft, Calendar, Clock, Eye, MapPin, MessageCircle, MoreHorizontal, Phone, Search, Star, X } from 'lucide-react'
+import Link from "next/link"
+import { useEffect, useState } from "react"
 
 interface Booking {
   _id: string
@@ -258,8 +257,7 @@ export default function UserBookingsPage() {
 
   // Group bookings by status for tabs
   const upcomingBookings = filteredBookings.filter(b => 
-    (b.status === 'pending' || b.status === 'confirmed') && 
-    new Date(`${b.date}T${b.startTime}`) > new Date()
+    (b.status === 'pending' || b.status === 'confirmed') 
   )
   const pastBookings = filteredBookings.filter(b => 
     b.status === 'completed' || 
