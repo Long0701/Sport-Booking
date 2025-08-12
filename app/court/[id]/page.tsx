@@ -129,24 +129,26 @@ export default function CourtDetailPage() {
     }
   }
 
-  const generateTimeSlots = () => {
-    if (!court) return []
+const generateTimeSlots = () => {
+  if (!court) return []
+
+  const slots = []
+  const openHour = parseInt(court.openTime.split(':')[0])
+  const closeHour = parseInt(court.closeTime.split(':')[0])
+
+  for (let hour = openHour; hour < closeHour; hour++) {
+    // Tạo timeSlot có dạng 'HH:mm:ss' để so sánh đúng với bookedSlots
+    const timeSlot = `${hour.toString().padStart(2, '0')}:00:00`
     
-    const slots = []
-    const openHour = parseInt(court.openTime.split(':')[0])
-    const closeHour = parseInt(court.closeTime.split(':')[0])
-    
-    for (let hour = openHour; hour < closeHour; hour++) {
-      const timeSlot = `${hour.toString().padStart(2, '0')}:00`
-      slots.push({
-        time: timeSlot,
-        available: !court.bookedSlots.includes(timeSlot),
-        price: court.pricePerHour
-      })
-    }
-    
-    return slots
+    slots.push({
+      time: timeSlot,
+      available: !court.bookedSlots.includes(timeSlot),
+      price: court.pricePerHour
+    })
   }
+
+  return slots
+}
 
   const getAmenityIcon = (amenity: string) => {
     switch (amenity.toLowerCase()) {
