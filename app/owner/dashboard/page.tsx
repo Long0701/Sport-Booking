@@ -89,6 +89,7 @@ export default function OwnerDashboard() {
     if (user?.role === "owner") {
       fetchDashboardData();
       fetchTodayBookings();
+      fetchReviews()
     }
   }, [user]);
 
