@@ -1,5 +1,5 @@
 "use client";
-
+import { useVNIslandsMask } from "@/hooks/use-vn-islands-mask";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useEffect, useRef, useState } from "react";
@@ -22,7 +22,7 @@ interface Court {
   pricePerHour: number;
   rating: number;
   location: {
-    coordinates: [string, string]; // [lng, lat] dạng chuỗi
+    coordinates: [string, string];
   };
 }
 
@@ -40,19 +40,36 @@ const sports = [
   { name: "Pickleball", icon: "🏓", type: "pickleball" },
 ];
 
-export default function MapComponent({ courts, searchQuery }: MapComponentProps) {
+export default function MapComponent({
+  courts,
+  searchQuery,
+}: MapComponentProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markersLayerRef = useRef<L.LayerGroup | null>(null);
-  const [center, setCenter] = useState<[number, number]>([10.7769, 106.7009]);
 
-  // Tìm tọa độ khi search
+  // user location layers
+  const userMarkerRef = useRef<L.CircleMarker | null>(null);
+  const accuracyCircleRef = useRef<L.Circle | null>(null);
+
+  // chặn flyTo mặc định lần đầu (để không đè lên geolocation)
+  const didInitialFlyRef = useRef(false);
+
+  const [center, setCenter] = useState<[number, number]>([
+    16.0919025, 108.2166425,
+  ]);
+  const [map, setMap] = useState<L.Map | null>(null);
+
+  // Tìm toạ độ khi search (Nominatim)
   useEffect(() => {
     if (!searchQuery?.trim()) return;
     const fetchLocation = async () => {
       try {
         const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1`
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+            searchQuery
+          )}&limit=1`,
+          { headers: { "Accept-Language": "vi,en;q=0.8" } }
         );
         const data = await res.json();
         if (data.length > 0) {
@@ -68,18 +85,24 @@ export default function MapComponent({ courts, searchQuery }: MapComponentProps)
   // Khởi tạo map
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
+
     const map = L.map(mapRef.current).setView(center, 12);
     mapInstanceRef.current = map;
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: "© OpenStreetMap contributors",
+      maxZoom: 19,
     }).addTo(map);
 
     markersLayerRef.current = L.layerGroup().addTo(map);
-
+    setMap(map);
+    // Legend
     const legend = new L.Control({ position: "bottomleft" });
     legend.onAdd = () => {
-      const div = L.DomUtil.create("div", "bg-white p-2 rounded shadow text-sm");
+      const div = L.DomUtil.create(
+        "div",
+        "bg-white p-2 rounded shadow text-sm"
+      );
       div.innerHTML = `
         <div style="font-weight:600; margin-bottom:4px;">Chú thích</div>
         ${sports
@@ -96,13 +119,33 @@ export default function MapComponent({ courts, searchQuery }: MapComponentProps)
       return div;
     };
     legend.addTo(map);
+
+    map.whenReady(async () => {
+      moveToCurrentLocation(map, { minZoom: 13 });
+    });
+
+    return () => {
+      map.remove();
+      mapInstanceRef.current = null;
+      markersLayerRef.current = null;
+      userMarkerRef.current = null;
+      accuracyCircleRef.current = null;
+    };
   }, []);
 
-  // Fly đến center
+  // Fly đến center khi search đổi (bỏ qua lần đầu để không đè geolocation)
   useEffect(() => {
-    if (mapInstanceRef.current) {
-      mapInstanceRef.current.flyTo(center, 13, { duration: 0.8 });
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    if (!didInitialFlyRef.current) {
+      didInitialFlyRef.current = true;
+      return;
     }
+
+    map.whenReady(() => {
+      map.flyTo(center, 13, { duration: 0.8 });
+    });
   }, [center]);
 
   // Render markers
@@ -113,28 +156,29 @@ export default function MapComponent({ courts, searchQuery }: MapComponentProps)
     courts.forEach((court) => {
       if (!court.location?.coordinates) return;
 
-      const lng = parseFloat(court.location?.coordinates[0]) || 0;
-      const lat = parseFloat(court.location?.coordinates[1]) || 0;
+      const lng = parseFloat(court?.location?.coordinates[0]) || 0;
+      const lat = parseFloat(court?.location?.coordinates[1]) || 0;
       if (isNaN(lat) || isNaN(lng)) return;
 
-      const marker = L.marker([lat, lng], {
-        icon: getSportIcon(court.type),
-      });
+      const marker = L.marker([lat, lng], { icon: getSportIcon(court.type) });
 
       const popupContent = `
         <div class="p-2">
-          <h3 class="font-semibold text-sm">${court.name}</h3>
-          <p class="text-xs text-gray-600 mb-2">${court.address}</p>
+          <h3 class="font-semibold text-sm">${escapeHtml(court.name)}</h3>
+          <p class="text-xs text-gray-600 mb-2">${escapeHtml(court.address)}</p>
           <div class="flex items-center justify-between">
-            <span class="text-sm font-bold text-green-600">${court.pricePerHour || 0}đ/giờ</span>
-            <span class="text-xs">⭐ ${court.rating}</span>
+            <span class="text-sm font-bold text-green-600">${Number(
+              court.pricePerHour || 0
+            ).toLocaleString("vi-VN")}đ/giờ</span>
+            <span class="text-xs">⭐ ${court.rating ?? "-"}</span>
           </div>
-        <div>
-          <a href="/court/${court._id}" 
-       style="display:block; width:100%; color: white;" 
-       class="mt-2 px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-xs text-center">
-      Đặt sân
-    </a>
+          <div>
+            <a href="/court/${court._id}" 
+               style="display:block; width:100%;" 
+               class="mt-2 px-3 py-1 bg-green-600 hover:bg-green-700 !text-white rounded text-xs text-center">
+              Đặt sân
+            </a>
+          </div>
         </div>
       `;
 
@@ -151,7 +195,44 @@ export default function MapComponent({ courts, searchQuery }: MapComponentProps)
     });
   }, [courts]);
 
-  const getSportIcon = (type: string) => {
+  // ===== Helpers (drop-in) =====
+  function moveToCurrentLocation(
+    map: L.Map,
+    opts: { minZoom?: number; showAccuracy?: boolean } = {}
+  ) {
+    if (!("geolocation" in navigator)) return;
+
+    // gọi sau khi map ready
+    if (!(map as any)._loaded || !map.getContainer()) {
+      map.once("load", () => moveToCurrentLocation(map, opts));
+
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        if (!map || !(map as any)._loaded || !map.getContainer()) return;
+        if (!("geolocation" in navigator)) return;
+        const { latitude, longitude } = pos.coords;
+
+        accuracyCircleRef.current = L.circle([latitude, longitude], {
+          radius: 6,
+          color: "#ffffff",
+          weight: 2,
+          fillColor: "#2563eb",
+          fillOpacity: 1,
+        });
+
+        map.invalidateSize();
+
+        setCenter([latitude, longitude]);
+      },
+      () => {},
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+    );
+  }
+
+  function getSportIcon(type: string) {
     const sport = sports.find((s) => s.type === type);
     return L.divIcon({
       className: "custom-marker",
@@ -160,7 +241,29 @@ export default function MapComponent({ courts, searchQuery }: MapComponentProps)
       iconAnchor: [16, 32],
       popupAnchor: [0, -28],
     });
-  };
+  }
 
-  return <div ref={mapRef} className="h-[calc(100vh-324px)] w-full rounded-lg" />;
+  function escapeHtml(s: string) {
+    return String(s)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  useVNIslandsMask(map, {
+    color: "#a3c7df",
+    expandDx: 0.06,
+    expandDy: 0.06,
+    labelColor: "#0f172a",
+    labelHaloColor: "#ffffff",
+    labelSize: 14,
+    hsLabelText: "Quần đảo Hoàng Sa (Việt Nam)",
+    tsLabelText: "Quần đảo Trường Sa (Việt Nam)",
+  });
+
+  return (
+    <div ref={mapRef} className="h-[calc(100vh-324px)] w-full rounded-lg" />
+  );
 }
