@@ -9,10 +9,10 @@ import { getStore, type Store } from "@netlify/blobs";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const isDev = process.env.NEXT_NODE_ENV !== "production";
+const isDev = process.env.NODE_ENV !== "production";
 
 function createBlobStore(): Store {
-  const siteID = process.env.NEXT_NETLIFY_SITE_ID;
+  const siteID = process.env.NETLIFY_SITE_ID;
   const token = process.env.NEXT_NETLIFY_BLOBS_TOKEN;
   if (siteID && token) {
     return getStore({ name: "file-uploads", siteID, token });
@@ -58,11 +58,12 @@ export async function POST(request: NextRequest) {
     // PROD: Netlify Blobs (hoặc S3)
     const store = createBlobStore();
     await store.set(key, file, {
+      ...( { access: "public" } as any ),
       metadata: { contentType: file.type, originalName: safeName },
     });
 
     // Domain public bucket
-    const publicDomain = process.env.NEXT_NEXT_NETLIFY_BLOBS_URL;
+    const publicDomain = process.env.NETLIFY_BLOBS_URL;
 
     return NextResponse.json({
       success: true,
