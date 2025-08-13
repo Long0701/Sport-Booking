@@ -57,18 +57,19 @@ export async function POST(request: NextRequest) {
 
     // PROD: Netlify Blobs (hoặc S3)
     const store = createBlobStore();
+
     await store.set(key, file, {
-      ...( { access: "public" } as any ),
       metadata: { contentType: file.type, originalName: safeName },
     });
 
-    // Domain public bucket
-    const publicDomain = process.env.NETLIFY_BLOBS_URL;
 
-    return NextResponse.json({
-      success: true,
+    // Domain public bucket
+    const imageUrl = `https://${process.env.NETLIFY_SITE_SLUG}.blobs.netlify.com/${encodeURIComponent(key)}`;
+
+      return NextResponse.json({
+        success: true,
       key,
-      imageUrl: `${publicDomain}/${key}`, 
+      imageUrl, 
       message: "Uploaded (prod → Netlify Blobs)",
     });
   } catch (err: any) {
