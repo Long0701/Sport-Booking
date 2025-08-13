@@ -1,57 +1,76 @@
-import { existsSync } from "fs"
-import { mkdir, writeFile } from "fs/promises"
-import { type NextRequest, NextResponse } from "next/server"
-import { join } from "path"
+// app/api/upload/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import { randomUUID } from "crypto";
+import { mkdir, writeFile } from "fs/promises";
+import { existsSync } from "fs";
+import { join } from "path";
+import { getStore, type Store } from "@netlify/blobs";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+const isDev = process.env.NODE_ENV !== "production";
+
+function createBlobStore(): Store {
+  const siteID = process.env.NETLIFY_SITE_ID;
+  const token = process.env.NETLIFY_BLOBS_TOKEN;
+  if (siteID && token) {
+    return getStore({ name: "file-uploads", siteID, token });
+  }
+  return getStore("file-uploads");
+}
 
 export async function POST(request: NextRequest) {
   try {
-    const data = await request.formData()
-    const file: File | null = data.get("file") as unknown as File
+    const form = await request.formData();
+    const file = form.get("file") as File | null;
 
     if (!file) {
-      return NextResponse.json({ success: false, error: "No file uploaded" })
+      return NextResponse.json({ success: false, error: "No file uploaded" }, { status: 400 });
     }
-
-    // Validate file type
-    if (!file.type.startsWith("image/")) {
-      return NextResponse.json({ success: false, error: "Only image files are allowed" })
+    if (!file.type?.startsWith("image/")) {
+      return NextResponse.json({ success: false, error: "Only image files are allowed" }, { status: 400 });
     }
-
-    // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      return NextResponse.json({ success: false, error: "File size must be less than 5MB" })
+      return NextResponse.json({ success: false, error: "File size must be < 5MB" }, { status: 400 });
     }
 
-    const bytes = await file.arrayBuffer()
-    const buffer = Buffer.from(bytes)
+    const safeName = (file.name || "image").replace(/[^a-zA-Z0-9._-]/g, "_");
+    const key = `${Date.now()}_${randomUUID()}_${safeName}`;
 
-    // Generate unique filename
-    const timestamp = Date.now()
-    const originalName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_")
-    const filename = `${timestamp}_${originalName}`
+    if (isDev) {
+      // DEV: lưu local
+      const uploadsDir = join(process.cwd(), "public", "uploads");
+      if (!existsSync(uploadsDir)) {
+        await mkdir(uploadsDir, { recursive: true });
+      }
+      const bytes = new Uint8Array(await file.arrayBuffer()); // ✅ KHÔNG dùng Buffer
+      await writeFile(join(uploadsDir, key), bytes);
 
-    const uploadsDir = join(process.cwd(), "public/uploads")
-    if (!existsSync(uploadsDir)) {
-      await mkdir(uploadsDir, { recursive: true })
+      return NextResponse.json({
+        success: true,
+        key,
+        imageUrl: `/api/upload/${key}`,
+        message: "Uploaded (dev → local folder)",
+      });
     }
 
-    // Save to public/uploads directory
-    const path = join(uploadsDir, filename)
-    await writeFile(path, buffer)
-
-    // Return the public URL
-    const imageUrl = `/uploads/${filename}`
+    // PROD: Netlify Blobs
+    const store = createBlobStore();
+    await store.set(key, file, {
+      metadata: { contentType: file.type, originalName: safeName },
+    });
 
     return NextResponse.json({
       success: true,
-      imageUrl,
-      message: "Image uploaded successfully",
-    })
-  } catch (error) {
-    console.error("Error uploading file:", error)
-    return NextResponse.json({
-      success: false,
-      error: `Failed to upload image: ${error instanceof Error ? error.message : "Unknown error"}`,
-    })
+      key,
+      imageUrl: `/api/upload/${key}`,
+      message: "Uploaded (prod → Netlify Blobs)",
+    });
+  } catch (err: any) {
+    return NextResponse.json(
+      { success: false, error: err?.message ?? "Unknown error" },
+      { status: 500 }
+    );
   }
 }
