@@ -24,6 +24,7 @@ interface Court {
   phone: string
   openTime: string
   closeTime: string
+  numberField: string
   owner: {
     name: string
     phone: string
@@ -242,6 +243,10 @@ const generateTimeSlots = () => {
                 <div className="flex items-center">
                   <Phone className="h-4 w-4 mr-1" />
                   <span>{court.phone}</span>
+                </div>
+                <div className="flex items-center">
+                  <Phone className="h-4 w-4 mr-1" />
+                  <span>{court.numberField}</span>
                 </div>
               </div>
             </div>

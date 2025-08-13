@@ -35,7 +35,15 @@ export default function AddCourtPage() {
     openTime: "06:00",
     closeTime: "22:00",
     phone: "",
+    numberField: "",
+    fieldTypes: [] as Array<{
+      type: string
+      price: string
+      description: string
+       numberField: string,
+    }>,
   })
+  
 
   const [errors, setErrors] = useState<{ [key: string]: string }>({})
 
@@ -46,6 +54,12 @@ export default function AddCourtPage() {
     { value: "basketball", label: "Bóng rổ", icon: "🏀" },
     { value: "volleyball", label: "Bóng chuyền", icon: "🏐" },
     { value: "pickleball", label: "Pickleball", icon: "🏓" },
+  ]
+
+  const footballFieldTypes = [
+    { value: "5vs5", label: "Sân 5 người", description: "Sân bóng đá mini 5 vs 5" },
+    { value: "7vs7", label: "Sân 7 người", description: "Sân bóng đá 7 vs 7" },
+    { value: "11vs11", label: "Sân 11 người", description: "Sân bóng đá tiêu chuẩn 11 vs 11" },
   ]
 
   const availableAmenities = [
@@ -99,6 +113,29 @@ export default function AddCourtPage() {
     }
   }
 
+  const addFieldType = () => {
+    setCourtData((prev) => ({
+      ...prev,
+      fieldTypes: [...prev.fieldTypes, { type: "", price: "", description: "" , numberField: "", quantity: "1" }],
+    }))
+  }
+
+const updateFieldType = (index: number, field: string, value: string) => {
+  setCourtData((prev) => ({
+    ...prev,
+    fieldTypes: prev.fieldTypes.map((fieldType, i) =>
+      i === index ? { ...fieldType, [field]: value } : fieldType
+    ),
+  }))
+}
+
+  const removeFieldType = (index: number) => {
+    setCourtData((prev) => ({
+      ...prev,
+      fieldTypes: prev.fieldTypes.filter((_, i) => i !== index),
+    }))
+  }
+
   const validateStep1 = () => {
     const newErrors: { [key: string]: string } = {}
 
@@ -115,8 +152,23 @@ export default function AddCourtPage() {
   const validateStep2 = () => {
     const newErrors: { [key: string]: string } = {}
 
-    if (!courtData.pricePerHour || Number.parseInt(courtData.pricePerHour) <= 0) {
-      newErrors.pricePerHour = "Giá thuê phải lớn hơn 0"
+    if (courtData.type === "football") {
+      if (courtData.fieldTypes.length === 0) {
+        newErrors.fieldTypes = "Vui lòng thêm ít nhất một loại sân bóng đá"
+      } else {
+        courtData.fieldTypes.forEach((fieldType, index) => {
+          if (!fieldType.type) {
+            newErrors[`fieldType_${index}_type`] = "Vui lòng chọn loại sân"
+          }
+          if (!fieldType.price || Number.parseInt(fieldType.price) <= 0) {
+            newErrors[`fieldType_${index}_price`] = "Giá thuê phải lớn hơn 0"
+          }
+        })
+      }
+    } else {
+      if (!courtData.pricePerHour || Number.parseInt(courtData.pricePerHour) <= 0) {
+        newErrors.pricePerHour = "Giá thuê phải lớn hơn 0"
+      }
     }
 
     setErrors(newErrors)
@@ -151,20 +203,33 @@ export default function AddCourtPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-        body: JSON.stringify({
-          name: courtData.name,
-          type: courtData.type,
-          description: courtData.description,
-          address: courtData.address,
-          coordinates,
-          images: courtData.images.length > 0 ? courtData.images : ["/generic-sports-court.png"],
-          amenities: courtData.amenities,
-          pricePerHour: Number.parseInt(courtData.pricePerHour),
-          openTime: courtData.openTime,
-          closeTime: courtData.closeTime,
-          phone: courtData.phone,
-          ownerId: user.id,
-        }),
+      body: JSON.stringify({
+    name: courtData.name,
+    type: courtData.type,
+    description: courtData.description,
+    address: courtData.address,
+    coordinates,
+    images: courtData.images.length > 0 ? courtData.images : ["/generic-sports-court.png"],
+    amenities: courtData.amenities,
+    // pricePerHour:courtData.pricePerHour,
+    pricePerHour:
+      courtData.type === "football"
+        ? courtData.fieldTypes.map((ft) => Number.parseInt(ft.price))
+        : [Number.parseInt(courtData.pricePerHour)],
+    fieldTypes:
+      courtData.type === "football"
+        ? courtData.fieldTypes.map((ft:any) => ({
+            typeName: ft.type,                          // đổi từ type → typeName
+            quantity: Number.parseInt(ft.quantity) || 1, // thêm quantity (default 1 nếu không có)
+            pricePerHour: Number.parseInt(ft.price),     // đổi từ price → pricePerHour
+          }))
+        : [],
+    openTime: courtData.openTime,
+    closeTime: courtData.closeTime,
+    phone: courtData.phone,
+    ownerId: user.id,
+  }),
+
       })
 
       const data = await response.json()
@@ -202,6 +267,14 @@ export default function AddCourtPage() {
     setUploadingImage(true)
 
     try {
+      const previewUrl = URL.createObjectURL(file)
+      const imageIndex = courtData.images.length
+
+      setCourtData((prev) => ({
+        ...prev,
+        images: [...prev.images, previewUrl],
+      }))
+
       const formData = new FormData()
       formData.append("file", file)
 
@@ -213,18 +286,35 @@ export default function AddCourtPage() {
       const data = await response.json()
 
       if (data.success) {
-        setCourtData((prev) => ({
-          ...prev,
-          images: [...prev.images, data.imageUrl],
-        }))
+        // The database URL will be used when the form is submitted
+        setCourtData((prev) => {
+          const newImages = [...prev.images]
+          newImages[imageIndex] = data.imageUrl
+          return {
+            ...prev,
+            images: newImages,
+          }
+        })
+
         alert("Tải ảnh lên thành công!")
       } else {
+        setCourtData((prev) => ({
+          ...prev,
+          images: prev.images.filter((_, i) => i !== imageIndex),
+        }))
+        URL.revokeObjectURL(previewUrl)
+
         console.error("Upload error:", data.error)
         alert(data.error || "Có lỗi xảy ra khi tải ảnh lên")
       }
     } catch (error) {
       console.error("Error uploading image:", error)
       alert("Có lỗi xảy ra khi tải ảnh lên. Vui lòng thử lại.")
+
+      setCourtData((prev) => ({
+        ...prev,
+        images: prev.images.slice(0, -1),
+      }))
     } finally {
       setUploadingImage(false)
       // Reset file input
@@ -238,6 +328,9 @@ export default function AddCourtPage() {
       images: prev.images.filter((_, i) => i !== index),
     }))
   }
+
+  console.log(courtData);
+  
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -412,23 +505,151 @@ export default function AddCourtPage() {
                 <CardDescription>Thiết lập giá thuê và giờ hoạt động</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="pricePerHour">Giá thuê (VNĐ/giờ) *</Label>
-                    <div className="relative">
-                      <DollarSign className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                      <Input
-                        id="pricePerHour"
-                        type="number"
-                        placeholder="200000"
-                        value={courtData.pricePerHour}
-                        onChange={(e) => handleInputChange("pricePerHour", e.target.value)}
-                        className={`pl-10 ${errors.pricePerHour ? "border-red-500" : ""}`}
-                      />
+                {courtData.type === "football" ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <Label>Loại sân bóng đá & Giá thuê</Label>
+                      {courtData.fieldTypes.length !== 0 && courtData.fieldTypes.length <= 2 && (
+                           <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={addFieldType}
+                        className="text-green-600 border-green-600 hover:bg-green-50 bg-transparent"
+                      >
+                        + Thêm loại sân
+                      </Button>
+                      )}
+                   
                     </div>
-                    {errors.pricePerHour && <p className="text-sm text-red-500">{errors.pricePerHour}</p>}
-                  </div>
 
+                    {errors.fieldTypes && <p className="text-sm text-red-500">{errors.fieldTypes}</p>}
+
+                    {courtData.fieldTypes.map((fieldType, index) => (
+                      <Card key={index} className="p-4 border-l-4 border-l-green-500 flex">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-[88%] mr-4">
+                          <div className="space-y-2">
+                            <Label>Loại sân *</Label>
+                            <Select
+                              value={fieldType.type}
+                              onValueChange={(value) => {
+                                updateFieldType(index, "type", value)
+                                const selectedType = footballFieldTypes.find((ft) => ft.value === value)
+                                // if (selectedType) {
+                                //   updateFieldType(index, "description", selectedType.description)
+                                // }
+                              }}
+                            >
+                              <SelectTrigger className={errors[`fieldType_${index}_type`] ? "border-red-500" : ""}>
+                                <SelectValue placeholder="Chọn loại sân" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {footballFieldTypes.map((type) => (
+                                  <SelectItem key={type.value} value={type.value}>
+                                    {type.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            {errors[`fieldType_${index}_type`] && (
+                              <p className="text-sm text-red-500">{errors[`fieldType_${index}_type`]}</p>
+                            )}
+                          </div>
+
+                          <div className="space-y-2">
+                             <Label>Số lượng sân *</Label>
+                             
+                          <Input
+                          type="number"
+                          placeholder="0"
+                          value={fieldType.numberField}
+                          onChange={(e) => updateFieldType(index, "numberField", e.target.value)}
+                          className={`pl-10 ${errors.numberField ? "border-red-500" : ""}`}
+                        />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label>Giá thuê (VNĐ/giờ) *</Label>
+                            <div className="relative">
+                              <DollarSign className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                              <Input
+                                type="number"
+                                placeholder="200000"
+                                value={fieldType.price}
+                                onChange={(e) => updateFieldType(index, "price", e.target.value)}
+                                className={`pl-10 ${errors[`fieldType_${index}_price`] ? "border-red-500" : ""}`}
+                              />
+                            </div>
+                            {errors[`fieldType_${index}_price`] && (
+                              <p className="text-sm text-red-500">{errors[`fieldType_${index}_price`]}</p>
+                            )}
+                          </div>
+                        </div>
+<div className="space-y-2 flex items-end w-20 float-end">
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => removeFieldType(index)}
+                              className="w-full"
+                            >
+                              <X className="h-4 w-4 mr-2" />
+                              Xóa
+                            </Button>
+                          </div>
+                        <div className="mt-3">
+                          <p className="text-sm text-gray-600">{fieldType.description}</p>
+                        </div>
+                      </Card>
+                    ))}
+
+                    {courtData.fieldTypes.length === 0 && (
+                      <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+                        <p className="text-gray-500 mb-4">Chưa có loại sân nào được thêm</p>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={addFieldType}
+                          className="text-green-600 border-green-600 hover:bg-green-50 bg-transparent"
+                        >
+                          + Thêm loại sân đầu tiên
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="pricePerHour">Giá thuê (VNĐ/giờ) *</Label>
+                      <div className="relative">
+                        <DollarSign className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                        <Input
+                          id="pricePerHour"
+                          type="number"
+                          placeholder="20000000"
+                          value={courtData.pricePerHour}
+                          onChange={(e) => handleInputChange("pricePerHour", e.target.value)}
+                          className={`pl-10 ${errors.pricePerHour ? "border-red-500" : ""}`}
+                        />
+                       
+                      </div>
+                      {errors.pricePerHour && <p className="text-sm text-red-500">{errors.pricePerHour}</p>}
+                    </div>
+                     <div className="space-y-2">
+                             <Label>Số lượng sân *</Label>
+                             
+                          <Input
+                          type="number"
+                          placeholder="0"
+                          value={courtData.numberField}
+                          onChange={(e) => handleInputChange("numberField", e.target.value)}
+                          className={`pl-10 ${errors.numberField ? "border-red-500" : ""}`}
+                        />
+                          </div>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="openTime">Giờ mở cửa</Label>
                     <div className="relative">
@@ -458,6 +679,7 @@ export default function AddCourtPage() {
                   </div>
                 </div>
 
+                {/* Image upload */}
                 <div className="space-y-4">
                   <Label>Hình ảnh sân</Label>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -467,6 +689,10 @@ export default function AddCourtPage() {
                           src={image || "/placeholder.svg"}
                           alt={`Sân ${index + 1}`}
                           className="w-full h-32 object-cover rounded-lg border"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement
+                            target.src = "/placeholder.svg?height=128&width=192&text=Lỗi+tải+ảnh"
+                          }}
                         />
                         <Button
                           type="button"
@@ -528,30 +754,41 @@ export default function AddCourtPage() {
           )}
 
           {/* Step 3: Confirmation */}
-          {step === 3 && (
-            <Card>
-              <CardHeader>
+        {step === 3 && (
+          <Card>
+                <CardHeader>
                 <CardTitle>Xác nhận thông tin</CardTitle>
                 <CardDescription>Kiểm tra lại thông tin trước khi tạo sân</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
+              <CardContent  className="space-y-6">
+                <div>
+                    <div className="space-y-4">
                     <div>
                       <h4 className="font-medium text-gray-900">Thông tin cơ bản</h4>
                       <div className="mt-2 space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Tên sân:</span>
+                        <div className="flex ">
+                          <span className="text-gray-600 pr-2">Tên sân:</span>
                           <span className="font-medium">{courtData.name}</span>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Loại sân:</span>
+                        <div className="flex ">
+                          <span className="text-gray-600 pr-2">Loại sân:</span>
                           <span className="font-medium">
                             {sportTypes.find((s) => s.value === courtData.type)?.label}
                           </span>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Số điện thoại:</span>
+                       <div className="flex gap-2">
+  <span className="text-gray-600 pr-2">Số lượng sân:</span>
+  <span className="font-medium">
+    {courtData.type !== "football" &&(<span>{courtData.numberField} Sân</span>)}
+    {courtData.fieldTypes.map((field, index) => (
+      <span key={index}>
+        {field.type}: {field.numberField} Sân{index < courtData.fieldTypes.length - 1 ? ', ' : ''}
+      </span>
+    ))}
+  </span>
+</div>
+                        <div className="flex ">
+                          <span className="text-gray-600 pr-2">Số điện thoại:</span>
                           <span className="font-medium">{courtData.phone}</span>
                         </div>
                       </div>
@@ -559,26 +796,42 @@ export default function AddCourtPage() {
 
                     <div>
                       <h4 className="font-medium text-gray-900">Địa chỉ</h4>
-                      <p className="mt-1 text-sm text-gray-600">{courtData.address}</p>
+                      <p className="mt-1 text-sm text-gray-600 pr-2">{courtData.address}</p>
                     </div>
 
                     <div>
                       <h4 className="font-medium text-gray-900">Mô tả</h4>
-                      <p className="mt-1 text-sm text-gray-600">{courtData.description}</p>
+                      <p className="mt-1 text-sm text-gray-600 pr-2">{courtData.description}</p>
                     </div>
                   </div>
 
                   <div className="space-y-4">
-                    <div>
+                    <div >
                       <h4 className="font-medium text-gray-900">Giá & Thời gian</h4>
                       <div className="mt-2 space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Giá thuê:</span>
-                          <span className="font-medium text-green-600">
-                            {Number.parseInt(courtData.pricePerHour).toLocaleString("vi-VN")}đ/giờ
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
+                        {courtData.type === "football" ? (
+                          <div className="space-y-2">
+                            <span className="text-gray-600 pr-2">Loại sân & Giá:</span>
+                            {courtData.fieldTypes.map((fieldType, index) => (
+                              <div key={index} className="flex">
+                                <span className="text-gray-600">
+                                  {footballFieldTypes.find((ft) => ft.value === fieldType.type)?.label}:
+                                </span>
+                                <span className="font-medium text-green-600">
+                                  {Number.parseInt(fieldType.price).toLocaleString("vi-VN")}đ/giờ
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="flex">
+                            <span className="text-gray-600">Giá thuê:</span>
+                            <span className="font-medium text-green-600">
+                              {Number.parseInt(courtData.pricePerHour).toLocaleString("vi-VN")}đ/giờ
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex ">
                           <span className="text-gray-600">Giờ hoạt động:</span>
                           <span className="font-medium">
                             {courtData.openTime} - {courtData.closeTime}
@@ -607,13 +860,18 @@ export default function AddCourtPage() {
                             src={image || "/placeholder.svg"}
                             alt={`Sân ${index + 1}`}
                             className="w-full h-16 object-cover rounded border"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement
+                              target.src = "/placeholder.svg?height=64&width=64&text=Lỗi"
+                            }}
                           />
                         ))}
                       </div>
                     </div>
                   </div>
                 </div>
-                <form onSubmit={handleSubmit}>
+              </CardContent>
+               <form onSubmit={handleSubmit} className="px-6 pb-6">
                   <div className="flex items-center space-x-2 mb-6">
                     <Checkbox id="confirm" required />
                     <Label htmlFor="confirm" className="text-sm">
@@ -633,9 +891,8 @@ export default function AddCourtPage() {
                     </Button>
                   </div>
                 </form>
-              </CardContent>
-            </Card>
-          )}
+          </Card>
+        )}
         </div>
       </div>
     </div>
