@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
       if (!existsSync(uploadsDir)) {
         await mkdir(uploadsDir, { recursive: true });
       }
-      const bytes = new Uint8Array(await file.arrayBuffer()); // ✅ KHÔNG dùng Buffer
+      const bytes = new Uint8Array(await file.arrayBuffer());
       await writeFile(join(uploadsDir, key), bytes);
 
       return NextResponse.json({
@@ -55,16 +55,19 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // PROD: Netlify Blobs
+    // PROD: Netlify Blobs (hoặc S3)
     const store = createBlobStore();
     await store.set(key, file, {
       metadata: { contentType: file.type, originalName: safeName },
     });
 
+    // Domain public bucket
+    const publicDomain = "https://cmh-services-prod-netliblob-935421240257.s3.us-east-2.amazonaws.com";
+
     return NextResponse.json({
       success: true,
       key,
-      imageUrl: `/api/upload/${key}`,
+      imageUrl: `${publicDomain}/${key}`, // trả URL public thẳng
       message: "Uploaded (prod → Netlify Blobs)",
     });
   } catch (err: any) {
