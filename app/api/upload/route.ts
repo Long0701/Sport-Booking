@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Domain public bucket
-    const publicDomain = process.env.NETLIFY_BLOBS_URL;
+    const publicDomain = `${process.env.NETLIFY_BLOBS_URL}/${process.env.NETLIFY_SITE_ID}/site:file-uploads`;
 
     return NextResponse.json({
       success: true,
