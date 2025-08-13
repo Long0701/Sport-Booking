@@ -9,11 +9,11 @@ import { getStore, type Store } from "@netlify/blobs";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const isDev = process.env.NODE_ENV !== "production";
+const isDev = process.env.NEXT_NODE_ENV !== "production";
 
 function createBlobStore(): Store {
-  const siteID = process.env.NETLIFY_SITE_ID;
-  const token = process.env.NETLIFY_BLOBS_TOKEN;
+  const siteID = process.env.NEXT_NETLIFY_SITE_ID;
+  const token = process.env.NEXT_NETLIFY_BLOBS_TOKEN;
   if (siteID && token) {
     return getStore({ name: "file-uploads", siteID, token });
   }
@@ -62,12 +62,12 @@ export async function POST(request: NextRequest) {
     });
 
     // Domain public bucket
-    const publicDomain = "https://cmh-services-prod-netliblob-935421240257.s3.us-east-2.amazonaws.com";
+    const publicDomain = process.env.NEXT_NEXT_NETLIFY_BLOBS_URL;
 
     return NextResponse.json({
       success: true,
       key,
-      imageUrl: `${publicDomain}/${key}`, // trả URL public thẳng
+      imageUrl: `${publicDomain}/${key}`, 
       message: "Uploaded (prod → Netlify Blobs)",
     });
   } catch (err: any) {
