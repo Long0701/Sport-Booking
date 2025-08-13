@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
 
 
     // Domain public bucket
-    const imageUrl = `https://${process.env.NETLIFY_SITE_SLUG}.blobs.netlify.com/${encodeURIComponent(key)}`;
+    const imageUrl = `/api/upload/${key}`;
 
       return NextResponse.json({
         success: true,
