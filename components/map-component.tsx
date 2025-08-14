@@ -167,17 +167,8 @@ export default function MapComponent({
           <h3 class="font-semibold text-sm">${escapeHtml(court.name)}</h3>
           <p class="text-xs text-gray-600 mb-2">${escapeHtml(court.address)}</p>
           <div class="flex items-center justify-between">
-            <span class="text-sm font-bold text-green-600">${Number(
-              court.pricePerHour || 0
-            ).toLocaleString("vi-VN")}đ/giờ</span>
-            <span class="text-xs">⭐ ${court.rating ?? "-"}</span>
-          </div>
-          <div>
-            <a href="/court/${court._id}" 
-               style="display:block; width:100%;" 
-               class="mt-2 px-3 py-1 bg-green-600 hover:bg-green-700 !text-white rounded text-xs text-center">
-              Đặt sân
-            </a>
+            <span class="text-sm font-bold text-green-600">${court.pricePerHour.toLocaleString('vi-VN') || 0}đ/giờ</span>
+            <span class="text-xs">⭐ ${court.rating}</span>
           </div>
         </div>
       `;
