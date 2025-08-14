@@ -265,7 +265,9 @@ const selectedDateStr = `${selectedDate.getFullYear()}-${String(selectedDate.get
               <div className="flex items-center space-x-1 mb-2">
                 <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
                 <span className="text-lg font-bold">{court.rating}</span>
-                <span className="text-gray-600">({totalReviews} đánh giá)</span>
+                {court.reviewCount > 0 && (
+                  <span className="text-gray-600">({court.reviewCount} đánh giá)</span>
+                )}
               </div>
               <div className="text-2xl font-bold text-green-600">
                 {court.pricePerHour.toLocaleString('vi-VN')}đ/giờ
@@ -400,7 +402,10 @@ const selectedDateStr = `${selectedDate.getFullYear()}-${String(selectedDate.get
                   )}
                   <div className="p-3 bg-green-50 rounded-lg">
                     <span className="font-medium text-green-800">⭐ Đánh giá cao:</span>
-                    <p className="text-green-700">Sân này được đánh giá {court.rating}/5 sao</p>
+                    <p className="text-green-700">
+                      Sân này được đánh giá {court.rating}/5 sao
+                      {court.reviewCount > 0 && ` (${court.reviewCount} đánh giá)`}
+                    </p>
                   </div>
                 </div>
               </CardContent>

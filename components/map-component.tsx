@@ -21,6 +21,7 @@ interface Court {
   address: string;
   pricePerHour: number;
   rating: number;
+  reviewCount: number;
   location: {
     coordinates: [string, string];
   };
