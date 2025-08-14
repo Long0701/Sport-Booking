@@ -1,5 +1,6 @@
 'use client'
 
+import Header from "@/components/shared/header"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -25,7 +26,7 @@ interface Court {
   rating: number
   images: string[]
   location: {
-    coordinates: [number, number]
+    coordinates: [string, string]
   }
   owner: {
     name: string
@@ -41,6 +42,10 @@ export default function SearchPage() {
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list')
   const [weather, setWeather] = useState<any>(null)
+  const [page, setPage] = useState(1)
+const [totalPages, setTotalPages] = useState(1)
+const [loadingMore, setLoadingMore] = useState(false)
+const [total, setTotal] = useState(0)
 
   // Fetch courts from API
   useEffect(() => {
@@ -48,30 +53,44 @@ export default function SearchPage() {
     fetchWeather()
   }, [selectedSport, searchQuery])
 
-  const fetchCourts = async () => {
-    try {
+const fetchCourts = async (reset: boolean = true) => {
+  try {
+    if (reset) {
       setLoading(true)
-      const params = new URLSearchParams()
-      
-      if (selectedSport !== 'all') {
-        params.append('type', selectedSport)
-      }
-      if (searchQuery) {
-        params.append('search', searchQuery)
-      }
-
-      const response = await fetch(`/api/courts?${params}`)
-      const data = await response.json()
-
-      if (data.success) {
-        setCourts(data.data)
-      }
-    } catch (error) {
-      console.error('Error fetching courts:', error)
-    } finally {
-      setLoading(false)
+      setPage(1)
+    } else {
+      setLoadingMore(true)
     }
+
+    const params = new URLSearchParams()
+    const limit = viewMode === 'list' ? 10 : 100
+    params.append('limit', limit.toString())
+    params.append('page', reset ? '1' : (page + 1).toString())
+
+    if (selectedSport !== 'all') params.append('type', selectedSport)
+    if (searchQuery) params.append('search', searchQuery)
+
+    const response = await fetch(`/api/courts?${params}`)
+    const data = await response.json()
+
+    if (data.success) {
+      if (reset) {
+        setCourts(data.data)
+      } else {
+        setCourts(prev => [...prev, ...data.data])
+      }
+      setPage(reset ? 1 : page + 1)
+      setTotalPages(data.pagination.pages)
+      setTotal(data.pagination.total)
+
+    }
+  } catch (error) {
+    console.error('Error fetching courts:', error)
+  } finally {
+    setLoading(false)
+    setLoadingMore(false)
   }
+}
 
   const fetchWeather = async () => {
     try {
@@ -114,16 +133,18 @@ export default function SearchPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+    <Header></Header>
+
       {/* Header */}
       <header className="bg-white border-b sticky top-0 z-40">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center space-x-2">
+          <div className="flex items-center justify-end">
+            {/* <Link href="/" className="flex items-center space-x-2">
               <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold">🏟️</span>
               </div>
               <span className="text-xl font-bold">SportBooking</span>
-            </Link>
+            </Link> */}
             <div className="flex items-center space-x-4">
               <Button
                 variant={viewMode === 'list' ? 'default' : 'outline'}
@@ -144,7 +165,7 @@ export default function SearchPage() {
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-6">
+      <div className="container mx-auto px-4 py-6 overflow-auto h-[calc(100vh-160px)]">
         {/* Search Filters */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -204,7 +225,7 @@ export default function SearchPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold">
-                Tìm thấy {courts.length} sân phù hợp
+                Tìm thấy {total} sân phù hợp
               </h2>
               {/* <Button variant="outline" size="sm">
                 <Filter className="h-4 w-4 mr-2" />
@@ -279,6 +300,17 @@ export default function SearchPage() {
                     </div>
                   </Card>
                 ))}
+
+                {page < totalPages && (
+  <div className="flex justify-center mt-4">
+    <Button 
+      onClick={() => fetchCourts(false)}
+      disabled={loadingMore}
+    >
+      {loadingMore ? 'Đang tải...' : 'Xem thêm'}
+    </Button>
+  </div>
+)}
               </div>
             )}
           </div>
