@@ -40,6 +40,7 @@ export default function CourtDetailPage() {
   const [loading, setLoading] = useState(true)
   const [weather, setWeather] = useState<any>(null)
   const [reviews, setReviews] = useState<any[]>([])
+  const [totalReviews, setTotalReviews] = useState<number>(0)
   const [reviewsLoading, setReviewsLoading] = useState(false)
   const { user } = useAuth();
   useEffect(() => {
@@ -55,7 +56,6 @@ export default function CourtDetailPage() {
       setLoading(true)
       const response = await fetch(`/api/courts/${params.id}`)
       const data = await response.json()
-
       if (data.success) {
         setCourt(data.data)
       } else {
@@ -92,7 +92,9 @@ export default function CourtDetailPage() {
       const data = await response.json()
 
       if (data.success) {
-        setReviews(data.data)
+        setReviews(data.data);
+        setTotalReviews(data.pagination.total);
+
       } else {
         console.error('Error fetching reviews:', data.error)
       }
@@ -261,7 +263,7 @@ const generateTimeSlots = () => {
               <div className="flex items-center space-x-1 mb-2">
                 <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
                 <span className="text-lg font-bold">{court.rating}</span>
-                <span className="text-gray-600">({court.reviewCount} đánh giá)</span>
+                <span className="text-gray-600">({totalReviews} đánh giá)</span>
               </div>
               <div className="text-2xl font-bold text-green-600">
                 {court.pricePerHour.toLocaleString('vi-VN')}đ/giờ
