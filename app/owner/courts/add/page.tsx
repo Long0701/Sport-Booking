@@ -131,6 +131,33 @@ export default function AddCourtPage() {
     }
   }
 
+  const getCoordinatesFromAddress = async (address: string) => {
+    console.log(address);
+    
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+        address
+      )}&limit=1`,
+      { headers: { "Accept-Language": "vi,en;q=0.8" } }
+    );
+    const data = await res.json();
+
+    console.log(res);
+    console.log(data);
+    
+    
+    if (data.length === 0) return null;
+    return {
+      lat: parseFloat(data[0].lat),
+      lng: parseFloat(data[0].lon),
+    };
+  } catch (err) {
+    console.error("Geocoding error:", err);
+    return null;
+  }
+};
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -140,10 +167,10 @@ export default function AddCourtPage() {
 
     try {
       // Get coordinates from address (mock for now)
-      const coordinates = {
-        lat: 10.7769 + (Math.random() - 0.5) * 0.1, // Random around HCM
-        lng: 106.7009 + (Math.random() - 0.5) * 0.1,
-      }
+const coordinates = await getCoordinatesFromAddress(courtData.address);
+
+console.log("Coordinates:", coordinates);
+
 
       const response = await fetch("/api/courts", {
         method: "POST",
