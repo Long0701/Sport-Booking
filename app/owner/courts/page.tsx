@@ -27,6 +27,7 @@ import {
 import { ArrowLeft, Plus, Search, MoreHorizontal, Edit, Trash2, Eye, Star, MapPin, Clock, ToggleLeft, ToggleRight } from 'lucide-react'
 import Link from "next/link"
 import { useAuth } from '@/contexts/AuthContext'
+import { formatRating } from "@/lib/utils"
 
 interface Court {
   id: number
@@ -335,7 +336,7 @@ export default function CourtsManagementPage() {
                           </div>
                           <div className="flex items-center">
                             <Star className="h-4 w-4 mr-1 text-yellow-400" />
-                            <span>{court.rating} ({court.review_count} đánh giá)</span>
+                            <span>{formatRating(court.rating)} ({court.review_count} đánh giá)</span>
                           </div>
                         </div>
                       </div>

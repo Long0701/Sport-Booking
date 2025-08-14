@@ -10,6 +10,7 @@ import { Car, Clock, MapPin, Phone, ShowerHeadIcon as Shower, Star, Sun, Users, 
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
+import { formatRating } from "@/lib/utils"
 interface Court {
   _id: string
   name: string
@@ -264,7 +265,7 @@ const selectedDateStr = `${selectedDate.getFullYear()}-${String(selectedDate.get
             <div className="text-right">
               <div className="flex items-center space-x-1 mb-2">
                 <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                <span className="text-lg font-bold">{court.rating}</span>
+                                 <span className="text-lg font-bold">{formatRating(court.rating)}</span>
                 {court.reviewCount > 0 && (
                   <span className="text-gray-600">({court.reviewCount} đánh giá)</span>
                 )}
@@ -402,10 +403,10 @@ const selectedDateStr = `${selectedDate.getFullYear()}-${String(selectedDate.get
                   )}
                   <div className="p-3 bg-green-50 rounded-lg">
                     <span className="font-medium text-green-800">⭐ Đánh giá cao:</span>
-                    <p className="text-green-700">
-                      Sân này được đánh giá {court.rating}/5 sao
-                      {court.reviewCount > 0 && ` (${court.reviewCount} đánh giá)`}
-                    </p>
+                                         <p className="text-green-700">
+                       Sân này được đánh giá {formatRating(court.rating)}/5 sao
+                       {court.reviewCount > 0 && ` (${court.reviewCount} đánh giá)`}
+                     </p>
                   </div>
                 </div>
               </CardContent>

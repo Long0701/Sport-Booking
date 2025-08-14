@@ -3,6 +3,7 @@
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { formatRating } from "@/lib/utils"
 import { Clock, MapPin, Phone, Star } from "lucide-react"
 import { getSportIcon, getSportLabel } from "./count-card"
 
@@ -91,7 +92,7 @@ export default function CourtDetailModal({ court, isOpen, onClose, onBook }: Cou
                 {court.rating && (
                   <div className="flex items-center space-x-2 text-sm">
                     <Star className="h-4 w-4 text-yellow-500 fill-current" />
-                    <span>{court.rating}/5</span>
+                                            <span>{formatRating(court.rating)}/5</span>
                     {court.reviewCount && <span className="text-gray-500">({court.reviewCount} đánh giá)</span>}
                   </div>
                 )}
