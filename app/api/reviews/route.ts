@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: reviews.map(review => ({
+      data: reviews.map((review: any) => ({
         _id: review.id,
         user: {
           name: review.user_name,
@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
       `, [courtId])
       
       const reviews = reviewsResult.rows
-      const avgRating = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+      const avgRating = reviews.reduce((sum: number, r: any) => sum + r.rating, 0) / reviews.length
       
       // Update court rating
       await client.query(`
@@ -152,7 +152,7 @@ export async function POST(request: NextRequest) {
             review_count = $2,
             updated_at = CURRENT_TIMESTAMP
         WHERE id = $3
-      `, [Math.round(avgRating * 10) / 10, reviews.length, courtId])
+      `, [Math.round(avgRating * 100) / 100, reviews.length, courtId])
 
       return review
     })

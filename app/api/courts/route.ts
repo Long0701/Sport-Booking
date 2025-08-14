@@ -45,12 +45,14 @@ export async function GET(request: NextRequest) {
 
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : ''
 
-    // Get courts with owner info
+    // Get courts with owner info and calculated ratings
     const courtsQuery = `
       SELECT 
         c.*,
         u.name as owner_name,
         u.phone as owner_phone,
+        COALESCE(AVG(r.rating), 0) as calculated_rating,
+        COUNT(r.id) as actual_review_count,
         ${lat && lng ? `
           (6371 * acos(cos(radians($${params.findIndex(p => p === parseFloat(lat)) + 1})) * cos(radians(c.latitude)) * 
           cos(radians(c.longitude) - radians($${params.findIndex(p => p === parseFloat(lng)) + 1})) + 
@@ -58,8 +60,10 @@ export async function GET(request: NextRequest) {
         ` : '0 as distance'}
       FROM courts c
       LEFT JOIN users u ON c.owner_id = u.id
+      LEFT JOIN reviews r ON c.id = r.court_id
       ${whereClause}
-      ORDER BY c.rating DESC, c.created_at DESC
+      GROUP BY c.id, u.name, u.phone
+      ORDER BY calculated_rating DESC, c.created_at DESC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `
 
@@ -85,10 +89,11 @@ export async function GET(request: NextRequest) {
         type: court.type,
         address: court.address,
         pricePerHour: court.price_per_hour,
-        rating: parseFloat(court.rating),
+        rating: Math.round(parseFloat(court.calculated_rating) * 100) / 100,
+        reviewCount: parseInt(court.actual_review_count),
         images: court.images,
         location: {
-          coordinates: [court.longitude, court.latitude]
+          coordinates: [court.longitude.toString(), court.latitude.toString()]
         },
         owner: {
           name: court.owner_name,

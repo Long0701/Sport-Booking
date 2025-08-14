@@ -3,6 +3,7 @@ import { useVNIslandsMask } from "@/hooks/use-vn-islands-mask";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useEffect, useRef, useState } from "react";
+import { formatRating } from "@/lib/utils";
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -21,6 +22,7 @@ interface Court {
   address: string;
   pricePerHour: number;
   rating: number;
+  reviewCount: number;
   location: {
     coordinates: [string, string];
   };
@@ -170,7 +172,7 @@ export default function MapComponent({
             <span class="text-sm font-bold text-green-600">${Number(
               court.pricePerHour || 0
             ).toLocaleString("vi-VN")}đ/giờ</span>
-            <span class="text-xs">⭐ ${court.rating ?? "-"}</span>
+                         <span class="text-xs">⭐ ${court.rating ? formatRating(court.rating) : "-"}</span>
           </div>
           <div>
             <a href="/court/${court._id}" 

@@ -56,6 +56,7 @@ export default function CourtDetailPage() {
   const [loading, setLoading] = useState(true)
   const [weather, setWeather] = useState<any>(null)
   const [reviews, setReviews] = useState<any[]>([])
+  const [totalReviews, setTotalReviews] = useState<number>(0)
   const [reviewsLoading, setReviewsLoading] = useState(false)
   const { user } = useAuth();
   useEffect(() => {
@@ -108,7 +109,9 @@ export default function CourtDetailPage() {
       const data = await response.json()
 
       if (data.success) {
-        setReviews(data.data)
+        setReviews(data.data);
+        setTotalReviews(data.pagination.total);
+
       } else {
         console.error('Error fetching reviews:', data.error)
       }
