@@ -10,6 +10,15 @@ import dynamic from 'next/dynamic'
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { formatRating } from "@/lib/utils"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+  PaginationEllipsis,
+} from "@/components/ui/pagination"
 
 // Dynamic import for map to avoid SSR issues
 const MapComponent = dynamic(() => import('@/components/map-component'), { 
@@ -43,11 +52,23 @@ export default function SearchPage() {
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list')
   const [weather, setWeather] = useState<any>(null)
+  const [page, setPage] = useState(1)
+  const [pages, setPages] = useState(1)
+  const [total, setTotal] = useState(0)
+  const [limit, setLimit] = useState(10)
 
   // Fetch courts from API
   useEffect(() => {
     fetchCourts()
+  }, [selectedSport, searchQuery, page, limit])
+
+  useEffect(() => {
     fetchWeather()
+  }, [])
+
+  // Reset to page 1 when filters/search change
+  useEffect(() => {
+    setPage(1)
   }, [selectedSport, searchQuery])
 
   const fetchCourts = async () => {
@@ -61,12 +82,21 @@ export default function SearchPage() {
       if (searchQuery) {
         params.append('search', searchQuery)
       }
+      params.append('page', String(page))
+      params.append('limit', String(limit))
 
       const response = await fetch(`/api/courts?${params}`)
       const data = await response.json()
 
       if (data.success) {
         setCourts(data.data)
+        if (data.pagination) {
+          setTotal(data.pagination.total || 0)
+          setPages(data.pagination.pages || 1)
+        } else {
+          setTotal(data.data?.length || 0)
+          setPages(1)
+        }
       }
     } catch (error) {
       console.error('Error fetching courts:', error)
@@ -206,7 +236,7 @@ export default function SearchPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold">
-                Tìm thấy {courts.length} sân phù hợp
+                Tìm thấy {total} sân phù hợp
               </h2>
               {/* <Button variant="outline" size="sm">
                 <Filter className="h-4 w-4 mr-2" />
@@ -230,61 +260,146 @@ export default function SearchPage() {
                 ))}
               </div>
             ) : (
-              <div className="grid gap-4">
-                {courts.map((court) => (
-                  <Card key={court._id} className="hover:shadow-lg transition-shadow">
-                    <div className="flex flex-col md:flex-row">
-                      <div className="w-full md:w-72 h-48 md:h-44">
-                        <img
-                          src={court.images[0] || "/placeholder.svg?height=200&width=400&query=sports court"}
-                          alt={court.name}
-                          className="w-full h-full object-cover rounded-t-lg md:rounded-l-lg md:rounded-t-none"
-                        />
-                      </div>
-                      <div className="flex-1 p-4">
-                        <div className="flex items-start justify-between mb-2">
-                          <div>
-                            <h3 className="text-lg font-semibold">{court.name}</h3>
-                            <Badge variant="secondary" className="mb-2">
-                              {getSportTypeInVietnamese(court.type)}
-                            </Badge>
-                          </div>
-                          <div className="text-right">
-                            <div className="flex items-center space-x-1 mb-1">
-                              <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                              <span className="font-medium">{formatRating(court.rating)}</span>
-                              {court.reviewCount > 0 && (
-                                <span className="text-sm text-gray-500">({court.reviewCount})</span>
-                              )}
+              <>
+                <div className="grid gap-4">
+                  {courts.map((court) => (
+                    <Card key={court._id} className="hover:shadow-lg transition-shadow">
+                      <div className="flex flex-col md:flex-row">
+                        <div className="w-full md:w-72 h-48 md:h-44">
+                          <img
+                            src={court.images[0] || "/placeholder.svg?height=200&width=400&query=sports court"}
+                            alt={court.name}
+                            className="w-full h-full object-cover rounded-t-lg md:rounded-l-lg md:rounded-t-none"
+                          />
+                        </div>
+                        <div className="flex-1 p-4">
+                          <div className="flex items-start justify-between mb-2">
+                            <div>
+                              <h3 className="text-lg font-semibold">{court.name}</h3>
+                              <Badge variant="secondary" className="mb-2">
+                                {getSportTypeInVietnamese(court.type)}
+                              </Badge>
+                            </div>
+                            <div className="text-right">
+                              <div className="flex items-center space-x-1 mb-1">
+                                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                                <span className="font-medium">{formatRating(court.rating)}</span>
+                                {court.reviewCount > 0 && (
+                                  <span className="text-sm text-gray-500">({court.reviewCount})</span>
+                                )}
+                              </div>
                             </div>
                           </div>
+                          
+                          <div className="flex items-center text-gray-600 mb-2">
+                            <MapPin className="h-4 w-4 mr-1" />
+                            <span className="text-sm">{court.address}</span>
+                          </div>
+  
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <div className="text-lg font-bold text-green-600">
+                                {court.pricePerHour.toLocaleString('vi-VN')}đ/giờ
+                              </div>
+                              <div className="text-sm text-gray-600">
+                                Chủ sân: {court.owner.name}
+                              </div>
+                            </div>
+                            <Link href={`/court/${court._id}`}>
+                              <Button className="bg-green-600 hover:bg-green-700">
+                                Đặt sân
+                              </Button>
+                            </Link>
+                          </div>
                         </div>
-                        
-                        <div className="flex items-center text-gray-600 mb-2">
-                          <MapPin className="h-4 w-4 mr-1" />
-                          <span className="text-sm">{court.address}</span>
-                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+                {pages > 1 && (
+                  <div className="mt-4">
+                    <Pagination>
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious
+                            href="#"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              if (page > 1) setPage(page - 1)
+                            }}
+                            className={page === 1 ? 'pointer-events-none opacity-50' : ''}
+                          />
+                        </PaginationItem>
 
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="text-lg font-bold text-green-600">
-                              {court.pricePerHour.toLocaleString('vi-VN')}đ/giờ
-                            </div>
-                            <div className="text-sm text-gray-600">
-                              Chủ sân: {court.owner.name}
-                            </div>
-                          </div>
-                          <Link href={`/court/${court._id}`}>
-                            <Button className="bg-green-600 hover:bg-green-700">
-                              Đặt sân
-                            </Button>
-                          </Link>
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
+                        {(() => {
+                          const items: JSX.Element[] = []
+                          const maxToShow = 5
+                          let start = Math.max(1, page - 2)
+                          let end = Math.min(pages, start + maxToShow - 1)
+                          start = Math.max(1, Math.min(start, end - maxToShow + 1))
+
+                          if (start > 1) {
+                            items.push(
+                              <PaginationItem key={1}>
+                                <PaginationLink href="#" onClick={(e) => { e.preventDefault(); setPage(1) }}>1</PaginationLink>
+                              </PaginationItem>
+                            )
+                            if (start > 2) {
+                              items.push(
+                                <PaginationItem key="start-ellipsis">
+                                  <PaginationEllipsis />
+                                </PaginationItem>
+                              )
+                            }
+                          }
+
+                          for (let p = start; p <= end; p++) {
+                            items.push(
+                              <PaginationItem key={p}>
+                                <PaginationLink
+                                  href="#"
+                                  isActive={p === page}
+                                  onClick={(e) => { e.preventDefault(); setPage(p) }}
+                                >
+                                  {p}
+                                </PaginationLink>
+                              </PaginationItem>
+                            )
+                          }
+
+                          if (end < pages) {
+                            if (end < pages - 1) {
+                              items.push(
+                                <PaginationItem key="end-ellipsis">
+                                  <PaginationEllipsis />
+                                </PaginationItem>
+                              )
+                            }
+                            items.push(
+                              <PaginationItem key={pages}>
+                                <PaginationLink href="#" onClick={(e) => { e.preventDefault(); setPage(pages) }}>{pages}</PaginationLink>
+                              </PaginationItem>
+                            )
+                          }
+
+                          return items
+                        })()}
+
+                        <PaginationItem>
+                          <PaginationNext
+                            href="#"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              if (page < pages) setPage(page + 1)
+                            }}
+                            className={page === pages ? 'pointer-events-none opacity-50' : ''}
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                  </div>
+                )}
+              </>
             )}
           </div>
         ) : (
