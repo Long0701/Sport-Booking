@@ -28,15 +28,6 @@ interface Court {
     name: string
     phone: string
   }
-  reviews: Array<{
-    _id: string
-    user: {
-      name: string
-    }
-    rating: number
-    comment: string
-    createdAt: string
-  }>
   bookedSlots: string[]
 }
 
@@ -48,11 +39,14 @@ export default function CourtDetailPage() {
   const [selectedSlot, setSelectedSlot] = useState<string>("")
   const [loading, setLoading] = useState(true)
   const [weather, setWeather] = useState<any>(null)
+  const [reviews, setReviews] = useState<any[]>([])
+  const [reviewsLoading, setReviewsLoading] = useState(false)
   const { user } = useAuth();
   useEffect(() => {
     if (params.id) {
       fetchCourt()
       fetchWeather()
+      fetchReviews()
     }
   }, [params.id])
 
@@ -88,6 +82,24 @@ export default function CourtDetailPage() {
       }
     } catch (error) {
       console.error('Error fetching weather:', error)
+    }
+  }
+
+  const fetchReviews = async () => {
+    try {
+      setReviewsLoading(true)
+      const response = await fetch(`/api/courts/${params.id}/reviews`)
+      const data = await response.json()
+
+      if (data.success) {
+        setReviews(data.data)
+      } else {
+        console.error('Error fetching reviews:', data.error)
+      }
+    } catch (error) {
+      console.error('Error fetching reviews:', error)
+    } finally {
+      setReviewsLoading(false)
     }
   }
 
@@ -338,8 +350,10 @@ const selectedDateStr = `${selectedDate.getFullYear()}-${String(selectedDate.get
               
               <TabsContent value="reviews" className="p-6">
                 <div className="space-y-4">
-                  {court.reviews.length > 0 ? (
-                    court.reviews.map((review) => (
+                  {reviewsLoading ? (
+                    <div className="text-center text-gray-500">Đang tải đánh giá...</div>
+                  ) : reviews.length > 0 ? (
+                    reviews.map((review) => (
                       <Card key={review._id}>
                         <CardContent className="p-4">
                           <div className="flex items-center justify-between mb-2">
