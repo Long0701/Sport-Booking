@@ -1,5 +1,6 @@
 "use client";
 
+import Header from "@/components/shared/header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -220,12 +221,13 @@ export default function OwnerDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <Header></Header>
       {/* Header */}
       <header className="bg-white border-b">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-end">
             <Link href="/">
-              <div className="flex items-center space-x-2">
+              {/* <div className="flex items-center space-x-2">
                 <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
                   <span className="text-white font-bold">📊</span>
                 </div>
@@ -235,7 +237,7 @@ export default function OwnerDashboard() {
                     Xin chào, {user?.name}
                   </p>
                 </div>
-              </div>
+              </div> */}
             </Link>
             <div className="flex items-center space-x-2">
               <Link href="/owner/courts">
