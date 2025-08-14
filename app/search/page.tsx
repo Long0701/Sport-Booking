@@ -9,6 +9,7 @@ import { Cloud, CloudRain, MapPin, Star, Sun } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import Link from "next/link"
 import { useEffect, useState } from "react"
+import { formatRating } from "@/lib/utils"
 
 // Dynamic import for map to avoid SSR issues
 const MapComponent = dynamic(() => import('@/components/map-component'), { 
@@ -251,7 +252,7 @@ export default function SearchPage() {
                           <div className="text-right">
                             <div className="flex items-center space-x-1 mb-1">
                               <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                              <span className="font-medium">{court.rating}</span>
+                              <span className="font-medium">{formatRating(court.rating)}</span>
                               {court.reviewCount > 0 && (
                                 <span className="text-sm text-gray-500">({court.reviewCount})</span>
                               )}

@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
         type: court.type,
         address: court.address,
         price_per_hour: court.price_per_hour,
-        rating: parseFloat(court.avg_rating) || 0,
+        rating: Math.round((parseFloat(court.avg_rating) || 0) * 100) / 100,
         review_count: parseInt(court.review_count) || 0,
         images: court.images,
         is_active: court.is_active,

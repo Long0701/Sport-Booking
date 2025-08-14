@@ -90,7 +90,7 @@ const bookedSlots = bookings.map(booking => {
         type: court.type,
         address: court.address,
         pricePerHour: court.price_per_hour,
-        rating: parseFloat(court.calculated_rating),
+        rating: Math.round(parseFloat(court.calculated_rating) * 100) / 100,
         reviewCount: parseInt(court.actual_review_count),
         images: court.images,
         description: court.description,
