@@ -23,9 +23,10 @@ interface Court {
   address: string
   pricePerHour: number
   rating: number
+  reviewCount: number
   images: string[]
   location: {
-    coordinates: [number, number]
+    coordinates: [string, string]
   }
   owner: {
     name: string
@@ -251,6 +252,9 @@ export default function SearchPage() {
                             <div className="flex items-center space-x-1 mb-1">
                               <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                               <span className="font-medium">{court.rating}</span>
+                              {court.reviewCount > 0 && (
+                                <span className="text-sm text-gray-500">({court.reviewCount})</span>
+                              )}
                             </div>
                           </div>
                         </div>
