@@ -1,29 +1,46 @@
-'use client'
+"use client";
 
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useAuth } from "@/contexts/AuthContext"
-import { MapPin, Clock, Star, Wifi, Car, ShowerHeadIcon as Shower, Users, Phone, Sun, Cloud, Sparkles } from 'lucide-react'
-import Link from "next/link"
-import { useParams, useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  Car,
+  Clock,
+  MapPin,
+  Phone,
+  ShowerHeadIcon as Shower,
+  Star,
+  Sun,
+  Users,
+  Wifi,
+  Sparkles,
+} from "lucide-react";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 interface Court {
-  _id: string
-  name: string
-  type: string
-  address: string
-  pricePerHour: number
-  rating: number
-  reviewCount: number
-  images: string[]
-  description: string
-  amenities: string[]
-  phone: string
-  openTime: string
-  closeTime: string
+  _id: string;
+  name: string;
+  type: string;
+  address: string;
+  pricePerHour: number;
+  rating: number;
+  reviewCount: number;
+  images: string[];
+  description: string;
+  amenities: string[];
+  phone: string;
+  openTime: string;
+  closeTime: string;
   owner: {
     name: string
     phone: string
@@ -45,35 +62,40 @@ export default function CourtDetailPage() {
   const [totalReviews, setTotalReviews] = useState<number>(0)
   const [reviewsLoading, setReviewsLoading] = useState(false)
   const { user } = useAuth();
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    setMounted(true)
+  }, [])
   useEffect(() => {
     if (params.id) {
       fetchCourt()
       fetchReviews()
     }
-  }, [params.id])
+  }, [params.id]);
+
+  const fetchCourt = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/courts/${params.id}`);
+      const data = await response.json();
+
+      if (data.success) {
+        setCourt(data.data);
+      } else {
+        console.error("Court not found");
+      }
+    } catch (error) {
+      console.error("Error fetching court:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (court) {
       fetchWeather()
     }
   }, [court, selectedDate])
-
-  const fetchCourt = async () => {
-    try {
-      setLoading(true)
-      const response = await fetch(`/api/courts/${params.id}`)
-      const data = await response.json()
-      if (data.success) {
-        setCourt(data.data)
-      } else {
-        console.error('Court not found')
-      }
-    } catch (error) {
-      console.error('Error fetching court:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const fetchWeather = async () => {
     try {
@@ -107,9 +129,9 @@ export default function CourtDetailPage() {
         }
       }
     } catch (error) {
-      console.error('Error fetching weather:', error)
+      console.error("Error fetching weather:", error);
     }
-  }
+  };
 
   const fetchReviews = async () => {
     try {
@@ -133,83 +155,85 @@ export default function CourtDetailPage() {
 
   const handleBooking = async () => {
     if (!selectedSlot) {
-      alert('Vui lòng chọn khung giờ')
-      return
+      alert("Vui lòng chọn khung giờ");
+      return;
     }
 
     // Mock user ID - in real app, get from auth context
     const userId = user?.id;
-      const selectedDateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2,'0')}-${String(selectedDate.getDate()).padStart(2,'0')}`
+    const selectedDateStr = `${selectedDate.getFullYear()}-${String(
+      selectedDate.getMonth() + 1
+    ).padStart(2, "0")}-${String(selectedDate.getDate()).padStart(2, "0")}`;
     try {
-      const response = await fetch('/api/bookings', {
-        method: 'POST',
+      const response = await fetch("/api/bookings", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           userId,
           courtId: court?._id,
           date: selectedDateStr,
           startTime: selectedSlot,
-          endTime: `${parseInt(selectedSlot.split(':')[0]) + 1}:00:00`
-        })
-      })
+          endTime: `${parseInt(selectedSlot.split(":")[0]) + 1}:00:00`,
+        }),
+      });
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (data.success) {
-        alert('Đặt sân thành công!')
-        router.push('/bookings')
+        alert("Đặt sân thành công!");
+        router.push("/bookings");
       } else {
-        alert(data.error || 'Có lỗi xảy ra')
+        alert(data.error || "Có lỗi xảy ra");
       }
     } catch (error) {
-      console.error('Error creating booking:', error)
-      alert('Có lỗi xảy ra khi đặt sân')
+      console.error("Error creating booking:", error);
+      alert("Có lỗi xảy ra khi đặt sân");
     }
-  }
+  };
 
-const generateTimeSlots = () => {
-  if (!court) return []
+  const generateTimeSlots = () => {
+    if (!court) return [];
 
-  const slots = []
-  const openHour = parseInt(court.openTime.split(':')[0])
-  const closeHour = parseInt(court.closeTime.split(':')[0])
+    const slots: Array<{ time: string; value: string; available: boolean; price: number }> = [];
+    const openHour = parseInt(court.openTime.split(":")[0]);
+    const closeHour = parseInt(court.closeTime.split(":")[0]);
 
-const selectedDateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`
+    const selectedDateStr = `${selectedDate.getFullYear()}-${String(
+      selectedDate.getMonth() + 1
+    ).padStart(2, "0")}-${String(selectedDate.getDate()).padStart(2, "0")}`;
 
+    for (let hour = openHour; hour < closeHour; hour++) {
+      const display = `${hour.toString().padStart(2, "0")}:00`;
+      const value = `${hour.toString().padStart(2, "0")}:00:00`;
+      const fullSlot = `${selectedDateStr}T${value}`; // YYYY-MM-DDTHH:mm:ss
 
-  for (let hour = openHour; hour < closeHour; hour++) {
-    // Create timeSlot in HH:mm format for display
-    const timeSlot = `${hour.toString().padStart(2, '0')}:00`
-    // Create timeSlot in HH:mm:ss format for comparison with bookedSlots
-    const timeSlotFull = `${hour.toString().padStart(2, '0')}:00:00`
-    
-    slots.push({
-      time: timeSlot, // Display format
-      timeFull: timeSlotFull, // Full format for comparison
-      available: !court.bookedSlots.includes(timeSlotFull),
-      price: court.pricePerHour
-    })
-  }
+      slots.push({
+        time: display,
+        value,
+        available: !court.bookedSlots.includes(fullSlot),
+        price: court.pricePerHour,
+      });
+    }
 
-  return slots
-}
+    return slots;
+  };
   const getAmenityIcon = (amenity: string) => {
     switch (amenity.toLowerCase()) {
-      case 'wifi miễn phí':
-      case 'wifi':
-        return <Wifi className="h-4 w-4" />
-      case 'chỗ đậu xe':
-      case 'parking':
-        return <Car className="h-4 w-4" />
-      case 'vòi sen':
-      case 'shower':
-        return <Shower className="h-4 w-4" />
+      case "wifi miễn phí":
+      case "wifi":
+        return <Wifi className="h-4 w-4" />;
+      case "chỗ đậu xe":
+      case "parking":
+        return <Car className="h-4 w-4" />;
+      case "vòi sen":
+      case "shower":
+        return <Shower className="h-4 w-4" />;
       default:
-        return <Users className="h-4 w-4" />
+        return <Users className="h-4 w-4" />;
     }
-  }
+  };
 
   const getSportTypeInVietnamese = (type: string) => {
     const sportMap: { [key: string]: string } = {
@@ -475,7 +499,7 @@ const selectedDateStr = `${selectedDate.getFullYear()}-${String(selectedDate.get
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   if (!court) {
@@ -488,10 +512,10 @@ const selectedDateStr = `${selectedDate.getFullYear()}-${String(selectedDate.get
           </Link>
         </div>
       </div>
-    )
+    );
   }
 
-  const timeSlots = generateTimeSlots()
+  const timeSlots = generateTimeSlots();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -514,7 +538,9 @@ const selectedDateStr = `${selectedDate.getFullYear()}-${String(selectedDate.get
             <div>
               <div className="flex gap-6">
                 <h1 className="text-2xl font-bold mb-2">{court.name}</h1>
-              <Badge className="mb-2">{getSportTypeInVietnamese(court.type)}</Badge>
+                <Badge className="mb-2">
+                  {getSportTypeInVietnamese(court.type)}
+                </Badge>
               </div>
               <div className="flex items-center text-gray-600 mb-2">
                 <MapPin className="h-4 w-4 mr-1" />
@@ -523,7 +549,9 @@ const selectedDateStr = `${selectedDate.getFullYear()}-${String(selectedDate.get
               <div className="flex items-center space-x-4 text-sm text-gray-600">
                 <div className="flex items-center">
                   <Clock className="h-4 w-4 mr-1" />
-                  <span>{court.openTime} - {court.closeTime}</span>
+                  <span>
+                    {court.openTime} - {court.closeTime}
+                  </span>
                 </div>
                 <div className="flex items-center">
                   <Phone className="h-4 w-4 mr-1" />
@@ -535,10 +563,12 @@ const selectedDateStr = `${selectedDate.getFullYear()}-${String(selectedDate.get
               <div className="flex items-center space-x-1 mb-2">
                 <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
                 <span className="text-lg font-bold">{court.rating}</span>
-                <span className="text-gray-600">({totalReviews} đánh giá)</span>
+                <span className="text-gray-600">
+                  ({court.reviewCount} đánh giá)
+                </span>
               </div>
               <div className="text-2xl font-bold text-green-600">
-                {court.pricePerHour.toLocaleString('vi-VN')}đ/giờ
+                {court.pricePerHour.toLocaleString("vi-VN")}đ/giờ
               </div>
             </div>
           </div>
@@ -548,7 +578,10 @@ const selectedDateStr = `${selectedDate.getFullYear()}-${String(selectedDate.get
             {court.images.map((image, index) => (
               <img
                 key={index}
-                src={image || "/placeholder.svg?height=200&width=300&query=sports court"}
+                src={
+                  image ||
+                  "/placeholder.svg?height=200&width=300&query=sports court"
+                }
                 alt={`${court.name} ${index + 1}`}
                 className="w-full h-48 object-cover rounded-lg"
               />
@@ -567,18 +600,21 @@ const selectedDateStr = `${selectedDate.getFullYear()}-${String(selectedDate.get
               <CardContent className="space-y-4">
                 <div>
                   <label className="text-sm font-medium mb-2 block">Chọn ngày</label>
-                  <Calendar
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={(date) => date && setSelectedDate(date)}
-                    className="rounded-md border"
-                    disabled={(date) => {
-                      const today = new Date()
-                      today.setHours(0, 0, 0, 0) // reset giờ về 00:00
-                      return date < today
-                    }}
-                  
-                  />
+                  {mounted ? (
+                    <Calendar
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={(date) => date && setSelectedDate(date)}
+                      className="rounded-md border"
+                      disabled={(date) => {
+                        const today = new Date()
+                        today.setHours(0, 0, 0, 0)
+                        return date < today
+                      }}
+                    />
+                  ) : (
+                    <div className="h-80 w-full rounded-md border bg-gray-50" />
+                  )}
                 </div>
 
                 <div>
@@ -646,7 +682,10 @@ const selectedDateStr = `${selectedDate.getFullYear()}-${String(selectedDate.get
                     <h3 className="font-semibold mb-2">Tiện ích</h3>
                     <div className="grid grid-cols-2 gap-2">
                       {court.amenities.map((amenity, index) => (
-                        <div key={index} className="flex items-center space-x-2">
+                        <div
+                          key={index}
+                          className="flex items-center space-x-2"
+                        >
                           {getAmenityIcon(amenity)}
                           <span className="text-sm">{amenity}</span>
                         </div>
@@ -655,6 +694,7 @@ const selectedDateStr = `${selectedDate.getFullYear()}-${String(selectedDate.get
                   </div>
                 </div>
               </TabsContent>
+
 
               <TabsContent value="weather" className="p-6">
                 <div className="space-y-4">
@@ -769,12 +809,14 @@ const selectedDateStr = `${selectedDate.getFullYear()}-${String(selectedDate.get
                       <div>
                         <h3 className="text-lg font-semibold mb-4 flex items-center">
                           <span className="mr-2">⏰</span>
-                          Dự báo theo giờ - {selectedDate.toLocaleDateString('vi-VN', {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          })}
+                          <span suppressHydrationWarning>
+                            Dự báo theo giờ - {mounted ? selectedDate.toLocaleDateString('vi-VN', {
+                              weekday: 'long',
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
+                            }) : '...'}
+                          </span>
                         </h3>
                         {weather.forecast && weather.forecast.length > 0 ? (
                           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
@@ -801,7 +843,9 @@ const selectedDateStr = `${selectedDate.getFullYear()}-${String(selectedDate.get
                           <div className="text-center text-gray-500 py-8">
                             <div className="text-4xl mb-4">🌤️</div>
                             <div className="text-lg font-semibold mb-2">Chưa có thông tin thời tiết</div>
-                            <div className="text-sm">Dữ liệu thời tiết cho ngày {selectedDate.toLocaleDateString('vi-VN')} chưa được cập nhật</div>
+                            <div className="text-sm" suppressHydrationWarning>
+                              Dữ liệu thời tiết cho ngày {mounted ? selectedDate.toLocaleDateString('vi-VN') : '...'} chưa được cập nhật
+                            </div>
                           </div>
                         )}
                       </div>
@@ -824,7 +868,9 @@ const selectedDateStr = `${selectedDate.getFullYear()}-${String(selectedDate.get
                       <Card key={review._id}>
                         <CardContent className="p-4">
                           <div className="flex items-center justify-between mb-2">
-                            <span className="font-semibold">{review.user.name}</span>
+                            <span className="font-semibold">
+                              {review.user.name}
+                            </span>
                             <div className="flex items-center space-x-1">
                               <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                               <span>{review.rating}</span>
@@ -832,18 +878,22 @@ const selectedDateStr = `${selectedDate.getFullYear()}-${String(selectedDate.get
                           </div>
                           <p className="text-gray-600 mb-2">{review.comment}</p>
                           <span className="text-sm text-gray-500">
-                            {new Date(review.createdAt).toLocaleDateString('vi-VN')}
+                            {new Date(review.createdAt).toLocaleDateString(
+                              "vi-VN"
+                            )}
                           </span>
                         </CardContent>
                       </Card>
                     ))
                   ) : (
-                    <div className="text-center text-gray-500">Chưa có đánh giá nào</div>
+                    <div className="text-center text-gray-500">
+                      Chưa có đánh giá nào
+                    </div>
                   )}
                 </div>
               </TabsContent>
             </Tabs>
-              {/* AI Suggestions */}
+            {/* AI Suggestions */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
@@ -854,18 +904,33 @@ const selectedDateStr = `${selectedDate.getFullYear()}-${String(selectedDate.get
               <CardContent>
                 <div className="space-y-3 text-sm">
                   <div className="p-3 bg-blue-50 rounded-lg">
-                    <span className="font-medium text-blue-800">💡 Khung giờ tốt nhất:</span>
-                    <p className="text-blue-700">19:00 - Thời tiết mát mẻ, giá hợp lý</p>
+                    <span className="font-medium text-blue-800">
+                      💡 Khung giờ tốt nhất:
+                    </span>
+                    <p className="text-blue-700">
+                      19:00 - Thời tiết mát mẻ, giá hợp lý
+                    </p>
                   </div>
-                  {weather && weather.forecast.some((f: any) => f.condition.includes('mưa')) && (
-                    <div className="p-3 bg-yellow-50 rounded-lg">
-                      <span className="font-medium text-yellow-800">⚠️ Lưu ý:</span>
-                      <p className="text-yellow-700">Có thể có mưa trong một số khung giờ</p>
-                    </div>
-                  )}
+                  {weather &&
+                    weather.forecast.some((f: any) =>
+                      f.condition.includes("mưa")
+                    ) && (
+                      <div className="p-3 bg-yellow-50 rounded-lg">
+                        <span className="font-medium text-yellow-800">
+                          ⚠️ Lưu ý:
+                        </span>
+                        <p className="text-yellow-700">
+                          Có thể có mưa trong một số khung giờ
+                        </p>
+                      </div>
+                    )}
                   <div className="p-3 bg-green-50 rounded-lg">
-                    <span className="font-medium text-green-800">⭐ Đánh giá cao:</span>
-                    <p className="text-green-700">Sân này được đánh giá {court.rating}/5 sao</p>
+                    <span className="font-medium text-green-800">
+                      ⭐ Đánh giá cao:
+                    </span>
+                    <p className="text-green-700">
+                      Sân này được đánh giá {court.rating}/5 sao
+                    </p>
                   </div>
                 </div>
               </CardContent>

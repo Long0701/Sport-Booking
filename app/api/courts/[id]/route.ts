@@ -6,15 +6,20 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    // Get court with owner info and calculated rating
     // Lấy thông tin sân + chủ sân
     const courtResult = await query(`
       SELECT 
         c.*,
         u.name as owner_name,
-        u.phone as owner_phone
+        u.phone as owner_phone,
+        COALESCE(AVG(r.rating), 0) as calculated_rating,
+        COUNT(r.id) as actual_review_count
       FROM courts c
       LEFT JOIN users u ON c.owner_id = u.id
+      LEFT JOIN reviews r ON c.id = r.court_id
       WHERE c.id = $1 AND c.is_active = true
+      GROUP BY c.id, u.name, u.phone
     `, [params.id])
 
     if (courtResult.length === 0) {
@@ -85,8 +90,8 @@ const bookedSlots = bookings.map(booking => {
         type: court.type,
         address: court.address,
         pricePerHour: court.price_per_hour,
-        rating: parseFloat(court.rating),
-        reviewCount: court.review_count,
+        rating: Math.round(parseFloat(court.calculated_rating) * 100) / 100,
+        reviewCount: parseInt(court.actual_review_count),
         images: court.images,
         description: court.description,
         amenities: court.amenities,
@@ -97,7 +102,7 @@ const bookedSlots = bookings.map(booking => {
           name: court.owner_name,
           phone: court.owner_phone
         },
-        reviews: reviews.map(review => ({
+        reviews: reviews.map((review: any) => ({
           _id: review.id,
           user: { name: review.user_name },
           rating: review.rating,

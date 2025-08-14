@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
     const lat = searchParams.get('lat')
     const lon = searchParams.get('lon')
     const address = searchParams.get('address')
-    const date = searchParams.get('date') // New parameter for specific date
+    const date = searchParams.get('date') // YYYY-MM-DD
 
     // If no coordinates provided, try to geocode the address
     let finalLat = lat
@@ -22,7 +22,6 @@ export async function GET(request: NextRequest) {
         )
       }
 
-      // Geocode the address to get coordinates
       const geocodeResponse = await fetch(
         `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(address + ', Vietnam')}&limit=1&appid=${WEATHER_API_KEY}`
       )
@@ -74,15 +73,23 @@ export async function GET(request: NextRequest) {
     )
     const forecastData = await forecastResponse.json()
 
+    const tzOffsetSec: number = forecastData?.city?.timezone ?? 0 // seconds
+
     // Process forecast data for selected date or today
-    const selectedDate = date ? new Date(date) : new Date()
-    const selectedDateStr = selectedDate.toDateString()
-    
-    // Get hourly forecast for selected date
-    const hourlyForecast = getHourlyForecastForDate(forecastData.list, selectedDate)
-    
-    // Get 7-day forecast
-    const sevenDayForecast = getSevenDayForecast(forecastData.list)
+    const selectedDateObj = date ? new Date(date) : new Date()
+
+    // Get hourly forecast for selected date (timezone-aware)
+    const hourlyForecast = getHourlyForecastForDate(
+      forecastData.list,
+      selectedDateObj,
+      tzOffsetSec
+    )
+
+    // Get 7-day forecast buckets (today + next 6 days)
+    const sevenDayForecast = getSevenDayForecast(
+      forecastData.list,
+      tzOffsetSec
+    )
 
     return NextResponse.json({
       success: true,
@@ -97,7 +104,7 @@ export async function GET(request: NextRequest) {
           temp: Math.round(currentData.main.temp),
           condition: currentData.weather[0].description,
           humidity: currentData.main.humidity,
-          windSpeed: Math.round(currentData.wind.speed * 3.6), // Convert m/s to km/h
+          windSpeed: Math.round(currentData.wind.speed * 3.6),
           feelsLike: Math.round(currentData.main.feels_like),
           pressure: currentData.main.pressure
         },
@@ -115,91 +122,102 @@ export async function GET(request: NextRequest) {
   }
 }
 
-function getHourlyForecastForDate(forecastList: any[], selectedDate: Date) {
-  const selectedDateStr = selectedDate.toDateString()
-  const currentHour = new Date().getHours()
-  
-  // Filter forecast data for selected date
+function getDayStartUTCFromDate(date: Date, tzOffsetSec: number): number {
+  // UTC seconds for local (target tz) midnight of the given date
+  const utcMs = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
+  return Math.floor(utcMs / 1000) - tzOffsetSec
+}
+
+function getTodayStartUTC(tzOffsetSec: number): number {
+  const nowUTCsec = Math.floor(Date.now() / 1000)
+  const localDayIndex = Math.floor((nowUTCsec + tzOffsetSec) / 86400)
+  // Convert back to UTC seconds at local midnight
+  return localDayIndex * 86400 - tzOffsetSec
+}
+
+function getHourlyForecastForDate(forecastList: any[], selectedDate: Date, tzOffsetSec: number) {
+  const startUTC = getDayStartUTCFromDate(selectedDate, tzOffsetSec)
+  const endUTC = startUTC + 86400
+
+  // Determine if selected date is "today" in the target timezone
+  const todayStartUTC = getTodayStartUTC(tzOffsetSec)
+  const isToday = startUTC === todayStartUTC
+  const nowUTCsec = Math.floor(Date.now() / 1000)
+
   const dateForecast = forecastList.filter((item: any) => {
-    const itemDate = new Date(item.dt * 1000)
-    return itemDate.toDateString() === selectedDateStr
+    const dt = item.dt as number // UTC seconds
+    return dt >= startUTC && dt < endUTC
   })
 
-  // If no data for selected date, return empty array
   if (dateForecast.length === 0) {
     return []
   }
 
-  // Process hourly data, excluding past hours for today
-  const hourlyData = dateForecast.map((item: any) => {
-    const itemDate = new Date(item.dt * 1000)
-    const itemHour = itemDate.getHours()
-    
-    // Skip past hours for today
-    if (selectedDate.toDateString() === new Date().toDateString() && itemHour <= currentHour) {
-      return null
-    }
+  const hourlyData = dateForecast
+    .filter((item: any) => {
+      if (!isToday) return true
+      // Exclude past times for today using UTC seconds
+      return (item.dt as number) > nowUTCsec
+    })
+    .map((item: any) => {
+      const localMs = (item.dt + tzOffsetSec) * 1000
+      const localDate = new Date(localMs)
+      const itemHour = localDate.getUTCHours() // hour after shifting, read as UTC
 
-    return {
-      time: itemDate.toLocaleTimeString('vi-VN', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
-      }),
-      hour: itemHour,
-      temp: Math.round(item.main.temp),
-      condition: item.weather[0].description,
-      icon: item.weather[0].icon,
-      humidity: item.main.humidity,
-      windSpeed: Math.round(item.wind.speed * 3.6)
-    }
-  }).filter(Boolean) // Remove null values
+      return {
+        time: localDate.toLocaleTimeString('vi-VN', {
+          hour: '2-digit',
+          minute: '2-digit',
+          timeZone: 'UTC'
+        }),
+        hour: itemHour,
+        temp: Math.round(item.main.temp),
+        condition: item.weather[0].description,
+        icon: item.weather[0].icon,
+        humidity: item.main.humidity,
+        windSpeed: Math.round(item.wind.speed * 3.6)
+      }
+    }) as any[]
 
-  // Sort by hour
-  hourlyData.sort((a, b) => {
-    if (!a || !b) return 0
-    return a.hour - b.hour
-  })
-
+  hourlyData.sort((a: any, b: any) => a.hour - b.hour)
   return hourlyData
 }
 
-function getSevenDayForecast(forecastList: any[]) {
-  const today = new Date()
-  const sevenDayForecast = []
+function getSevenDayForecast(forecastList: any[], tzOffsetSec: number) {
+  const results: any[] = []
+  const todayStartUTC = getTodayStartUTC(tzOffsetSec)
 
   for (let i = 0; i < 7; i++) {
-    const targetDate = new Date(today)
-    targetDate.setDate(today.getDate() + i)
-    const targetDateStr = targetDate.toDateString()
+    const dayStartUTC = todayStartUTC + i * 86400
+    const dayEndUTC = dayStartUTC + 86400
 
-    // Get forecast data for this date
     const dayForecast = forecastList.filter((item: any) => {
-      const itemDate = new Date(item.dt * 1000)
-      return itemDate.toDateString() === targetDateStr
+      const dt = item.dt as number
+      return dt >= dayStartUTC && dt < dayEndUTC
     })
 
     if (dayForecast.length > 0) {
-      // Calculate average temperature and most common condition for the day
       const avgTemp = Math.round(
         dayForecast.reduce((sum: number, item: any) => sum + item.main.temp, 0) / dayForecast.length
       )
-      
-      // Get most common weather condition
+
       const conditions = dayForecast.map((item: any) => item.weather[0].description)
       const mostCommonCondition = getMostCommonCondition(conditions)
 
-      sevenDayForecast.push({
-        date: targetDate.toISOString().split('T')[0],
-        dayName: targetDate.toLocaleDateString('vi-VN', { weekday: 'short' }),
+      const localDate = new Date((dayStartUTC + tzOffsetSec) * 1000)
+
+      results.push({
+        date: localDate.toISOString().split('T')[0],
+        dayName: localDate.toLocaleDateString('vi-VN', { weekday: 'short', timeZone: 'UTC' }),
         temp: avgTemp,
         condition: mostCommonCondition,
         icon: dayForecast[0].weather[0].icon
       })
     } else {
-      // If no data for this date, create placeholder
-      sevenDayForecast.push({
-        date: targetDate.toISOString().split('T')[0],
-        dayName: targetDate.toLocaleDateString('vi-VN', { weekday: 'short' }),
+      const localDate = new Date((dayStartUTC + tzOffsetSec) * 1000)
+      results.push({
+        date: localDate.toISOString().split('T')[0],
+        dayName: localDate.toLocaleDateString('vi-VN', { weekday: 'short', timeZone: 'UTC' }),
         temp: null,
         condition: 'Chưa có thông tin',
         icon: 'unknown'
@@ -207,78 +225,63 @@ function getSevenDayForecast(forecastList: any[]) {
     }
   }
 
-  return sevenDayForecast
+  return results
 }
 
 function getMostCommonCondition(conditions: string[]): string {
   const conditionCount: { [key: string]: number } = {}
-  
-  conditions.forEach(condition => {
-    conditionCount[condition] = (conditionCount[condition] || 0) + 1
-  })
-
+  for (const c of conditions) {
+    conditionCount[c] = (conditionCount[c] || 0) + 1
+  }
   let mostCommon = conditions[0]
   let maxCount = 0
-
-  Object.entries(conditionCount).forEach(([condition, count]) => {
+  for (const [cond, count] of Object.entries(conditionCount)) {
     if (count > maxCount) {
       maxCount = count
-      mostCommon = condition
+      mostCommon = cond
     }
-  })
-
+  }
   return mostCommon
 }
 
 function generateMockHourlyForecast(selectedDate: Date) {
   const currentHour = new Date().getHours()
   const isToday = selectedDate.toDateString() === new Date().toDateString()
-  const forecast = []
-
+  const forecast: any[] = []
   for (let hour = 6; hour <= 22; hour++) {
-    // Skip past hours for today
-    if (isToday && hour <= currentHour) {
-      continue
-    }
-
+    if (isToday && hour <= currentHour) continue
     const temp = 25 + Math.sin((hour - 6) * Math.PI / 16) * 5 + (Math.random() - 0.5) * 3
     const conditions = ['Nắng', 'Mây', 'Mưa nhẹ', 'Nắng', 'Mây']
     const condition = conditions[Math.floor(Math.random() * conditions.length)]
-
     forecast.push({
       time: `${hour.toString().padStart(2, '0')}:00`,
-      hour: hour,
+      hour,
       temp: Math.round(temp),
-      condition: condition,
+      condition,
       icon: condition.includes('Nắng') ? '01d' : condition.includes('Mưa') ? '10d' : '03d',
       humidity: 60 + Math.floor(Math.random() * 30),
       windSpeed: 5 + Math.floor(Math.random() * 15)
     })
   }
-
   return forecast
 }
 
 function generateMockSevenDayForecast() {
-  const forecast = []
+  const forecast: any[] = []
   const today = new Date()
-
   for (let i = 0; i < 7; i++) {
     const date = new Date(today)
     date.setDate(today.getDate() + i)
-    
     const conditions = ['Nắng', 'Mây', 'Mưa nhẹ', 'Nắng', 'Mây', 'Mưa', 'Nắng']
     const condition = conditions[Math.floor(Math.random() * conditions.length)]
     const temp = 20 + Math.floor(Math.random() * 15)
-
     forecast.push({
       date: date.toISOString().split('T')[0],
       dayName: date.toLocaleDateString('vi-VN', { weekday: 'short' }),
-      temp: temp,
-      condition: condition,
+      temp,
+      condition,
       icon: condition.includes('Nắng') ? '01d' : condition.includes('Mưa') ? '10d' : '03d'
     })
   }
-
   return forecast
 }
