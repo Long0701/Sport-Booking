@@ -113,7 +113,7 @@ export default function CourtDetailPage() {
 
     // Mock user ID - in real app, get from auth context
     const userId = user?.id;
-    
+      const selectedDateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2,'0')}-${String(selectedDate.getDate()).padStart(2,'0')}`
     try {
       const response = await fetch('/api/bookings', {
         method: 'POST',
@@ -123,9 +123,9 @@ export default function CourtDetailPage() {
         body: JSON.stringify({
           userId,
           courtId: court?._id,
-          date: selectedDate.toISOString().split('T')[0],
+          date: selectedDateStr,
           startTime: selectedSlot,
-          endTime: `${parseInt(selectedSlot.split(':')[0]) + 1}:00`
+          endTime: `${parseInt(selectedSlot.split(':')[0]) + 1}:00:00`
         })
       })
 
@@ -150,20 +150,22 @@ const generateTimeSlots = () => {
   const openHour = parseInt(court.openTime.split(':')[0])
   const closeHour = parseInt(court.closeTime.split(':')[0])
 
+const selectedDateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`
+
+
   for (let hour = openHour; hour < closeHour; hour++) {
-    // Tạo timeSlot có dạng 'HH:mm:ss' để so sánh đúng với bookedSlots
     const timeSlot = `${hour.toString().padStart(2, '0')}:00:00`
-    
+    const fullSlot = `${selectedDateStr}T${timeSlot}` // YYYY-MM-DDTHH:mm:ss
+
     slots.push({
       time: timeSlot,
-      available: !court.bookedSlots.includes(timeSlot),
+      available: !court.bookedSlots.includes(fullSlot),
       price: court.pricePerHour
     })
   }
 
   return slots
 }
-
   const getAmenityIcon = (amenity: string) => {
     switch (amenity.toLowerCase()) {
       case 'wifi miễn phí':
@@ -425,7 +427,11 @@ const generateTimeSlots = () => {
                     selected={selectedDate}
                     onSelect={(date) => date && setSelectedDate(date)}
                     className="rounded-md border"
-                    disabled={(date) => date < new Date()}
+                   disabled={(date) => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0) // reset giờ về 00:00
+    return date < today
+  }}
                   />
                 </div>
                 
