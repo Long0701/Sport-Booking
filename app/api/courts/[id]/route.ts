@@ -1,12 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
+import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    // Get court with owner info
+    // Lấy thông tin sân + chủ sân
     const courtResult = await query(`
       SELECT 
         c.*,
@@ -26,7 +26,7 @@ export async function GET(
 
     const court = courtResult[0]
 
-    // Get recent reviews
+    // Lấy danh sách review gần đây
     const reviews = await query(`
       SELECT 
         r.*,
@@ -38,17 +38,44 @@ export async function GET(
       LIMIT 10
     `, [params.id])
 
-    // Get booked slots for today
-    const today = new Date().toISOString().split('T')[0]
+    // Lấy booking từ hôm nay trở đi
     const bookings = await query(`
-      SELECT start_time
+      SELECT booking_date, start_time
       FROM bookings
-      WHERE court_id = $1 
-        AND booking_date = $2
+      WHERE court_id = $1
+        AND booking_date >= CURRENT_DATE
         AND status IN ('confirmed', 'pending')
-    `, [params.id, today])
+    `, [params.id])
 
-    const bookedSlots = bookings.map(booking => booking.start_time)
+    // Format bookedSlots an toàn: YYYY-MM-DDTHH:mm:ss
+const bookedSlots = bookings.map(booking => {
+  // Xử lý ngày
+  let dateStr = ''
+  if (booking.booking_date instanceof Date) {
+    // Lấy ngày local, không dùng toISOString() để tránh lệch timezone
+    dateStr = `${booking.booking_date.getFullYear()}-${String(booking.booking_date.getMonth() + 1).padStart(2, '0')}-${String(booking.booking_date.getDate()).padStart(2,'0')}`
+  } else if (typeof booking.booking_date === 'string') {
+    dateStr = booking.booking_date
+  }
+
+  // Xử lý giờ
+  let timeStr = ''
+  if (typeof booking.start_time === 'string') {
+    // Nếu là HH:mm:ss hoặc HH:mm
+    timeStr = booking.start_time.length === 5 ? `${booking.start_time}:00` : booking.start_time
+  } else if (booking.start_time && typeof booking.start_time === 'object') {
+    // Nếu Postgres trả object { hours, minutes, seconds }
+    const h = booking.start_time.hours?.toString().padStart(2, '0') || '00'
+    const m = booking.start_time.minutes?.toString().padStart(2, '0') || '00'
+    const s = booking.start_time.seconds?.toString().padStart(2, '0') || '00'
+    timeStr = `${h}:${m}:${s}`
+  } else {
+    timeStr = '00:00:00'
+  }
+
+  return `${dateStr}T${timeStr}`
+})
+
 
     return NextResponse.json({
       success: true,
@@ -80,11 +107,10 @@ export async function GET(
         bookedSlots
       }
     })
-
   } catch (error) {
     console.error('Error fetching court:', error)
     return NextResponse.json(
-      { success: false, error: 'Lỗi server' },
+      { success: false, error: 'Lỗi server', details: (error as Error).message },
       { status: 500 }
     )
   }
@@ -96,17 +122,16 @@ export async function PUT(
 ) {
   try {
     const body = await request.json()
-    
-    // Build dynamic update query
-    const updateFields = []
-    const values = []
+
+    const updateFields: string[] = []
+    const values: any[] = []
     let paramIndex = 1
 
     for (const [key, value] of Object.entries(body)) {
       if (value !== undefined) {
-        const dbField = key === 'pricePerHour' ? 'price_per_hour' : 
-                       key === 'openTime' ? 'open_time' :
-                       key === 'closeTime' ? 'close_time' : key
+        const dbField = key === 'pricePerHour' ? 'price_per_hour' :
+                        key === 'openTime' ? 'open_time' :
+                        key === 'closeTime' ? 'close_time' : key
         updateFields.push(`${dbField} = $${paramIndex}`)
         values.push(value)
         paramIndex++
@@ -141,11 +166,10 @@ export async function PUT(
       success: true,
       data: result[0]
     })
-
   } catch (error) {
     console.error('Error updating court:', error)
     return NextResponse.json(
-      { success: false, error: 'Lỗi server' },
+      { success: false, error: 'Lỗi server', details: (error as Error).message },
       { status: 500 }
     )
   }
@@ -174,11 +198,10 @@ export async function DELETE(
       success: true,
       message: 'Đã xóa sân thành công'
     })
-
   } catch (error) {
     console.error('Error deleting court:', error)
     return NextResponse.json(
-      { success: false, error: 'Lỗi server' },
+      { success: false, error: 'Lỗi server', details: (error as Error).message },
       { status: 500 }
     )
   }
