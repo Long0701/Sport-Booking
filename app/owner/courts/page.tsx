@@ -1,33 +1,21 @@
 'use client'
 
-import * as React from "react"
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
-} from "@/components/ui/dropdown-menu"
-import { 
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import { ArrowLeft, Plus, Search, MoreHorizontal, Edit, Trash2, Eye, Star, MapPin, Clock, ToggleLeft, ToggleRight } from 'lucide-react'
-import Link from "next/link"
 import { useAuth } from '@/contexts/AuthContext'
 import { formatRating } from "@/lib/utils"
+import { ArrowLeft, Clock, Edit, Eye, MapPin, MoreHorizontal, Plus, Search, Star, ToggleLeft, ToggleRight, Trash2 } from 'lucide-react'
+import Link from "next/link"
+import { useEffect, useState } from "react"
 
 interface Court {
   id: number
@@ -300,7 +288,7 @@ export default function CourtsManagementPage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-4">
+          <div className="grid gap-4 overflow-auto h-[calc(100vh-232px)]">
             {filteredCourts.map((court) => (
               <Card key={court.id} className="hover:shadow-lg transition-shadow">
                 <div className="flex flex-col md:flex-row">

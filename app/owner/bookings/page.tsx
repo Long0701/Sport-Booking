@@ -949,7 +949,7 @@ export default function OwnerBookingsPage() {
                     </CardContent>
                   </Card>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-4 overflow-auto h-[calc(100vh-200px)]">
                     {filteredBookings.map((booking) => (
                       <BookingCard key={booking.id} booking={booking} />
                     ))}
@@ -970,7 +970,7 @@ export default function OwnerBookingsPage() {
                     </CardContent>
                   </Card>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-4 overflow-auto h-[calc(100vh-200px)]">
                     {pendingBookings.map((booking) => (
                       <BookingCard key={booking.id} booking={booking} />
                     ))}
@@ -991,7 +991,7 @@ export default function OwnerBookingsPage() {
                     </CardContent>
                   </Card>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-4 overflow-auto h-[calc(100vh-200px)]">
                     {confirmedBookings.map((booking) => (
                       <BookingCard key={booking.id} booking={booking} />
                     ))}
@@ -1012,7 +1012,7 @@ export default function OwnerBookingsPage() {
                     </CardContent>
                   </Card>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-4 overflow-auto h-[calc(100vh-200px)]" >
                     {completedBookings.map((booking) => (
                       <BookingCard key={booking.id} booking={booking} />
                     ))}
@@ -1033,7 +1033,7 @@ export default function OwnerBookingsPage() {
                     </CardContent>
                   </Card>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-4 overflow-auto h-[calc(100vh-200px)]">
                     {cancelledBookings.map((booking) => (
                       <BookingCard key={booking.id} booking={booking} />
                     ))}

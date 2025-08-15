@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { query } from '@/lib/db'
 import { verifyToken } from '@/lib/auth'
+import { query } from '@/lib/db'
+import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
   try {
@@ -103,20 +103,32 @@ export async function GET(request: NextRequest) {
     `, [ownerId])
 
     // Format revenue data for chart
-    const last7Days = []
-    const today = new Date()
+    const last7Days = [];
+    const today = new Date();
+    
     for (let i = 6; i >= 0; i--) {
-      const date = new Date(today)
-      date.setDate(date.getDate() - i)
-      const dateStr = date.toISOString().split('T')[0]
-      
-      const dayData = revenueData.find(d => d.date.toISOString().split('T')[0] === dateStr)
-      const dayNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7']
-      
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+    
+      // Lấy ngày +1 để so sánh với revenueData
+      const nextDate = new Date(date);
+      nextDate.setDate(nextDate.getDate() - 1 );
+    
+      const nextDateStr = nextDate.toISOString().split('T')[0];
+      const dayData = revenueData.find(
+        (d) => d.date.toISOString().split('T')[0] === nextDateStr
+      );
+    
+      // Format ngày hiện tại để hiển thị (dd/MM)
+      const displayDate = date.toLocaleDateString('vi-VN', {
+        day: '2-digit',
+        month: '2-digit',
+      });
+    
       last7Days.push({
-        day: dayNames[date.getDay()],
-        revenue: dayData ? parseInt(dayData.revenue) : 0
-      })
+        day: displayDate,
+        revenue: dayData ? parseInt(dayData.revenue) : 0,
+      });
     }
 
     // Format hourly data for chart
