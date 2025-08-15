@@ -12,17 +12,24 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
+import { log } from "console";
 import {
-  Car,
-  Clock,
-  MapPin,
-  Phone,
-  ShowerHeadIcon as Shower,
-  Star,
-  Sun,
-  Users,
-  Wifi,
-  Sparkles,
+	Car,
+	Clock,
+	MapPin,
+	Phone,
+	ShowerHeadIcon as Shower,
+	Star,
+	Sun,
+	Users,
+	Wifi,
+	Sparkles,
+	Umbrella,
+	Wind,
+	Thermometer,
+	Lightbulb,
+	Snowflake,
+	Lock,
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -103,9 +110,14 @@ export default function CourtDetailPage() {
 
       console.log('Fetching weather for court address:', court.address)
       console.log('Selected date:', selectedDate.toISOString().split('T')[0])
+
+      const localDate = selectedDate.toLocaleDateString('en-CA'); 
+      console.log('localDate:', localDate);
       
+
+
       // Use court's actual address for weather data with selected date
-      const response = await fetch(`/api/weather?address=${encodeURIComponent(court.address)}&date=${selectedDate.toISOString().split('T')[0]}`)
+      const response = await fetch(`/api/weather?address=${encodeURIComponent(court.address)}&date=${localDate}`)
       const data = await response.json()
 
       console.log('Weather API response:', data)
@@ -119,7 +131,7 @@ export default function CourtDetailPage() {
         // console.error('Weather API error:', data.error)
         // Fallback to default location if address geocoding fails
         console.log('Trying fallback weather data...')
-        const fallbackResponse = await fetch(`/api/weather?lat=10.7769&lon=106.7009&date=${selectedDate.toISOString().split('T')[0]}`)
+        const fallbackResponse = await fetch(`/api/weather?lat=10.7769&lon=106.7009&date=${localDate}`)
         const fallbackData = await fallbackResponse.json()
         if (fallbackData.success) {
           setWeather(fallbackData.data)
@@ -230,6 +242,25 @@ export default function CourtDetailPage() {
       case "vòi sen":
       case "shower":
         return <Shower className="h-4 w-4" />;
+      case "đèn":
+      case "den":
+      case "light":
+      case "lighting":
+      case "chiếu sáng":
+        return <Lightbulb className="h-4 w-4" />;
+      case "mái che":
+      case "roof":
+      case "covered":
+      case "trong nhà":
+        return <Umbrella className="h-4 w-4" />;
+      case "điều hòa":
+      case "máy lạnh":
+      case "ac":
+      case "air conditioning":
+        return <Snowflake className="h-4 w-4" />;
+      case "locker":
+      case "tủ đồ":
+        return <Lock className="h-4 w-4" />;
       default:
         return <Users className="h-4 w-4" />;
     }
@@ -408,6 +439,31 @@ export default function CourtDetailPage() {
     if (temp >= 5) return '☁️'
     return '❄️'
   }
+
+	const hasAmenity = (keywords: string[]) => {
+		if (!court) return false
+		return court.amenities?.some(a =>
+			keywords.some(k => a.toLowerCase().includes(k))
+		)
+	}
+
+	const getAmenityFlags = () => {
+		return {
+			hasLighting: hasAmenity(["đèn", "den", "light", "lighting", "chiếu sáng"]),
+			hasRoof: hasAmenity(["mái che", "roof", "covered", "trong nhà"]),
+			hasAC: hasAmenity(["điều hòa", "máy lạnh", "ac", "air conditioning"]),
+			hasParking: hasAmenity(["chỗ đậu xe", "đậu xe", "parking"]),
+			hasShower: hasAmenity(["vòi sen", "shower"]),
+			hasLocker: hasAmenity(["locker", "tủ đồ"]) 
+		}
+	}
+
+	const getForecastForTime = (time: string) => {
+		if (!weather?.forecast) return null
+		const hour = parseInt(time.split(':')[0])
+		// forecast items use human-readable HH:mm, match by hour
+		return weather.forecast.find((f: any) => parseInt((f.time as string).split(':')[0]) === hour) || null
+	}
 
   const analyzeBookingFactors = (timeSlots: any[], weather: any, court: Court) => {
     const suggestions = {
@@ -1030,25 +1086,63 @@ export default function CourtDetailPage() {
                           Khung giờ tốt nhất
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          {aiSuggestions.bestTimeSlots.map((slot: any, index: number) => (
-                            <div key={slot.time} className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-200">
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="text-2xl font-bold text-blue-900">{slot.time}</span>
-                                <Badge
-                                  variant={slot.recommendation === 'Tuyệt vời' ? 'default' : 'secondary'}
-                                  className={slot.recommendation === 'Tuyệt vời' ? 'bg-green-500' : 'bg-blue-500'}
-                                >
-                                  {slot.recommendation}
-                                </Badge>
+                          {aiSuggestions.bestTimeSlots.map((slot: any, index: number) => {
+                            const f = getForecastForTime(slot.time)
+                            const flags = getAmenityFlags()
+                            return (
+                              <div key={slot.time} className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-200">
+                                <div className="flex items-center justify-between mb-2">
+                                  <span className="text-2xl font-bold text-blue-900">{slot.time}</span>
+                                  <Badge
+                                    variant={slot.recommendation === 'Tuyệt vời' ? 'default' : 'secondary'}
+                                    className={slot.recommendation === 'Tuyệt vời' ? 'bg-green-500' : 'bg-blue-500'}
+                                  >
+                                    {slot.recommendation}
+                                  </Badge>
+                                </div>
+                                <div className="flex items-center justify-between text-xs">
+                                  <div className="flex items-center gap-2 text-blue-800">
+                                    {f ? (
+                                      <>
+                                        <span className="text-lg">{getWeatherIcon(f.condition, f.temp)}</span>
+                                        <span>{f.temp}°C</span>
+                                        <span className="opacity-80">{f.condition}</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Thermometer className="h-4 w-4" />
+                                        <span>Không có dự báo giờ</span>
+                                      </>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-1 text-blue-900">
+                                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                                    <span className="font-medium">{court.rating}</span>
+                                  </div>
+                                </div>
+                                <div className="mt-2 text-sm text-blue-700">
+                                  {slot.factors?.slice(0, 3).join(' • ')}
+                                </div>
+                                <div className="mt-3 flex items-center justify-between">
+                                  <div className="flex items-center gap-2 text-blue-900">
+                                    {flags.hasLighting && <Lightbulb className="h-4 w-4" />}
+                                    {flags.hasRoof && <Umbrella className="h-4 w-4" />}
+                                    {flags.hasAC && <Snowflake className="h-4 w-4" />}
+                                    {flags.hasParking && <Car className="h-4 w-4" />}
+                                    {flags.hasShower && <Shower className="h-4 w-4" />}
+                                    {flags.hasLocker && <Lock className="h-4 w-4" />}
+                                    {f?.windSpeed ? (
+                                      <div className="flex items-center gap-1 text-xs text-blue-700"><Wind className="h-4 w-4" />{f.windSpeed} km/h</div>
+                                    ) : null}
+                                  </div>
+                                  <div className="flex items-center gap-3 text-xs text-blue-600">
+                                    <span>Điểm: <span className="font-semibold">{slot.score}/10</span></span>
+                                    <Button size="sm" variant="outline" onClick={() => setSelectedSlot(slot.time)}>Chọn</Button>
+                                  </div>
+                                </div>
                               </div>
-                              <div className="text-sm text-blue-700">
-                                {slot.factors?.slice(0, 2).join(' • ')}
-                              </div>
-                              <div className="mt-2 text-xs text-blue-600">
-                                Điểm: {slot.score}/10
-                              </div>
-                            </div>
-                          ))}
+                            )
+                          })}
                         </div>
                       </div>
                     )}

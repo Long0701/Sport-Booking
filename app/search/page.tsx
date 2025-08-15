@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Cloud, CloudRain, MapPin, Star, Sun } from 'lucide-react'
+import { Cloud, CloudRain, MapPin, Star, Sun, Sparkles, Crown, RefreshCw, Zap } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import Link from "next/link"
 import { useEffect, useState } from "react"
@@ -39,6 +39,7 @@ interface Court {
 export default function SearchPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedSport, setSelectedSport] = useState("all")
+  const [selectedSportAI, setSelectedSportAI] = useState("all")
   const [selectedTime, setSelectedTime] = useState("all")
   const [courts, setCourts] = useState<Court[]>([])
   const [loading, setLoading] = useState(true)
@@ -48,12 +49,24 @@ export default function SearchPage() {
 const [totalPages, setTotalPages] = useState(1)
 const [loadingMore, setLoadingMore] = useState(false)
 const [total, setTotal] = useState(0)
+  const [aiCourtSuggestions, setAiCourtSuggestions] = useState<any[] | null>(null)
+  const [aiLoading, setAiLoading] = useState(false)
+  const [lastSelectedSportAI, setLastSelectedSportAI] = useState("all")
+  const TOP_N = 5
 
   // Fetch courts from API
   useEffect(() => {
     fetchCourts()
     fetchWeather()
   }, [selectedSport, searchQuery])
+
+  // Auto-generate AI suggestions when sport type changes
+  useEffect(() => {
+    if (selectedSportAI !== lastSelectedSportAI && selectedSportAI !== 'all' && courts.length > 0) {
+      setLastSelectedSportAI(selectedSportAI)
+      generateAICourtSuggestions()
+    }
+  }, [selectedSportAI, courts])
 
 const fetchCourts = async (reset: boolean = true) => {
   try {
@@ -108,6 +121,73 @@ const fetchCourts = async (reset: boolean = true) => {
       }
     } catch (error) {
       console.error('Error fetching weather:', error)
+    }
+  }
+
+  const buildCourtPayloadForAI = async (list: Court[]) => {
+    // fetch per-court weather by address and court details (for amenities)
+    const items = await Promise.all(list.slice(0, 10).map(async (c) => {
+      try {
+        const [wRes, dRes] = await Promise.all([
+          fetch(`/api/weather?address=${encodeURIComponent(c.address)}`),
+          fetch(`/api/courts/${c._id}`)
+        ])
+        const [wData, dData] = await Promise.all([wRes.json(), dRes.json()])
+        const amenities: string[] = dData?.success ? (dData.data?.amenities || []) : []
+        return { court: c, weather: wData.success ? wData.data : null, amenities }
+      } catch {
+        return { court: c, weather: null, amenities: [] as string[] }
+      }
+    }))
+    return items
+  }
+
+  const generateAICourtSuggestions = async () => {
+    try {
+      setAiLoading(true)
+      setAiCourtSuggestions(null)
+      if (selectedSportAI === 'all') {
+        setAiLoading(false)
+        return
+      }
+      // Filter courts by AI sport selection
+      const pool = courts.filter(c => selectedSportAI === 'all' ? true : c.type === selectedSportAI)
+      const items = await buildCourtPayloadForAI(pool)
+
+      // console.log("items", items)
+      const body = {
+        mode: 'rank-courts',
+        selectedDate: new Date().toISOString().split('T')[0],
+        courtsWithWeather: items.map(({ court, weather, amenities }) => ({
+          courtData: {
+            _id: court._id,
+            name: court.name,
+            type: court.type,
+            address: court.address,
+            price: court.pricePerHour,
+            rating: court.rating,
+            amenities
+          },
+          // weatherData: weather
+        }))
+      }
+      const res = await fetch('/api/ai-suggestions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      const data = await res.json()
+      if (data.success) {
+        // enrich with listing info (image, price)
+        const idToCourt: Record<string, Court> = Object.fromEntries(courts.map(c => [c._id, c]))
+        const enriched = (data.rankings || []).map((r: any) => ({
+          ...r,
+          image: idToCourt[r.courtId]?.images?.[0] || null,
+          pricePerHour: idToCourt[r.courtId]?.pricePerHour,
+          address: idToCourt[r.courtId]?.address
+        }))
+        setAiCourtSuggestions(enriched)
+      }
+    } catch (e) {
+      console.error('AI court suggestion error', e)
+    } finally {
+      setAiLoading(false)
     }
   }
 
@@ -218,6 +298,252 @@ const fetchCourts = async (reset: boolean = true) => {
                   Độ ẩm: {weather.current.humidity}% | Gió: {weather.current.windSpeed}km/h
                 </span>
               </div>
+            </div>
+          )}
+        </div>
+
+        {/* AI Suggestions for Courts - Redesigned */}
+        <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg shadow-sm p-6 mb-6 border border-purple-200">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <Sparkles className="h-6 w-6 text-purple-600" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">Gợi ý AI thông minh</h3>
+                <p className="text-sm text-gray-600">Phân tích thời tiết, đánh giá và tiện ích để đề xuất sân phù hợp nhất</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Sport Selection with Auto-Generate */}
+          <div className="flex items-center gap-4 mb-4">
+            <div className="flex-1">
+              <Select value={selectedSportAI} onValueChange={setSelectedSportAI}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Chọn môn thể thao" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tất cả môn</SelectItem>
+                  <SelectItem value="football">Bóng đá mini</SelectItem>
+                  <SelectItem value="badminton">Cầu lông</SelectItem>
+                  <SelectItem value="tennis">Tennis</SelectItem>
+                  <SelectItem value="basketball">Bóng rổ</SelectItem>
+                  <SelectItem value="volleyball">Bóng chuyền</SelectItem>
+                  <SelectItem value="pickleball">Pickleball</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Button 
+                size="sm" 
+                onClick={generateAICourtSuggestions} 
+                disabled={aiLoading || courts.length === 0 || selectedSportAI === 'all'}
+                className="bg-purple-600 hover:bg-purple-700 text-white"
+              >
+                {aiLoading ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Đang phân tích...
+                  </>
+                ) : (
+                  <>
+                    <Zap className="h-4 w-4 mr-2" />
+                    Tạo gợi ý mới
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+
+          {/* Status Messages */}
+          {selectedSportAI === 'all' && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">
+                  Vui lòng chọn môn thể thao để AI đề xuất sân phù hợp nhất
+                </span>
+            </div>
+          )}
+
+          {/* Loading State */}
+          {aiLoading && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-purple-700">
+                <RefreshCw className="h-4 w-4 animate-spin" />
+                <span className="text-sm font-medium">AI đang phân tích thời tiết, đánh giá và tiện ích...</span>
+              </div>
+              <div className="grid md:grid-cols-2 gap-3">
+                {[1,2,3,4].map(i => (
+                  <div key={i} className="p-4 border rounded-lg animate-pulse bg-white">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 bg-gray-200 rounded"></div>
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                        <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* AI Suggestions Results */}
+          {aiCourtSuggestions && aiCourtSuggestions.length > 0 && !aiLoading ? (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span className="text-sm font-medium text-green-700">
+                    Top {Math.min(TOP_N, aiCourtSuggestions.length)} đề xuất cho {getSportTypeInVietnamese(selectedSportAI)}
+                  </span>
+                </div>
+                <Badge variant="secondary" className="bg-purple-100 text-purple-700">
+                  AI Powered
+                </Badge>
+              </div>
+
+              {/* Top 1 highlight */}
+              {aiCourtSuggestions.slice(0,1).map((item: any, idx: number) => (
+                <Card key={item.courtId} className="p-6 border-2 border-purple-300 bg-gradient-to-r from-purple-50 to-white shadow-lg">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-yellow-100 rounded-full">
+                        <Crown className="h-5 w-5 text-yellow-600" />
+                      </div>
+                      <div>
+                        <h4 className="text-lg font-bold text-gray-900">{item.name}</h4>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge className="bg-purple-100 text-purple-700">{getSportTypeInVietnamese(item.type)}</Badge>
+                          <div className="flex items-center gap-1">
+                            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                            <span className="text-sm font-medium">{formatRating(item.rating)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-purple-700">{item.score}/10</div>
+                      <div className="text-xs text-gray-600 mt-1">Điểm AI</div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-4">
+                    <div className="flex-1 space-y-3">
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <MapPin className="h-4 w-4" />
+                        <span>{item.address}</span>
+                      </div>
+                      
+                      <div className="flex items-center gap-4 text-sm">
+                        {typeof item.pricePerHour === 'number' && (
+                          <div className="font-semibold text-green-700">
+                            {item.pricePerHour.toLocaleString('vi-VN')}đ/giờ
+                          </div>
+                        )}
+                        {item.weather && (
+                          <div className="flex items-center gap-1">
+                            {getWeatherIcon(item.weather.current?.condition || '')}
+                            <span>{item.weather.current?.temp ?? ''}°C</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {item.badges && item.badges.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {item.badges.slice(0, 3).map((badge: string, idx: number) => (
+                            <Badge key={idx} variant="outline" className="text-xs">
+                              {badge}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+
+                      {item.reason && (
+                        <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
+                          <div className="text-sm font-medium text-purple-900 mb-1">💡 Vì sao nên chọn:</div>
+                          <div className="text-sm text-purple-800">{item.reason}</div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <Link href={`/court/${item.courtId}`}>
+                      <Button className="bg-purple-600 hover:bg-purple-700 text-white px-6">
+                        Xem sân
+                      </Button>
+                    </Link>
+                  </div>
+                </Card>
+              ))}
+
+              {/* Other recommendations */}
+              <div className="grid md:grid-cols-2 gap-4">
+                {aiCourtSuggestions.slice(1, TOP_N).map((item: any, idx: number) => (
+                  <Card key={item.courtId} className="p-4 border border-purple-200 hover:shadow-md transition-shadow">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center text-sm font-bold">
+                          {idx + 2}
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-gray-900">{item.name}</h4>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge variant="outline" className="text-xs">{getSportTypeInVietnamese(item.type)}</Badge>
+                            <div className="flex items-center gap-1">
+                              <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                              <span className="text-xs">{formatRating(item.rating)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-lg font-bold text-purple-700">{item.score}/10</div>
+                        <div className="text-xs text-gray-600">Điểm AI</div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-xs text-gray-600">
+                        <MapPin className="h-3 w-3" />
+                        <span className="truncate">{item.address}</span>
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3 text-xs">
+                          {typeof item.pricePerHour === 'number' && (
+                            <div className="font-medium text-green-700">
+                              {item.pricePerHour.toLocaleString('vi-VN')}đ/giờ
+                            </div>
+                          )}
+                          {item.weather && (
+                            <div className="flex items-center gap-1">
+                              {getWeatherIcon(item.weather.current?.condition || '')}
+                              <span>{item.weather.current?.temp ?? ''}°C</span>
+                            </div>
+                          )}
+                        </div>
+                        
+                        <Link href={`/court/${item.courtId}`}>
+                          <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-white">
+                            Xem sân
+                          </Button>
+                        </Link>
+                      </div>
+
+                      {item.reason && (
+                        <div className="p-2 bg-purple-50 rounded text-xs text-purple-800">
+                          💡 {item.reason}
+                        </div>
+                      )}
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          ) : selectedSportAI !== 'all' && !aiLoading && (
+            <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg text-center">
+              <div className="text-gray-600 mb-2">Chưa có gợi ý AI</div>
+              <div className="text-sm text-gray-500">Nhấn "Tạo gợi ý mới" để AI phân tích và đề xuất sân phù hợp</div>
             </div>
           )}
         </div>

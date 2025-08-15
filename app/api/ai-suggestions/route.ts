@@ -3,20 +3,27 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { prompt, courtData, weatherData, availableSlots, selectedDate, userPreferences } = body
+    const { prompt, courtData, weatherData, availableSlots, selectedDate, userPreferences, mode, courtsWithWeather, sportType } = body
 
     console.log('API received selectedDate:', selectedDate)
     console.log('API received date type:', typeof selectedDate)
 
-    // Enhanced AI analysis with more context
-    const aiResponse = await generateSmartAIAnalysis(
-      prompt, 
-      courtData, 
-      weatherData, 
-      availableSlots, 
-      selectedDate,
-      userPreferences
-    )
+    // Branch by mode: rank courts or suggest best times
+    let aiResponse: any
+    if (mode === 'rank-courts') {
+      aiResponse = await rankCourtsByContext(courtsWithWeather || [], selectedDate, userPreferences)
+    } else {
+      // default: best time suggestions (supports weather-only mode via flag)
+      aiResponse = await generateSmartAIAnalysis(
+        prompt, 
+        courtData, 
+        weatherData, 
+        availableSlots, 
+        selectedDate,
+        userPreferences,
+        mode
+      )
+    }
 
     return NextResponse.json({
       success: true,
@@ -31,13 +38,113 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// Rank multiple courts for Search page based on rating, local weather, and sport-amenity suitability
+async function rankCourtsByContext(
+  items: Array<{ courtData: any, weatherData: any }>,
+  selectedDate: string,
+  userPreferences?: { pricePreference?: 'cheap' | 'any' | 'premium', amenityPreferences?: string[] }
+) {
+  const results = items.map(({ courtData, weatherData }) => {
+    const analysis = analyzeCourtType(courtData.type, weatherData, 'unknown')
+    let score = 0
+    const factors: string[] = []
+    const badges: string[] = []
+
+    // Rating
+    const rating = typeof courtData.rating === 'number' ? courtData.rating : 0
+    const ratingScore = Math.max(0, Math.min(4, (rating / 5) * 4))
+    if (ratingScore > 0) {
+      score += ratingScore
+      factors.push(`Đánh giá ${rating.toFixed(1)}/5`)
+    }
+
+    // Price (if provided) with preference tilt
+    if (typeof courtData.price === 'number') {
+      let priceScore = Math.max(0, 3 - (courtData.price / 150000)) // 0..3 approx favors cheaper
+      if (userPreferences?.pricePreference === 'premium') {
+        // invert tilt slightly for premium
+        priceScore = Math.max(0, Math.min(3, (courtData.price / 150000)))
+        factors.push('Ưu tiên chất lượng cao')
+      } else if (userPreferences?.pricePreference === 'cheap') {
+        factors.push('Ưu tiên giá rẻ')
+      }
+      score += priceScore
+    }
+
+    // Amenities (if provided)
+    const amenity = computeAmenitySuitabilityScore(courtData, analysis)
+    if (amenity.scoreDelta) {
+      score += Math.min(2, amenity.scoreDelta)
+      badges.push(...amenity.factors.slice(0, 2))
+    }
+    // Amenity preferences boost
+    if (Array.isArray(userPreferences?.amenityPreferences) && Array.isArray(courtData.amenities)) {
+      const lowerAmenities = courtData.amenities.map((amenityItem: unknown) => String(amenityItem || '').toLowerCase())
+      const prefHit = userPreferences!.amenityPreferences!.some((pref: string) => lowerAmenities.some((a: string) => a.includes(pref.toLowerCase())))
+      if (prefHit) {
+        score += 1
+        factors.push('Phù hợp tiện ích mong muốn')
+      }
+    }
+
+    // Weather at location (if supplied)
+    if (weatherData?.current) {
+      const cond = String(weatherData.current.condition || '').toLowerCase()
+      const temp = Number(weatherData.current.temp)
+      if (analysis.indoor) {
+        score += 1
+        badges.push('Trong nhà')
+      } else {
+        if (cond.includes('mưa')) {
+          score -= amenity.flags.hasRoof ? 0.5 : 1.5
+          factors.push(amenity.flags.hasRoof ? 'Có mái che - ít ảnh hưởng mưa' : 'Dự báo mưa')
+        } else if (temp >= analysis.idealTemp.min && temp <= analysis.idealTemp.max) {
+          score += 1.5
+          badges.push('Thời tiết đẹp')
+        }
+      }
+    }
+
+    // Normalize 0..10
+    const norm = Math.max(0, Math.min(10, Math.round(score + 4)))
+
+    // Generate a concise AI-style reason string (template using computed factors)
+    const reasonParts: string[] = []
+    if (rating >= 4.2) reasonParts.push('đánh giá cao')
+    if (badges.includes('Trong nhà')) reasonParts.push('không lo thời tiết')
+    if (badges.includes('Thời tiết đẹp')) reasonParts.push('thời tiết thuận lợi')
+    if (amenity.flags.hasRoof && !analysis.indoor) reasonParts.push('có mái che giảm ảnh hưởng mưa')
+    if (courtData.price && courtData.price < 200000) reasonParts.push('giá tốt')
+    const reason = reasonParts.length > 0 ? `Sân phù hợp nhờ ${reasonParts.slice(0,3).join(', ')}.` : undefined
+
+    return {
+      courtId: courtData._id,
+      name: courtData.name,
+      type: courtData.type,
+      rating: rating,
+      score: norm,
+      factors,
+      badges,
+      weather: weatherData || null,
+      reason
+    }
+  })
+
+  results.sort((a, b) => b.score - a.score)
+
+  return {
+    rankings: results
+  }
+}
+
 async function generateSmartAIAnalysis(
   prompt: string, 
   courtData: any, 
   weatherData: any, 
   availableSlots: any[], 
   selectedDate: string,
-  userPreferences?: any
+  userPreferences?: any,
+  mode?: string
 ) {
   // Enhanced analysis with multiple factors
   const analysis = await analyzeBookingContext(
@@ -45,7 +152,8 @@ async function generateSmartAIAnalysis(
     weatherData, 
     availableSlots, 
     selectedDate,
-    userPreferences
+    userPreferences,
+    mode
   )
   
   // Simulate AI processing delay
@@ -59,7 +167,8 @@ async function analyzeBookingContext(
   weatherData: any, 
   availableSlots: any[], 
   selectedDate: string,
-  userPreferences?: any
+  userPreferences?: any,
+  mode?: string
 ) {
   // Fix timezone issue by creating date in local timezone
   const [year, month, day] = selectedDate.split('-').map(Number)
@@ -95,7 +204,8 @@ async function analyzeBookingContext(
     courtData, 
     selectedDateObj,
     isWeekend,
-    isHoliday
+    isHoliday,
+    mode === 'best-times-weather-only'
   )
   
   // Get best recommendations
@@ -147,6 +257,7 @@ function analyzeCourtType(courtType: string, weatherData: any, season: string) {
       analysis.peakHours = ['17:00', '18:00', '19:00', '20:00']
       analysis.idealTemp = { min: 15, max: 30 }
       analysis.rainImpact = 'high'
+      analysis.preferredAmenities = ['đèn', 'den', 'light', 'lighting', 'shower', 'vòi sen', 'parking', 'đậu xe', 'mái che', 'roof', 'covered']
       break
       
     case 'badminton':
@@ -156,6 +267,7 @@ function analyzeCourtType(courtType: string, weatherData: any, season: string) {
       analysis.peakHours = ['18:00', '19:00', '20:00']
       analysis.idealTemp = { min: 18, max: 25 }
       analysis.rainImpact = 'low'
+      analysis.preferredAmenities = ['điều hòa', 'máy lạnh', 'ac', 'air', 'lighting', 'đèn', 'locker', 'tủ đồ', 'shower', 'vòi sen']
       break
       
     case 'tennis':
@@ -164,6 +276,7 @@ function analyzeCourtType(courtType: string, weatherData: any, season: string) {
       analysis.peakHours = ['16:00', '17:00', '18:00', '19:00']
       analysis.idealTemp = { min: 15, max: 28 }
       analysis.rainImpact = 'high'
+      analysis.preferredAmenities = ['đèn', 'den', 'light', 'lighting', 'mái che', 'roof', 'covered', 'parking', 'đậu xe', 'shower', 'vòi sen']
       break
       
     case 'basketball':
@@ -173,6 +286,7 @@ function analyzeCourtType(courtType: string, weatherData: any, season: string) {
       analysis.peakHours = ['17:00', '18:00', '19:00', '20:00']
       analysis.idealTemp = { min: 18, max: 25 }
       analysis.rainImpact = 'low'
+      analysis.preferredAmenities = ['điều hòa', 'máy lạnh', 'ac', 'air', 'lighting', 'đèn', 'locker', 'tủ đồ', 'shower', 'vòi sen']
       break
       
     default:
@@ -181,6 +295,7 @@ function analyzeCourtType(courtType: string, weatherData: any, season: string) {
       analysis.peakHours = ['17:00', '18:00', '19:00']
       analysis.idealTemp = { min: 15, max: 30 }
       analysis.rainImpact = 'medium'
+      analysis.preferredAmenities = ['đèn', 'den', 'light', 'lighting', 'parking', 'đậu xe', 'shower', 'vòi sen']
   }
   
   return analysis
@@ -211,16 +326,23 @@ function analyzeTimeSlotsWithContext(
   courtData: any, 
   selectedDate: Date,
   isWeekend: boolean,
-  isHoliday: boolean
+  isHoliday: boolean,
+  weatherOnlyMode: boolean = false
 ) {
   const courtTypeAnalysis = analyzeCourtType(courtData.type, weatherData, getSeason(selectedDate))
   const currentTemp = weatherData.current.temp
   const weatherCondition = weatherData.current.condition.toLowerCase()
+  const currentWind = typeof weatherData.current.windSpeed === 'number' ? weatherData.current.windSpeed : undefined
+  
+  // Pre-compute non-time-dependent scores (skip if weather-only)
+  const rating = typeof courtData.rating === 'number' ? courtData.rating : 0
+  const ratingScore = weatherOnlyMode ? 0 : Math.max(0, Math.min(2, (rating / 5) * 2)) // 0..2
+  const amenityEval = weatherOnlyMode ? { scoreDelta: 0, factors: [], flags: { hasRoof: false, hasLighting: false } } : computeAmenitySuitabilityScore(courtData, courtTypeAnalysis)
   
   return availableSlots.map(slot => {
     const hour = parseInt(slot.time.split(':')[0])
     let score = 0
-    const factors = []
+    const factors: string[] = []
     
     // Find weather data for this specific time slot
     const slotWeather = weatherData.forecast?.find((f: any) => {
@@ -236,13 +358,16 @@ function analyzeTimeSlotsWithContext(
       if (slotWeather) {
         const slotTemp = slotWeather.temp
         const slotCondition = slotWeather.condition.toLowerCase()
+        const slotWind = typeof slotWeather.windSpeed === 'number' ? slotWeather.windSpeed : currentWind
         
         if (slotCondition.includes('nắng') && slotTemp >= courtTypeAnalysis.idealTemp.min && slotTemp <= courtTypeAnalysis.idealTemp.max) {
           score += 4
           factors.push('Thời tiết lý tưởng')
         } else if (slotCondition.includes('mưa')) {
-          score -= 3
-          factors.push('Có thể mưa')
+          // If court has roof/covered amenity, reduce penalty
+          const hasRoof = amenityEval.flags.hasRoof
+          score += hasRoof ? -1 : -3
+          factors.push(hasRoof ? 'Có mái che - giảm ảnh hưởng mưa' : 'Có thể mưa')
         } else if (slotTemp < courtTypeAnalysis.idealTemp.min) {
           score -= 1
           factors.push('Nhiệt độ thấp')
@@ -250,62 +375,112 @@ function analyzeTimeSlotsWithContext(
           score -= 2
           factors.push('Nhiệt độ cao')
         }
+        // Wind penalty for outdoor racket sports
+        if (!courtTypeAnalysis.indoor && (courtData.type?.toLowerCase() === 'tennis') && typeof slotWind === 'number' && slotWind >= 20) {
+          score -= 2
+          factors.push('Gió mạnh')
+        }
       } else {
         // Fallback to current weather if no hourly data
         if (weatherCondition.includes('nắng') && currentTemp >= courtTypeAnalysis.idealTemp.min && currentTemp <= courtTypeAnalysis.idealTemp.max) {
           score += 3
           factors.push('Thời tiết đẹp')
         } else if (weatherCondition.includes('mưa')) {
-          score -= 2
-          factors.push('Có thể mưa')
+          const hasRoof = amenityEval.flags.hasRoof
+          score += hasRoof ? -1 : -2
+          factors.push(hasRoof ? 'Có mái che - giảm ảnh hưởng mưa' : 'Có thể mưa')
         }
       }
     }
     
-    // Time preference scoring (enhanced)
-    if (courtTypeAnalysis.peakHours.includes(slot.time)) {
-      if (isWeekend || isHoliday) {
-        score += 3 // Peak hours are good on weekends
-        factors.push('Giờ vàng cuối tuần')
-      } else {
-        score += 1 // Peak hours are okay on weekdays
-        factors.push('Giờ cao điểm')
+    // Time preference scoring (enhanced) - keep minimal in weather-only mode
+    if (!weatherOnlyMode) {
+      if (courtTypeAnalysis.peakHours.includes(slot.time)) {
+        if (isWeekend || isHoliday) {
+          score += 3
+          factors.push('Giờ vàng cuối tuần')
+        } else {
+          score += 1
+          factors.push('Giờ cao điểm')
+        }
+      } else if (hour >= 14 && hour <= 16) {
+        score += 2
+        factors.push('Giờ ít đông')
+      } else if (hour >= 20 && hour <= 22) {
+        score += 1
+        factors.push('Giờ muộn')
       }
-    } else if (hour >= 14 && hour <= 16) {
-      score += 2
-      factors.push('Giờ ít đông')
-    } else if (hour >= 20 && hour <= 22) {
-      score += 1
-      factors.push('Giờ muộn')
     }
     
-    // Price scoring
-    const priceScore = Math.max(0, 5 - (courtData.price / 100000))
-    score += priceScore
-    factors.push('Giá hợp lý')
+    // Lighting at night (skip in weather-only)
+    if (!weatherOnlyMode && (hour >= 18 || hour < 6)) {
+      if (amenityEval.flags.hasLighting) {
+        score += 1
+        factors.push('Có đèn chiếu sáng ban đêm')
+      } else {
+        score -= 1
+        factors.push('Thiếu đèn chiếu sáng ban đêm')
+      }
+    }
     
-    // Availability scoring
-    score += 1
-    factors.push('Còn trống')
+    // Price scoring (skip in weather-only)
+    if (!weatherOnlyMode) {
+      const priceScore = Math.max(0, 5 - (courtData.price / 100000))
+      score += priceScore
+      factors.push('Giá hợp lý')
+    }
     
-    // Weekend/Holiday adjustments
-    if (isWeekend || isHoliday) {
+    // Availability scoring (skip in weather-only; availability already filtered client-side)
+    if (!weatherOnlyMode) {
+      score += 1
+      factors.push('Còn trống')
+    }
+    
+    // Weekend/Holiday adjustments (skip in weather-only)
+    if (!weatherOnlyMode && (isWeekend || isHoliday)) {
       score += 1
       factors.push('Cuối tuần/lễ')
     }
     
-    // Seasonal adjustments
-    const season = getSeason(selectedDate)
-    if (season === 'spring' || season === 'autumn') {
-      score += 1
-      factors.push('Thời tiết mùa đẹp')
+    // Seasonal adjustments (skip in weather-only)
+    if (!weatherOnlyMode) {
+      const season = getSeason(selectedDate)
+      if (season === 'spring' || season === 'autumn') {
+        score += 1
+        factors.push('Thời tiết mùa đẹp')
+      }
     }
+    
+    // Rating scoring (skip in weather-only)
+    if (!weatherOnlyMode && ratingScore > 0) {
+      score += ratingScore
+      factors.push(`Đánh giá ${rating.toFixed(1)}/5`)
+    }
+    
+    // Amenity suitability (skip in weather-only)
+    if (!weatherOnlyMode && amenityEval.scoreDelta !== 0) {
+      score += amenityEval.scoreDelta
+      amenityEval.factors.forEach(f => factors.push(f))
+    }
+    
+    // Extra heat penalty for outdoor in midday
+    if (!courtTypeAnalysis.indoor) {
+      const tempForSlot = slotWeather ? slotWeather.temp : currentTemp
+      if (typeof tempForSlot === 'number' && tempForSlot >= 32 && hour >= 11 && hour <= 15) {
+        score -= 1
+        factors.push('Nắng nóng giữa trưa')
+      }
+    }
+    
+    // Normalize score to 0..10 and set recommendation
+    const normalized = Math.max(0, Math.min(10, Math.round(score)))
+    const recommendation = normalized >= 8 ? 'Tuyệt vời' : normalized >= 6 ? 'Tốt' : normalized >= 4 ? 'Khá' : 'Trung bình'
     
     return {
       ...slot,
-      score,
+      score: normalized,
       factors,
-      recommendation: score >= 8 ? 'Tuyệt vời' : score >= 6 ? 'Tốt' : score >= 4 ? 'Khá' : 'Trung bình'
+      recommendation
     }
   })
 }
@@ -343,7 +518,11 @@ function generatePersonalizedRecommendations(
   })
   
   // Detailed analysis
-  const detailed = `Dựa trên phân tích chi tiết: ${courtTypeAnalysis.indoor ? 'Sân trong nhà' : 'Sân ngoài trời'} ${courtType}, thời tiết ${weatherData.current.condition.toLowerCase()}, giá ${courtData.price.toLocaleString('vi-VN')}đ/giờ. ${isWeekend ? 'Cuối tuần thường đông hơn.' : 'Ngày thường ít đông.'} ${locationAnalysis.isDowntown ? 'Vị trí trung tâm, dễ tiếp cận.' : 'Vị trí yên tĩnh, có chỗ đậu xe.'}`
+  const amenitySummary = Array.isArray(courtData.amenities) && courtData.amenities.length > 0
+    ? ` Tiện ích: ${courtData.amenities.slice(0, 3).join(', ')}.`
+    : ''
+  const ratingText = typeof courtData.rating === 'number' ? ` Đánh giá: ${courtData.rating.toFixed(1)}/5.` : ''
+  const detailed = `Dựa trên phân tích chi tiết: ${courtTypeAnalysis.indoor ? 'Sân trong nhà' : 'Sân ngoài trời'} ${courtType}, thời tiết ${weatherData.current.condition.toLowerCase()}, giá ${courtData.price.toLocaleString('vi-VN')}đ/giờ.${ratingText}${amenitySummary} ${isWeekend ? 'Cuối tuần thường đông hơn.' : 'Ngày thường ít đông.'} ${locationAnalysis.isDowntown ? 'Vị trí trung tâm, dễ tiếp cận.' : 'Vị trí yên tĩnh, có chỗ đậu xe.'}`
   
   // Tips
   const tips = generateContextualTips(courtType, weatherData, selectedDate, locationAnalysis)
@@ -576,3 +755,64 @@ async function callOpenAI(prompt: string) {
   return data.choices[0].message.content
 }
 */
+
+// Utility: compute amenity suitability scoring based on sport type
+function computeAmenitySuitabilityScore(courtData: any, courtTypeAnalysis: any) {
+  const result = { scoreDelta: 0, factors: [] as string[], flags: { hasRoof: false, hasLighting: false } }
+  const amenities: string[] = Array.isArray(courtData.amenities) ? courtData.amenities : []
+  const lowerAmenities = amenities.map(a => (typeof a === 'string' ? a.toLowerCase() : ''))
+  const containsAny = (keywords: string[]) => lowerAmenities.some(a => keywords.some(k => a.includes(k)))
+  
+  // Lighting
+  const lightingKeywords = ['đèn', 'den', 'light', 'lighting', 'chiếu sáng']
+  if (containsAny(lightingKeywords)) {
+    result.scoreDelta += 1
+    result.factors.push('Có hệ thống chiếu sáng tốt')
+    result.flags.hasLighting = true
+  }
+  
+  // Roof/Covered
+  const roofKeywords = ['mái che', 'roof', 'covered', 'trong nhà']
+  if (containsAny(roofKeywords)) {
+    result.scoreDelta += courtTypeAnalysis.weatherSensitive ? 1 : 0.5
+    result.factors.push('Có mái che/che phủ')
+    result.flags.hasRoof = true
+  }
+  
+  // AC for indoor sports
+  const acKeywords = ['điều hòa', 'máy lạnh', 'ac', 'air conditioning']
+  if (containsAny(acKeywords) && courtTypeAnalysis.indoor) {
+    result.scoreDelta += 1
+    result.factors.push('Có điều hòa không khí')
+  }
+  
+  // Parking
+  const parkingKeywords = ['parking', 'đậu xe', 'chỗ đậu xe']
+  if (containsAny(parkingKeywords)) {
+    result.scoreDelta += 0.5
+    result.factors.push('Có chỗ đậu xe')
+  }
+  
+  // Showers/Locker
+  const showerKeywords = ['shower', 'vòi sen']
+  const lockerKeywords = ['locker', 'tủ đồ']
+  if (containsAny(showerKeywords)) {
+    result.scoreDelta += 0.5
+    result.factors.push('Có vòi sen')
+  }
+  if (containsAny(lockerKeywords)) {
+    result.scoreDelta += 0.5
+    result.factors.push('Có tủ đồ/locker')
+  }
+  
+  // Sport-specific preferred amenities bonus
+  if (Array.isArray(courtTypeAnalysis.preferredAmenities)) {
+    const hit = containsAny(courtTypeAnalysis.preferredAmenities)
+    if (hit) {
+      result.scoreDelta += 0.5
+      result.factors.push('Tiện ích phù hợp với loại môn')
+    }
+  }
+  
+  return result
+}
