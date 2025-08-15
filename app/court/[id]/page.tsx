@@ -174,7 +174,7 @@ export default function CourtDetailPage() {
     ).padStart(2, "0")}-${String(selectedDate.getDate()).padStart(2, "0")}`;
 
     for (let hour = openHour; hour < closeHour; hour++) {
-      const timeSlot = `${hour.toString().padStart(2, "0")}:00:00`;
+      const timeSlot = `${hour.toString().padStart(2, "0")}:00`;
       const fullSlot = `${selectedDateStr}T${timeSlot}`; // YYYY-MM-DDTHH:mm:ss
 
       slots.push({
