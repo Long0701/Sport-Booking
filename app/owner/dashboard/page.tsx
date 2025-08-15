@@ -117,6 +117,7 @@ export default function OwnerDashboard() {
   const fetchTodayBookings = async () => {
     try {
       const today = new Date().toISOString().split("T")[0];
+      
       const response = await fetch(`/api/owner/bookings?date=${today}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
