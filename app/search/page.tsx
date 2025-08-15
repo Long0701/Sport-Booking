@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useAuth } from "@/contexts/AuthContext"
 import { formatRating } from "@/lib/utils"
 import { Cloud, CloudRain, MapPin, Star, Sun } from 'lucide-react'
 import dynamic from 'next/dynamic'
@@ -48,6 +49,7 @@ export default function SearchPage() {
 const [totalPages, setTotalPages] = useState(1)
 const [loadingMore, setLoadingMore] = useState(false)
 const [total, setTotal] = useState(0)
+const { user } = useAuth();
 
   // Fetch courts from API
   useEffect(() => {
@@ -135,7 +137,7 @@ const fetchCourts = async (reset: boolean = true) => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-    <Header></Header>
+      <Header></Header>
 
       {/* Header */}
       <header className="bg-white border-b sticky top-0 z-40">
@@ -149,15 +151,15 @@ const fetchCourts = async (reset: boolean = true) => {
             </Link> */}
             <div className="flex items-center space-x-4">
               <Button
-                variant={viewMode === 'list' ? 'default' : 'outline'}
-                onClick={() => setViewMode('list')}
+                variant={viewMode === "list" ? "default" : "outline"}
+                onClick={() => setViewMode("list")}
                 size="sm"
               >
                 Danh sách
               </Button>
               <Button
-                variant={viewMode === 'map' ? 'default' : 'outline'}
-                onClick={() => setViewMode('map')}
+                variant={viewMode === "map" ? "default" : "outline"}
+                onClick={() => setViewMode("map")}
                 size="sm"
               >
                 Bản đồ
@@ -212,10 +214,12 @@ const fetchCourts = async (reset: boolean = true) => {
               <div className="flex items-center space-x-2">
                 {getWeatherIcon(weather.current.condition)}
                 <span className="text-sm font-medium">
-                  Thời tiết hiện tại: {weather.current.temp}°C - {weather.current.condition}
+                  Thời tiết hiện tại: {weather.current.temp}°C -{" "}
+                  {weather.current.condition}
                 </span>
                 <span className="text-xs text-gray-600">
-                  Độ ẩm: {weather.current.humidity}% | Gió: {weather.current.windSpeed}km/h
+                  Độ ẩm: {weather.current.humidity}% | Gió:{" "}
+                  {weather.current.windSpeed}km/h
                 </span>
               </div>
             </div>
@@ -223,7 +227,7 @@ const fetchCourts = async (reset: boolean = true) => {
         </div>
 
         {/* Results */}
-        {viewMode === 'list' ? (
+        {viewMode === "list" ? (
           <div className="space-y-4  overflow-auto h-[calc(100vh-372px)]">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold">
@@ -253,11 +257,17 @@ const fetchCourts = async (reset: boolean = true) => {
             ) : (
               <div className="grid gap-4">
                 {courts.map((court) => (
-                  <Card key={court._id} className="hover:shadow-lg transition-shadow">
+                  <Card
+                    key={court._id}
+                    className="hover:shadow-lg transition-shadow"
+                  >
                     <div className="flex flex-col md:flex-row">
                       <div className="w-full md:w-72 h-48 md:h-44">
                         <img
-                          src={court.images[0] || "/placeholder.svg?height=200&width=400&query=sports court"}
+                          src={
+                            court.images[0] ||
+                            "/placeholder.svg?height=200&width=400&query=sports court"
+                          }
                           alt={court.name}
                           className="w-full h-full object-cover rounded-t-lg md:rounded-l-lg md:rounded-t-none"
                         />
@@ -265,7 +275,9 @@ const fetchCourts = async (reset: boolean = true) => {
                       <div className="flex-1 p-4">
                         <div className="flex items-start justify-between mb-2">
                           <div>
-                            <h3 className="text-lg font-semibold">{court.name}</h3>
+                            <h3 className="text-lg font-semibold">
+                              {court.name}
+                            </h3>
                             <Badge variant="secondary" className="mb-2">
                               {getSportTypeInVietnamese(court.type)}
                             </Badge>
@@ -273,14 +285,18 @@ const fetchCourts = async (reset: boolean = true) => {
                           <div className="text-right">
                             <div className="flex items-center space-x-1 mb-1">
                               <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                              <span className="font-medium">{formatRating(court.rating)}</span>
+                              <span className="font-medium">
+                                {formatRating(court.rating)}
+                              </span>
                               {court.reviewCount > 0 && (
-                                <span className="text-sm text-gray-500">({court.reviewCount})</span>
+                                <span className="text-sm text-gray-500">
+                                  ({court.reviewCount})
+                                </span>
                               )}
                             </div>
                           </div>
                         </div>
-                        
+
                         <div className="flex items-center text-gray-600 mb-2">
                           <MapPin className="h-4 w-4 mr-1" />
                           <span className="text-sm">{court.address}</span>
@@ -289,17 +305,25 @@ const fetchCourts = async (reset: boolean = true) => {
                         <div className="flex items-center justify-between">
                           <div>
                             <div className="text-lg font-bold text-green-600">
-                              {court.pricePerHour.toLocaleString('vi-VN')}đ/giờ
+                              {court.pricePerHour.toLocaleString("vi-VN")}đ/giờ
                             </div>
                             <div className="text-sm text-gray-600">
                               Chủ sân: {court.owner.name}
                             </div>
                           </div>
-                          <Link href={`/court/${court._id}`}>
-                            <Button className="bg-green-600 hover:bg-green-700">
-                              Đặt sân
-                            </Button>
-                          </Link>
+                          {user ? (
+                            <Link href={`/court/${court._id}`}>
+                              <Button className="bg-green-600 hover:bg-green-700">
+                                Đặt sân
+                              </Button>
+                            </Link>
+                          ) : (
+                            <Link href={`/auth/login`}>
+                              <Button className="bg-green-600 hover:bg-green-700">
+                                Đặt sân
+                              </Button>
+                            </Link>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -307,15 +331,15 @@ const fetchCourts = async (reset: boolean = true) => {
                 ))}
 
                 {page < totalPages && (
-  <div className="flex justify-center mt-4">
-    <Button 
-      onClick={() => fetchCourts(false)}
-      disabled={loadingMore}
-    >
-      {loadingMore ? 'Đang tải...' : 'Xem thêm'}
-    </Button>
-  </div>
-)}
+                  <div className="flex justify-center mt-4">
+                    <Button
+                      onClick={() => fetchCourts(false)}
+                      disabled={loadingMore}
+                    >
+                      {loadingMore ? "Đang tải..." : "Xem thêm"}
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -326,5 +350,5 @@ const fetchCourts = async (reset: boolean = true) => {
         )}
       </div>
     </div>
-  )
+  );
 }
