@@ -218,7 +218,7 @@ export default function CourtDetailPage() {
 
     for (let hour = openHour; hour < closeHour; hour++) {
       const display = `${hour.toString().padStart(2, "0")}:00`;
-      const value = `${hour.toString().padStart(2, "0")}:00:00`;
+      const value = `${hour.toString().padStart(2, "0")}:00`;
       const fullSlot = `${selectedDateStr}T${value}`; // YYYY-MM-DDTHH:mm:ss
 
       slots.push({

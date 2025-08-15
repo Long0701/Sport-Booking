@@ -6,11 +6,11 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { formatRating } from "@/lib/utils"
 import { Cloud, CloudRain, MapPin, Star, Sun, Sparkles, Crown, RefreshCw, Zap } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import Link from "next/link"
 import { useEffect, useState } from "react"
-import { formatRating } from "@/lib/utils"
 
 // Dynamic import for map to avoid SSR issues
 const MapComponent = dynamic(() => import('@/components/map-component'), { 
@@ -247,7 +247,7 @@ const fetchCourts = async (reset: boolean = true) => {
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-6 overflow-auto h-[calc(100vh-160px)]">
+      <div className="container mx-auto px-4 py-6">
         {/* Search Filters */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -550,7 +550,7 @@ const fetchCourts = async (reset: boolean = true) => {
 
         {/* Results */}
         {viewMode === 'list' ? (
-          <div className="space-y-4">
+          <div className="space-y-4  overflow-auto h-[calc(100vh-372px)]">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold">
                 Tìm thấy {total} sân phù hợp
