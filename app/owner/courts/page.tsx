@@ -267,34 +267,42 @@ export default function CourtsManagementPage() {
                   🏟️
                 </div>
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  {searchQuery || filterType !== 'all' || filterStatus !== 'all' 
-                    ? 'Không tìm thấy sân nào' 
-                    : 'Chưa có sân nào'}
+                  {searchQuery || filterType !== "all" || filterStatus !== "all"
+                    ? "Không tìm thấy sân nào"
+                    : "Chưa có sân nào"}
                 </h3>
                 <p className="text-gray-600">
-                  {searchQuery || filterType !== 'all' || filterStatus !== 'all'
-                    ? 'Thử thay đổi bộ lọc để xem kết quả khác'
-                    : 'Bắt đầu bằng cách thêm sân đầu tiên của bạn'}
+                  {searchQuery || filterType !== "all" || filterStatus !== "all"
+                    ? "Thử thay đổi bộ lọc để xem kết quả khác"
+                    : "Bắt đầu bằng cách thêm sân đầu tiên của bạn"}
                 </p>
               </div>
-              {!searchQuery && filterType === 'all' && filterStatus === 'all' && (
-                <Link href="/owner/courts/add">
-                  <Button className="bg-green-600 hover:bg-green-700">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Thêm sân đầu tiên
-                  </Button>
-                </Link>
-              )}
+              {!searchQuery &&
+                filterType === "all" &&
+                filterStatus === "all" && (
+                  <Link href="/owner/courts/add">
+                    <Button className="bg-green-600 hover:bg-green-700">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Thêm sân đầu tiên
+                    </Button>
+                  </Link>
+                )}
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-4 overflow-auto h-[calc(100vh-232px)]">
+          <div className="grid gap-4 overflow-auto h-[calc(100vh-232px)] content-start">
             {filteredCourts.map((court) => (
-              <Card key={court.id} className="hover:shadow-lg transition-shadow">
+              <Card
+                key={court.id}
+                className="hover:shadow-lg transition-shadow"
+              >
                 <div className="flex flex-col md:flex-row">
                   <div className="w-full md:w-48 h-48 md:h-32">
                     <img
-                      src={court.images[0] || "/placeholder.svg?height=200&width=300&query=sports court"}
+                      src={
+                        court.images[0] ||
+                        "/placeholder.svg?height=200&width=300&query=sports court"
+                      }
                       alt={court.name}
                       className="w-full h-full object-cover rounded-t-lg md:rounded-l-lg md:rounded-t-none"
                     />
@@ -303,15 +311,19 @@ export default function CourtsManagementPage() {
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1">
                         <div className="flex items-center space-x-2 mb-2">
-                          <h3 className="text-lg font-semibold">{court.name}</h3>
+                          <h3 className="text-lg font-semibold">
+                            {court.name}
+                          </h3>
                           <Badge variant="secondary">
                             {getSportTypeLabel(court.type)}
                           </Badge>
-                          <Badge variant={court.is_active ? "default" : "secondary"}>
+                          <Badge
+                            variant={court.is_active ? "default" : "secondary"}
+                          >
                             {court.is_active ? "Hoạt động" : "Tạm dừng"}
                           </Badge>
                         </div>
-                        
+
                         <div className="flex items-center text-gray-600 mb-2">
                           <MapPin className="h-4 w-4 mr-1" />
                           <span className="text-sm">{court.address}</span>
@@ -320,11 +332,16 @@ export default function CourtsManagementPage() {
                         <div className="flex items-center space-x-4 text-sm text-gray-600">
                           <div className="flex items-center">
                             <Clock className="h-4 w-4 mr-1" />
-                            <span>{court.open_time} - {court.close_time}</span>
+                            <span>
+                              {court.open_time} - {court.close_time}
+                            </span>
                           </div>
                           <div className="flex items-center">
                             <Star className="h-4 w-4 mr-1 text-yellow-400" />
-                            <span>{formatRating(court.rating)} ({court.review_count} đánh giá)</span>
+                            <span>
+                              {formatRating(court.rating)} ({court.review_count}{" "}
+                              đánh giá)
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -332,61 +349,64 @@ export default function CourtsManagementPage() {
                       <div className="flex items-center space-x-2">
                         <div className="text-right mr-4">
                           <div className="text-lg font-bold text-green-600">
-                            {court.price_per_hour.toLocaleString('vi-VN')}đ/giờ
+                            {court.price_per_hour.toLocaleString("vi-VN")}đ/giờ
                           </div>
                           <div className="text-xs text-gray-500">
-                            Tạo: {new Date(court.created_at).toLocaleDateString('vi-VN')}
+                            Tạo:{" "}
+                            {new Date(court.created_at).toLocaleDateString(
+                              "vi-VN"
+                            )}
                           </div>
                         </div>
 
                         <div className="relative">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
+                              <Button
+                                variant="ghost"
+                                size="sm"
                                 className="h-8 w-8 p-0 hover:bg-gray-100"
                                 onClick={(e) => {
-                                  e.preventDefault()
-                                  e.stopPropagation()
+                                  e.preventDefault();
+                                  e.stopPropagation();
                                 }}
                               >
                                 <MoreHorizontal className="h-4 w-4" />
                                 <span className="sr-only">Mở menu</span>
                               </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent 
-                              align="end" 
+                            <DropdownMenuContent
+                              align="end"
                               className="w-48 bg-white border border-gray-200 rounded-md shadow-lg z-50"
                               sideOffset={5}
                             >
-                              <DropdownMenuItem 
+                              <DropdownMenuItem
                                 className="flex items-center px-3 py-2 text-sm hover:bg-gray-100 cursor-pointer"
                                 onClick={(e) => {
-                                  e.preventDefault()
-                                  window.location.href = `/court/${court.id}`
+                                  e.preventDefault();
+                                  window.location.href = `/court/${court.id}`;
                                 }}
                               >
                                 <Eye className="h-4 w-4 mr-2" />
                                 Xem chi tiết
                               </DropdownMenuItem>
-                              
-                              <DropdownMenuItem 
+
+                              <DropdownMenuItem
                                 className="flex items-center px-3 py-2 text-sm hover:bg-gray-100 cursor-pointer"
                                 onClick={(e) => {
-                                  e.preventDefault()
-                                  window.location.href = `/owner/courts/edit/${court.id}`
+                                  e.preventDefault();
+                                  window.location.href = `/owner/courts/edit/${court.id}`;
                                 }}
                               >
                                 <Edit className="h-4 w-4 mr-2" />
                                 Chỉnh sửa
                               </DropdownMenuItem>
-                              
-                              <DropdownMenuItem 
+
+                              <DropdownMenuItem
                                 className="flex items-center px-3 py-2 text-sm hover:bg-gray-100 cursor-pointer"
                                 onClick={(e) => {
-                                  e.preventDefault()
-                                  toggleCourtStatus(court.id, court.is_active)
+                                  e.preventDefault();
+                                  toggleCourtStatus(court.id, court.is_active);
                                 }}
                               >
                                 {court.is_active ? (
@@ -401,13 +421,17 @@ export default function CourtsManagementPage() {
                                   </>
                                 )}
                               </DropdownMenuItem>
-                              
-                              <DropdownMenuItem 
+
+                              <DropdownMenuItem
                                 className="flex items-center px-3 py-2 text-sm hover:bg-red-50 text-red-600 cursor-pointer"
                                 onClick={(e) => {
-                                  e.preventDefault()
-                                  if (confirm(`Bạn có chắc chắn muốn xóa sân "${court.name}"?`)) {
-                                    deleteCourt(court.id)
+                                  e.preventDefault();
+                                  if (
+                                    confirm(
+                                      `Bạn có chắc chắn muốn xóa sân "${court.name}"?`
+                                    )
+                                  ) {
+                                    deleteCourt(court.id);
                                   }
                                 }}
                               >
@@ -427,5 +451,5 @@ export default function CourtsManagementPage() {
         )}
       </div>
     </div>
-  )
+  );
 }
