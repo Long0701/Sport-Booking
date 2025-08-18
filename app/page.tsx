@@ -136,7 +136,7 @@ export default function HomePage() {
             </Link>
 
             {user?.role === "owner" && (
-              <Link href="/owner/dashboard">
+              <Link href="/owner/courts">
                 <Button size="lg" variant="outline" className="text-lg px-8">
                   <Users className="mr-2 h-5 w-5" />
                   Xem trang quản lý

@@ -1,15 +1,15 @@
 'use client'
 
-import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
-import { Eye, EyeOff, Mail, Lock, User, Phone } from 'lucide-react'
-import Link from "next/link"
 import { useAuth } from '@/contexts/AuthContext'
+import { Eye, EyeOff, Lock, Mail, Phone, User } from 'lucide-react'
+import Link from "next/link"
+import { useState } from "react"
 
 export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false)
