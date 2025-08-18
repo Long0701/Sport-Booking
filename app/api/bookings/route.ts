@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: bookings.map(booking => ({
+      data: bookings.map((booking: any) => ({
         _id: booking.id,
         user: {
           name: booking.user_name,
@@ -112,66 +112,89 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { userId, courtId, date, startTime, endTime, notes } = body
+    const body = await request.json();
+    const { userId, courtId, date, startTime, endTime, notes } = body;
 
     // Validate required fields
     if (!userId || !courtId || !date || !startTime || !endTime) {
       return NextResponse.json(
-        { success: false, error: 'Vui lòng điền đầy đủ thông tin' },
+        { success: false, error: "Vui lòng điền đầy đủ thông tin" },
         { status: 400 }
-      )
+      );
     }
 
     // Check if user exists
-    const userResult = await query('SELECT id FROM users WHERE id = $1', [userId])
+    const userResult = await query("SELECT id FROM users WHERE id = $1", [
+      userId,
+    ]);
     if (userResult.length === 0) {
       return NextResponse.json(
-        { success: false, error: 'Không tìm thấy người dùng' },
+        { success: false, error: "Không tìm thấy người dùng" },
         { status: 404 }
-      )
+      );
     }
 
     // Check if court exists
-    const courtResult = await query('SELECT id, price_per_hour FROM courts WHERE id = $1 AND is_active = true', [courtId])
+    const courtResult = await query(
+      "SELECT id, price_per_hour FROM courts WHERE id = $1 AND is_active = true",
+      [courtId]
+    );
     if (courtResult.length === 0) {
       return NextResponse.json(
-        { success: false, error: 'Không tìm thấy sân' },
+        { success: false, error: "Không tìm thấy sân" },
         { status: 404 }
-      )
+      );
     }
+    const court = courtResult[0];
 
-    const court = courtResult[0]
-
-    // Check if time slot is available
-    const existingBookingResult = await query(`
+    // ✅ Check overlapping bookings
+    const existingBookingResult = await query(
+      `
       SELECT id FROM bookings
-      WHERE court_id = $1 
+      WHERE court_id = $1
         AND booking_date = $2
-        AND start_time = $3
         AND status IN ('pending', 'confirmed')
-    `, [courtId, date, startTime])
+        AND NOT (
+          end_time <= $3 OR start_time >= $4
+        )
+      `,
+      [courtId, date, startTime, endTime]
+    );
 
     if (existingBookingResult.length > 0) {
       return NextResponse.json(
-        { success: false, error: 'Khung giờ này đã được đặt' },
+        { success: false, error: "Khung giờ này đã được đặt" },
         { status: 400 }
-      )
+      );
     }
 
-    // Calculate total amount (assuming 1 hour booking)
-    const totalAmount = court.price_per_hour
+    // ✅ Calculate total amount
+    const start = new Date(`${date}T${startTime}`);
+    const end = new Date(`${date}T${endTime}`);
+    const hours = (end.getTime() - start.getTime()) / 3600000; // ms -> h
+    if (hours <= 0) {
+      return NextResponse.json(
+        { success: false, error: "Giờ bắt đầu phải nhỏ hơn giờ kết thúc" },
+        { status: 400 }
+      );
+    }
+    const totalAmount = court.price_per_hour * hours;
 
-    const bookingResult = await query(`
-      INSERT INTO bookings (user_id, court_id, booking_date, start_time, end_time, total_amount, notes)
+    // Insert booking
+    const bookingResult = await query(
+      `
+      INSERT INTO bookings
+        (user_id, court_id, booking_date, start_time, end_time, total_amount, notes)
       VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *
-    `, [userId, courtId, date, startTime, endTime, totalAmount, notes])
-
-    const booking = bookingResult[0]
+      `,
+      [userId, courtId, date, startTime, endTime, totalAmount, notes]
+    );
+    const booking = bookingResult[0];
 
     // Get booking with related data
-    const bookingWithDetailsResult = await query(`
+    const bookingWithDetailsResult = await query(
+      `
       SELECT 
         b.*,
         u.name as user_name,
@@ -185,41 +208,46 @@ export async function POST(request: NextRequest) {
       LEFT JOIN users u ON b.user_id = u.id
       LEFT JOIN courts c ON b.court_id = c.id
       WHERE b.id = $1
-    `, [booking.id])
+      `,
+      [booking.id]
+    );
+    const bookingWithDetails = bookingWithDetailsResult[0];
 
-    const bookingWithDetails = bookingWithDetailsResult[0]
-
-    return NextResponse.json({
-      success: true,
-      data: {
-        _id: bookingWithDetails.id,
-        user: {
-          name: bookingWithDetails.user_name,
-          email: bookingWithDetails.user_email,
-          phone: bookingWithDetails.user_phone
-        },
-        court: {
-          name: bookingWithDetails.court_name,
-          type: bookingWithDetails.court_type,
-          address: bookingWithDetails.court_address,
-          pricePerHour: bookingWithDetails.court_price
-        },
-        date: bookingWithDetails.booking_date,
-        startTime: bookingWithDetails.start_time,
-        endTime: bookingWithDetails.end_time,
-        totalAmount: bookingWithDetails.total_amount,
-        status: bookingWithDetails.status,
-        paymentStatus: bookingWithDetails.payment_status,
-        notes: bookingWithDetails.notes,
-        createdAt: bookingWithDetails.created_at
-      }
-    }, { status: 201 })
-
-  } catch (error) {
-    console.error('Error creating booking:', error)
     return NextResponse.json(
-      { success: false, error: 'Lỗi server' },
+      {
+        success: true,
+        data: {
+          _id: bookingWithDetails.id,
+          user: {
+            name: bookingWithDetails.user_name,
+            email: bookingWithDetails.user_email,
+            phone: bookingWithDetails.user_phone,
+          },
+          court: {
+            id: bookingWithDetails.court_id,
+            name: bookingWithDetails.court_name,
+            type: bookingWithDetails.court_type,
+            address: bookingWithDetails.court_address,
+            pricePerHour: bookingWithDetails.court_price,
+          },
+          date: bookingWithDetails.booking_date,
+          startTime: bookingWithDetails.start_time,
+          endTime: bookingWithDetails.end_time,
+          totalAmount: bookingWithDetails.total_amount,
+          status: bookingWithDetails.status,
+          paymentStatus: bookingWithDetails.payment_status,
+          paymentMethod: bookingWithDetails.payment_method,
+          notes: bookingWithDetails.notes,
+          createdAt: bookingWithDetails.created_at,
+        },
+      },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error("Error creating booking:", error);
+    return NextResponse.json(
+      { success: false, error: "Lỗi server" },
       { status: 500 }
-    )
+    );
   }
 }

@@ -1,0 +1,10 @@
+/* Event đã đặt (background xám) */
+.fc .booking-busy {
+  background-color: rgba(128, 128, 128, 0.4) !important; /* xám */
+}
+
+/* Range user chọn (màu xanh lá nhẹ) */
+.fc-v-event, .fc-highlight {
+  border: transparent;
+  background-color: rgb(209 250 229 / var(--tw-bg-opacity, 1)) !important; /* emerald-500 */
+}
