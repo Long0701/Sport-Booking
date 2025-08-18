@@ -33,7 +33,7 @@ export default function OwnerRegisterPage() {
     setTimeout(() => {
       setLoading(false)
       alert('Đăng ký thành công! Chúng tôi sẽ liên hệ với bạn trong 24h.')
-      window.location.href = '/owner/dashboard'
+              window.location.href = '/owner/courts'
     }, 2000)
   }
 
