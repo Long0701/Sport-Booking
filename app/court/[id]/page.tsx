@@ -2,7 +2,6 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
 import {
   Card,
   CardContent,
@@ -24,8 +23,12 @@ import {
   Wifi,
 } from "lucide-react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+import "./styles.css";
+import AvailabilityCalendar from "@/components/shared/availability-calendar/index";
+
 interface Court {
   _id: string;
   name: string;
@@ -38,154 +41,143 @@ interface Court {
   description: string;
   amenities: string[];
   phone: string;
-  openTime: string;
-  closeTime: string;
-  owner: {
-    name: string
-    phone: string
+  openTime: string; // "06:00:00"
+  closeTime: string; // "22:00:00"
+  owner: { name: string; phone: string };
+  bookedSlots: string[];
+}
+
+type CourtEvent = {
+  id: string;
+  start: string;
+  end: string;
+  display: "background";
+  classNames: string[];
+  extendedProps: { status: "booked" };
+};
+
+type BookedByDate = Record<string, string[]>; // { "2025-08-18": ["08:00","08:30", ...] }
+
+// ===== Helpers =====
+function ymd(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
+    2,
+    "0"
+  )}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+// "HH:MM" -> tạo khoảng [start, end) theo 60'
+function toRange(dateStr: string, hhmm: string, defaultMin = 60) {
+  const [h, m] = hhmm.split(":").map(Number);
+  const start = new Date(
+    `${dateStr}T${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:00`
+  );
+  const end = new Date(start.getTime() + defaultMin * 60 * 1000);
+  return { start, end };
+}
+
+// Call API theo khoảng ngày (có thể truyền subCourtId)
+async function fetchAvailabilityRange(
+  courtId: string,
+  startDate: string,
+  endDate: string
+): Promise<BookedByDate> {
+  const q = new URLSearchParams({ courtId, startDate, endDate });
+  const res = await fetch(`/api/courts/availability?${q.toString()}`, {
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    // giúp debug nhanh khi 404/500
+    const txt = await res.text().catch(() => "");
+    throw new Error(`Availability ${res.status}: ${txt || res.statusText}`);
   }
-  bookedSlots: string[]
+  const data = await res.json();
+  if (!data?.success)
+    throw new Error(data?.error || "Fetch availability failed");
+  return data.data as BookedByDate;
 }
 
 export default function CourtDetailPage() {
-  const params = useParams()
-  const router = useRouter()
-  const [court, setCourt] = useState<Court | null>(null)
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date())
-  const [selectedSlot, setSelectedSlot] = useState<string>("")
-  const [loading, setLoading] = useState(true)
-  const [weather, setWeather] = useState<any>(null)
-  const [reviews, setReviews] = useState<any[]>([])
-  const [totalReviews, setTotalReviews] = useState<number>(0)
-  const [reviewsLoading, setReviewsLoading] = useState(false)
+  const params = useParams();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const [court, setCourt] = useState<Court | null>(null);
+
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selStart, setSelStart] = useState<Date | null>(null);
+  const [selEnd, setSelEnd] = useState<Date | null>(null);
+
+  const [loading, setLoading] = useState(true);
+  const [weather, setWeather] = useState<any>(null);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [totalReviews, setTotalReviews] = useState<number>(0);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+
   const { user } = useAuth();
+
+  // NEW: visible range & availability state
+
+  const [bookedByDate, setBookedByDate] = useState<BookedByDate>({});
+  const [availLoading, setAvailLoading] = useState(false);
+
+  // Nhớ khoảng đã fetch lần gần nhất để tránh fetch lặp
+  const lastRangeRef = useRef<{
+    courtId: string;
+    start: string;
+    end: string;
+    sub?: string;
+  } | null>(null);
+
+  // ===== Initial fetches =====
   useEffect(() => {
-    if (params.id) {
-      fetchCourt()
-      fetchWeather()
-      fetchReviews()
-    }
+    if (!params.id) return;
+    (async () => {
+      try {
+        setLoading(true);
+        const res = await fetch(`/api/courts/${params.id}`);
+        const data = await res.json();
+        if (data.success) setCourt(data.data);
+        else console.error("Court not found");
+      } catch (error) {
+        console.error("Error fetching court:", error);
+      } finally {
+        setLoading(false);
+      }
+    })();
+
+    (async () => {
+      try {
+        const lat = 10.7769,
+          lon = 106.7009;
+        const res = await fetch(`/api/weather?lat=${lat}&lon=${lon}`);
+        const data = await res.json();
+        if (data.success) setWeather(data.data);
+      } catch (error) {
+        console.error("Error fetching weather:", error);
+      }
+    })();
+
+    (async () => {
+      try {
+        setReviewsLoading(true);
+        const res = await fetch(`/api/courts/${params.id}/reviews`);
+        const data = await res.json();
+        if (data.success) {
+          setReviews(data.data);
+          setTotalReviews(data.pagination.total);
+        } else {
+          console.error("Error fetching reviews:", data.error);
+        }
+      } catch (error) {
+        console.error("Error fetching reviews:", error);
+      } finally {
+        setReviewsLoading(false);
+      }
+    })();
   }, [params.id]);
 
-  const fetchCourt = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(`/api/courts/${params.id}`);
-      const data = await response.json();
-
-      if (data.success) {
-        setCourt(data.data);
-      } else {
-        console.error("Court not found");
-      }
-    } catch (error) {
-      console.error("Error fetching court:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchWeather = async () => {
-    try {
-      // Use court location or default
-      const lat = 10.7769;
-      const lon = 106.7009;
-
-      const response = await fetch(`/api/weather?lat=${lat}&lon=${lon}`);
-      const data = await response.json();
-
-      if (data.success) {
-        setWeather(data.data);
-      }
-    } catch (error) {
-      console.error("Error fetching weather:", error);
-    }
-  };
-
-  const fetchReviews = async () => {
-    try {
-      setReviewsLoading(true)
-      const response = await fetch(`/api/courts/${params.id}/reviews`)
-      const data = await response.json()
-
-      if (data.success) {
-        setReviews(data.data);
-        setTotalReviews(data.pagination.total);
-
-      } else {
-        console.error('Error fetching reviews:', data.error)
-      }
-    } catch (error) {
-      console.error('Error fetching reviews:', error)
-    } finally {
-      setReviewsLoading(false)
-    }
-  }
-
-  const handleBooking = async () => {
-    if (!selectedSlot) {
-      alert("Vui lòng chọn khung giờ");
-      return;
-    }
-
-    // Mock user ID - in real app, get from auth context
-    const userId = user?.id;
-    const selectedDateStr = `${selectedDate.getFullYear()}-${String(
-      selectedDate.getMonth() + 1
-    ).padStart(2, "0")}-${String(selectedDate.getDate()).padStart(2, "0")}`;
-    try {
-      const response = await fetch("/api/bookings", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          userId,
-          courtId: court?._id,
-          date: selectedDateStr,
-          startTime: selectedSlot,
-          endTime: `${parseInt(selectedSlot.split(":")[0]) + 1}:00:00`,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        alert("Đặt sân thành công!");
-        router.push("/bookings");
-      } else {
-        alert(data.error || "Có lỗi xảy ra");
-      }
-    } catch (error) {
-      console.error("Error creating booking:", error);
-      alert("Có lỗi xảy ra khi đặt sân");
-    }
-  };
-
-  const generateTimeSlots = () => {
-    if (!court) return [];
-
-    const slots = [];
-    const openHour = parseInt(court.openTime.split(":")[0]);
-    const closeHour = parseInt(court.closeTime.split(":")[0]);
-
-    const selectedDateStr = `${selectedDate.getFullYear()}-${String(
-      selectedDate.getMonth() + 1
-    ).padStart(2, "0")}-${String(selectedDate.getDate()).padStart(2, "0")}`;
-
-    for (let hour = openHour; hour < closeHour; hour++) {
-      const timeSlot = `${hour.toString().padStart(2, "0")}:00:00`;
-      const fullSlot = `${selectedDateStr}T${timeSlot}`; // YYYY-MM-DDTHH:mm:ss
-
-      slots.push({
-        time: timeSlot,
-        available: !court.bookedSlots.includes(fullSlot),
-        price: court.pricePerHour,
-      });
-    }
-
-    return slots;
-  };
+  // ===== UI helpers =====
   const getAmenityIcon = (amenity: string) => {
     switch (amenity.toLowerCase()) {
       case "wifi miễn phí":
@@ -203,7 +195,7 @@ export default function CourtDetailPage() {
   };
 
   const getSportTypeInVietnamese = (type: string) => {
-    const sportMap: { [key: string]: string } = {
+    const sportMap: Record<string, string> = {
       football: "Bóng đá mini",
       badminton: "Cầu lông",
       tennis: "Tennis",
@@ -214,14 +206,73 @@ export default function CourtDetailPage() {
     return sportMap[type] || type;
   };
 
+  const slotMinTime = court?.openTime || "06:00:00";
+  const slotMaxTime = court?.closeTime || "22:00:00";
+
+  const formatTime = (d?: Date | null) =>
+    d
+      ? `${String(d.getHours()).padStart(2, "0")}:${String(
+          d.getMinutes()
+        ).padStart(2, "0")}:00`
+      : "";
+
+  const hoursSelected = useMemo(() => {
+    if (!selStart || !selEnd) return 0;
+    return (selEnd.getTime() - selStart.getTime()) / 3_600_000;
+  }, [selStart, selEnd]);
+
+  const totalPrice = useMemo(() => {
+    if (!court) return 0;
+    return Math.max(0, hoursSelected) * court.pricePerHour;
+  }, [hoursSelected, court]);
+
+  const handleBooking = async () => {
+    if (!selStart || !selEnd) return alert("Vui lòng chọn khoảng thời gian");
+    const userId = user?.id;
+    const d = selStart;
+    const selectedDateStr = ymd(d);
+    try {
+      const response = await fetch("/api/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId,
+          courtId: court?._id,
+          date: selectedDateStr,
+          startTime: formatTime(selStart),
+          endTime: formatTime(selEnd),
+        }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        alert("Đặt sân thành công!");
+        router.push("/bookings");
+      } else {
+        alert(data.error || "Có lỗi xảy ra");
+      }
+    } catch (error) {
+      console.error("Error creating booking:", error);
+      alert("Có lỗi xảy ra khi đặt sân");
+    }
+  };
+
+  const handleSelect = useCallback(
+    ({ start, end }: { start: Date; end: Date }) => {
+      setSelStart(start);
+      setSelEnd(end);
+      setSelectedDate(start);
+    },
+    []
+  );
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="container mx-auto px-4 py-8">
           <div className="animate-pulse space-y-4">
-            <div className="h-8 bg-gray-200 rounded w-1/3"></div>
-            <div className="h-64 bg-gray-200 rounded"></div>
-            <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+            <div className="h-8 bg-gray-200 rounded w-1/3" />
+            <div className="h-64 bg-gray-200 rounded" />
+            <div className="h-4 bg-gray-200 rounded w-2/3" />
           </div>
         </div>
       </div>
@@ -241,14 +292,12 @@ export default function CourtDetailPage() {
     );
   }
 
-  const timeSlots = generateTimeSlots();
-
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white border-b">
-        <div className="container mx-auto px-4 py-4">
-          <Link href="/search" className="flex items-center space-x-2">
+        <div className="mx-auto max-w-7xl px-4 py-4">
+          <Link href="/search" className="flex items-center gap-2">
             <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold">🏟️</span>
             </div>
@@ -257,22 +306,20 @@ export default function CourtDetailPage() {
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-6">
-        {/* Court Header */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <div className="flex flex-col md:flex-row justify-between items-start mb-4">
-            <div>
-              <div className="flex gap-6">
-                <h1 className="text-2xl font-bold mb-2">{court.name}</h1>
-                <Badge className="mb-2">
-                  {getSportTypeInVietnamese(court.type)}
-                </Badge>
+      <main className="mx-auto max-w-7xl px-4 py-6 space-y-6">
+        {/* HERO */}
+        <section className="bg-white rounded-2xl shadow-sm p-6">
+          <div className="flex flex-col md:flex-row justify-between items-start gap-6">
+            <div className="flex-1">
+              <div className="flex flex-wrap items-center gap-3">
+                <h1 className="text-2xl font-bold">{court.name}</h1>
+                <Badge>{getSportTypeInVietnamese(court.type)}</Badge>
               </div>
-              <div className="flex items-center text-gray-600 mb-2">
+              <div className="mt-2 flex items-center text-gray-600">
                 <MapPin className="h-4 w-4 mr-1" />
-                <span>{court.address}</span>
+                <span className="truncate">{court.address}</span>
               </div>
-              <div className="flex items-center space-x-4 text-sm text-gray-600">
+              <div className="mt-2 flex flex-wrap gap-4 text-sm text-gray-600">
                 <div className="flex items-center">
                   <Clock className="h-4 w-4 mr-1" />
                   <span>
@@ -285,264 +332,291 @@ export default function CourtDetailPage() {
                 </div>
               </div>
             </div>
-            <div className="text-right">
-              <div className="flex items-center space-x-1 mb-2">
+
+            <div className="text-right shrink-0">
+              <div className="flex items-center justify-end gap-1">
                 <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
                 <span className="text-lg font-bold">{court.rating}</span>
                 <span className="text-gray-600">
                   ({court.reviewCount} đánh giá)
                 </span>
               </div>
-              <div className="text-2xl font-bold text-green-600">
+              <div className="mt-1 text-2xl font-bold text-green-600">
                 {court.pricePerHour.toLocaleString("vi-VN")}đ/giờ
               </div>
             </div>
           </div>
 
-          {/* Images */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 ">
-            {court.images.map((image, index) => (
-              <img
-                key={index}
-                src={
-                  image ||
-                  "/placeholder.svg?height=200&width=300&query=sports court"
-                }
-                alt={`${court.name} ${index + 1}`}
-                className="w-full h-48 object-cover rounded-lg"
-              />
-            ))}
+          {!!court.images?.length && (
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+              {court.images.map((src, i) => (
+                <img
+                  key={i}
+                  src={
+                    src ||
+                    "/placeholder.svg?height=200&width=300&query=sports court"
+                  }
+                  alt={`${court.name} ${i + 1}`}
+                  className="w-full aspect-[4/3] object-cover rounded-xl"
+                />
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* Tabs */}
+        <Tabs defaultValue="booking" className="space-y-6">
+          <div className="bg-white rounded-xl shadow-sm sticky top-16 z-10">
+            <TabsList className="w-full grid grid-cols-4 rounded-xl">
+              <TabsTrigger value="booking">Đặt sân</TabsTrigger>
+              <TabsTrigger value="info">Thông tin</TabsTrigger>
+              <TabsTrigger value="weather">Thời tiết</TabsTrigger>
+              <TabsTrigger value="reviews">Đánh giá</TabsTrigger>
+            </TabsList>
           </div>
-        </div>
 
-        <div className="grid lg:grid-cols-3 gap-6">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
-            <Tabs defaultValue="info" className="bg-white rounded-lg shadow-sm">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="info">Thông tin</TabsTrigger>
-                <TabsTrigger value="weather">Thời tiết</TabsTrigger>
-                <TabsTrigger value="reviews">Đánh giá</TabsTrigger>
-              </TabsList>
+          {/* Booking tab */}
+          <TabsContent value="booking">
+            <div className="grid lg:grid-cols-3 gap-6">
+              <Card className="lg:col-span-2 overflow-hidden">
+                <CardHeader className="border-b">
+                  <CardTitle className="text-lg">Lịch đặt sân</CardTitle>
+                  <CardDescription>
+                    Chọn khoảng thời gian trống để đặt nhanh
+                  </CardDescription>
+                </CardHeader>
 
-              <TabsContent value="info" className="p-6">
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="font-semibold mb-2">Mô tả</h3>
-                    <p className="text-gray-600">{court.description}</p>
-                  </div>
-
-                  <div>
-                    <h3 className="font-semibold mb-2">Tiện ích</h3>
-                    <div className="grid grid-cols-2 gap-2">
-                      {court.amenities.map((amenity, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center space-x-2"
-                        >
-                          {getAmenityIcon(amenity)}
-                          <span className="text-sm">{amenity}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="weather" className="p-6">
-                <div className="space-y-4">
-                  {weather ? (
-                    <>
-                      <div className="flex items-center space-x-2 mb-4">
-                        <Sun className="h-5 w-5 text-yellow-500" />
-                        <span className="font-semibold">
-                          Thời tiết hiện tại: {weather.current.temp}°C -{" "}
-                          {weather.current.condition}
-                        </span>
-                      </div>
-
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {weather.forecast.map((item: any, index: number) => (
-                          <Card key={index}>
-                            <CardContent className="p-4 text-center">
-                              <div className="font-semibold">{item.time}</div>
-                              <div className="text-2xl my-2">
-                                {item.condition.includes("nắng")
-                                  ? "☀️"
-                                  : item.condition.includes("mưa")
-                                  ? "🌧️"
-                                  : "☁️"}
-                              </div>
-                              <div className="text-sm text-gray-600">
-                                {item.temp}°C
-                              </div>
-                              <div className="text-xs text-gray-500">
-                                {item.condition}
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    </>
-                  ) : (
-                    <div className="text-center text-gray-500">
-                      Đang tải thông tin thời tiết...
-                    </div>
-                  )}
-                </div>
-              </TabsContent>
-
-              <TabsContent value="reviews" className="p-6">
-                <div className="space-y-4">
-                  {reviewsLoading ? (
-                    <div className="text-center text-gray-500">Đang tải đánh giá...</div>
-                  ) : reviews.length > 0 ? (
-                    reviews.map((review) => (
-                      <Card key={review._id}>
-                        <CardContent className="p-4">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="font-semibold">
-                              {review.user.name}
-                            </span>
-                            <div className="flex items-center space-x-1">
-                              <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                              <span>{review.rating}</span>
-                            </div>
-                          </div>
-                          <p className="text-gray-600 mb-2">{review.comment}</p>
-                          <span className="text-sm text-gray-500">
-                            {new Date(review.createdAt).toLocaleDateString(
-                              "vi-VN"
-                            )}
-                          </span>
-                        </CardContent>
-                      </Card>
-                    ))
-                  ) : (
-                    <div className="text-center text-gray-500">
-                      Chưa có đánh giá nào
-                    </div>
-                  )}
-                </div>
-              </TabsContent>
-            </Tabs>
-            {/* AI Suggestions */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <span>🤖</span>
-                  <span>Gợi ý AI</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3 text-sm">
-                  <div className="p-3 bg-blue-50 rounded-lg">
-                    <span className="font-medium text-blue-800">
-                      💡 Khung giờ tốt nhất:
+                {/* Legend + selection summary */}
+                <div className="px-4 py-3 border-b bg-white flex items-center justify-between">
+                  <div className="flex flex-wrap items-center gap-3 text-xs">
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-200 text-gray-700">
+                      <span className="inline-block h-2 w-2 rounded-full bg-gray-500" />{" "}
+                      Đã đặt
                     </span>
-                    <p className="text-blue-700">
-                      19:00 - Thời tiết mát mẻ, giá hợp lý
-                    </p>
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-emerald-100 text-emerald-700">
+                      <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />{" "}
+                      Có thể chọn
+                    </span>
                   </div>
-                  {weather &&
-                    weather.forecast.some((f: any) =>
-                      f.condition.includes("mưa")
-                    ) && (
-                      <div className="p-3 bg-yellow-50 rounded-lg">
-                        <span className="font-medium text-yellow-800">
-                          ⚠️ Lưu ý:
-                        </span>
-                        <p className="text-yellow-700">
-                          Có thể có mưa trong một số khung giờ
-                        </p>
-                      </div>
+                  <div className="text-xs text-gray-600 flex items-center gap-3">
+                    <span className="hidden sm:inline">
+                      Bấm/Kéo để chọn khoảng
+                    </span>
+                    {selStart && selEnd && (
+                      <span className="px-2 py-1 rounded bg-emerald-50 text-emerald-700">
+                        {selectedDate.toLocaleDateString("vi-VN")} —{" "}
+                        {formatTime(selStart).slice(0, 5)}–
+                        {formatTime(selEnd).slice(0, 5)}
+                      </span>
                     )}
-                  <div className="p-3 bg-green-50 rounded-lg">
-                    <span className="font-medium text-green-800">
-                      ⭐ Đánh giá cao:
-                    </span>
-                    <p className="text-green-700">
-                      Sân này được đánh giá {court.rating}/5 sao
-                    </p>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
 
-          {/* Booking Sidebar */}
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Đặt sân</CardTitle>
-                <CardDescription>Chọn ngày và giờ phù hợp</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium mb-2 block">
-                    Chọn ngày
-                  </label>
-                  <Calendar
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={(date) => date && setSelectedDate(date)}
-                    className="rounded-md border"
-                    disabled={(date) => {
-                      const today = new Date();
-                      today.setHours(0, 0, 0, 0); // reset giờ về 00:00
-                      return date < today;
-                    }}
+                <CardContent className="p-3">
+                  {availLoading && (
+                    <div className="px-1 pb-2 text-xs text-gray-500">
+                      Đang tải lịch trống…
+                    </div>
+                  )}
+                  <AvailabilityCalendar
+                    courtId={String(court._id)}
+                    openTime={slotMinTime}
+                    closeTime={slotMaxTime}
+                    slotMinutes={60}
+                    onSelect={handleSelect}
+                    onLoadingChange={setAvailLoading}
                   />
-                </div>
+                </CardContent>
+              </Card>
 
-                <div>
-                  <label className="text-sm font-medium mb-2 block">
-                    Khung giờ
-                  </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {timeSlots.map((slot) => (
-                      <Button
-                        key={slot.time}
-                        variant={
-                          selectedSlot === slot.time ? "default" : "outline"
-                        }
-                        disabled={!slot.available}
-                        onClick={() => setSelectedSlot(slot.time)}
-                        className="text-sm h-auto py-2"
-                      >
-                        <div className="text-center">
-                          <div>{slot.time}</div>
-                          <div className="text-xs">
-                            {slot.price.toLocaleString("vi-VN")}đ
-                          </div>
-                        </div>
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="border-t pt-4">
-                  {selectedSlot && (
-                    <div className="flex justify-between items-center mb-4">
-                      <span>Tổng tiền:</span>
-                      <span className="text-lg font-bold text-green-600">
-                        {court.pricePerHour.toLocaleString("vi-VN")}đ
+              {/* Sidebar */}
+              <Card className="h-fit lg:sticky lg:top-20">
+                <CardHeader>
+                  <CardTitle>Đặt sân</CardTitle>
+                  <CardDescription>
+                    Chọn khoảng trên lịch → Xác nhận
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="rounded-xl border p-4 bg-white">
+                    <div className="flex justify-between text-sm">
+                      <span>Ngày</span>
+                      <span className="font-medium">
+                        {selStart ? selStart.toLocaleDateString("vi-VN") : "—"}
                       </span>
                     </div>
-                  )}
+                    <div className="flex justify-between text-sm mt-2">
+                      <span>Khung giờ</span>
+                      <span className="font-medium">
+                        {selStart && selEnd
+                          ? `${formatTime(selStart).slice(0, 5)} – ${formatTime(
+                              selEnd
+                            ).slice(0, 5)}`
+                          : "—"}
+                      </span>
+                    </div>
+                    {hoursSelected > 0 && (
+                      <>
+                        <div className="flex justify-between text-sm mt-2">
+                          <span>Số giờ</span>
+                          <span className="font-medium">{hoursSelected}</span>
+                        </div>
+                        <div className="flex justify-between mt-3 pt-3 border-t">
+                          <span className="text-sm">Tổng tiền</span>
+                          <span className="text-lg font-bold text-green-600">
+                            {totalPrice.toLocaleString("vi-VN")}đ
+                          </span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+
                   <Button
                     className="w-full bg-green-600 hover:bg-green-700"
                     onClick={handleBooking}
-                    disabled={!selectedSlot}
+                    disabled={!selStart || !selEnd}
                   >
                     Đặt sân ngay
                   </Button>
+
+                  <p className="text-xs text-gray-500">
+                    * Chuyển view Ngày/Tuần/Danh sách ở thanh trên lịch.
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Mobile CTA */}
+            {selStart && selEnd && (
+              <div className="fixed bottom-4 inset-x-4 lg:hidden">
+                <Button
+                  className="w-full bg-green-600 hover:bg-green-700 shadow-lg"
+                  onClick={handleBooking}
+                >
+                  {selStart.toLocaleDateString("vi-VN")} •{" "}
+                  {formatTime(selStart).slice(0, 5)}–
+                  {formatTime(selEnd).slice(0, 5)} •{" "}
+                  {totalPrice.toLocaleString("vi-VN")}đ
+                </Button>
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Info */}
+          <TabsContent value="info">
+            <Card>
+              <CardHeader>
+                <CardTitle>Thông tin</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <h3 className="font-semibold mb-2">Mô tả</h3>
+                  <p className="text-gray-600 leading-7">{court.description}</p>
+                </div>
+                <div>
+                  <h3 className="font-semibold mb-2">Tiện ích</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {court.amenities.map((a, i) => (
+                      <div key={i} className="flex items-center gap-2 text-sm">
+                        {getAmenityIcon(a)} <span>{a}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </CardContent>
             </Card>
-          </div>
-        </div>
-      </div>
+          </TabsContent>
+
+          {/* Weather */}
+          <TabsContent value="weather">
+            <Card>
+              <CardHeader>
+                <CardTitle>Thời tiết</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {weather ? (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <Sun className="h-5 w-5 text-yellow-500" />
+                      <span className="font-semibold">
+                        Hiện tại: {weather.current.temp}°C –{" "}
+                        {weather.current.condition}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {weather.forecast.map((item: any, idx: number) => (
+                        <Card key={idx}>
+                          <CardContent className="p-4 text-center">
+                            <div className="font-semibold">{item.time}</div>
+                            <div className="text-2xl my-2">
+                              {item.condition.includes("nắng")
+                                ? "☀️"
+                                : item.condition.includes("mưa")
+                                ? "🌧️"
+                                : "☁️"}
+                            </div>
+                            <div className="text-sm text-gray-600">
+                              {item.temp}°C
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {item.condition}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center text-gray-500">
+                    Đang tải thông tin thời tiết…
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Reviews */}
+          <TabsContent value="reviews">
+            <Card>
+              <CardHeader>
+                <CardTitle>Đánh giá</CardTitle>
+                <CardDescription>Tổng: {totalReviews}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {reviewsLoading ? (
+                  <div className="text-center text-gray-500">
+                    Đang tải đánh giá…
+                  </div>
+                ) : reviews.length ? (
+                  reviews.map((rv) => (
+                    <Card key={rv._id}>
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-semibold">{rv.user.name}</span>
+                          <div className="flex items-center gap-1">
+                            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                            <span>{rv.rating}</span>
+                          </div>
+                        </div>
+                        <p className="text-gray-600 mb-2">{rv.comment}</p>
+                        <span className="text-sm text-gray-500">
+                          {new Date(rv.createdAt).toLocaleDateString("vi-VN")}
+                        </span>
+                      </CardContent>
+                    </Card>
+                  ))
+                ) : (
+                  <div className="text-center text-gray-500">
+                    Chưa có đánh giá nào
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </main>
     </div>
   );
 }
+
+

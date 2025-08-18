@@ -1,0 +1,15 @@
+/* styles.css hoặc module css */
+.fc-highlight {
+  background-color: rgba(128, 128, 128, 0.4) !important; /* màu nền */
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fc-highlight::after {
+  content: "Đã đặt";
+  color: white;
+  font-weight: bold;
+  font-size: 12px;
+}

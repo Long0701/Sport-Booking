@@ -53,33 +53,33 @@ export async function GET(
     `, [params.id])
 
     // Format bookedSlots an toàn: YYYY-MM-DDTHH:mm:ss
-const bookedSlots = bookings.map(booking => {
-  // Xử lý ngày
-  let dateStr = ''
-  if (booking.booking_date instanceof Date) {
+    const bookedSlots = bookings.map((booking: any) => {
+      // Xử lý ngày
+      let dateStr = ''
+      if (booking.booking_date instanceof Date) {
     // Lấy ngày local, không dùng toISOString() để tránh lệch timezone
-    dateStr = `${booking.booking_date.getFullYear()}-${String(booking.booking_date.getMonth() + 1).padStart(2, '0')}-${String(booking.booking_date.getDate()).padStart(2,'0')}`
-  } else if (typeof booking.booking_date === 'string') {
-    dateStr = booking.booking_date
-  }
+        dateStr = `${booking.booking_date.getFullYear()}-${String(booking.booking_date.getMonth() + 1).padStart(2, '0')}-${String(booking.booking_date.getDate()).padStart(2, '0')}`
+      } else if (typeof booking.booking_date === 'string') {
+        dateStr = booking.booking_date
+      }
 
-  // Xử lý giờ
-  let timeStr = ''
-  if (typeof booking.start_time === 'string') {
-    // Nếu là HH:mm:ss hoặc HH:mm
-    timeStr = booking.start_time.length === 5 ? `${booking.start_time}:00` : booking.start_time
-  } else if (booking.start_time && typeof booking.start_time === 'object') {
-    // Nếu Postgres trả object { hours, minutes, seconds }
-    const h = booking.start_time.hours?.toString().padStart(2, '0') || '00'
-    const m = booking.start_time.minutes?.toString().padStart(2, '0') || '00'
-    const s = booking.start_time.seconds?.toString().padStart(2, '0') || '00'
-    timeStr = `${h}:${m}:${s}`
-  } else {
-    timeStr = '00:00:00'
-  }
+      // Xử lý giờ
+      let timeStr = ''
+      if (typeof booking.start_time === 'string') {
+        // Nếu là HH:mm:ss hoặc HH:mm
+        timeStr = booking.start_time.length === 5 ? `${booking.start_time}:00` : booking.start_time
+      } else if (booking.start_time && typeof booking.start_time === 'object') {
+        // Nếu Postgres trả object { hours, minutes, seconds }
+        const h = booking.start_time.hours?.toString().padStart(2, '0') || '00'
+        const m = booking.start_time.minutes?.toString().padStart(2, '0') || '00'
+        const s = booking.start_time.seconds?.toString().padStart(2, '0') || '00'
+        timeStr = `${h}:${m}:${s}`
+      } else {
+        timeStr = '00:00:00'
+      }
 
-  return `${dateStr}T${timeStr}`
-})
+      return `${dateStr}T${timeStr}`
+    })
 
 
     return NextResponse.json({
@@ -135,8 +135,8 @@ export async function PUT(
     for (const [key, value] of Object.entries(body)) {
       if (value !== undefined) {
         const dbField = key === 'pricePerHour' ? 'price_per_hour' :
-                        key === 'openTime' ? 'open_time' :
-                        key === 'closeTime' ? 'close_time' : key
+          key === 'openTime' ? 'open_time' :
+            key === 'closeTime' ? 'close_time' : key
         updateFields.push(`${dbField} = $${paramIndex}`)
         values.push(value)
         paramIndex++
