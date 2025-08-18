@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useAuth } from '@/contexts/AuthContext'
 import { formatRating } from "@/lib/utils"
-import { ArrowLeft, Clock, Edit, Eye, MapPin, MoreHorizontal, Plus, Search, Star, ToggleLeft, ToggleRight, Trash2 } from 'lucide-react'
+import { Clock, Edit, Eye, MapPin, MoreHorizontal, Plus, Search, Star, ToggleLeft, ToggleRight, Trash2 } from 'lucide-react'
 import Link from "next/link"
 import { useEffect, useState } from "react"
 
@@ -168,39 +168,26 @@ export default function CourtsManagementPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Link href="/owner/dashboard">
-                <Button variant="ghost" size="sm">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Quay lại Dashboard
-                </Button>
-              </Link>
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold">🏟️</span>
-                </div>
-                <div>
-                  <h1 className="text-xl font-bold">Quản lý sân</h1>
-                  <p className="text-sm text-gray-600">{courts.length} sân</p>
-                </div>
-              </div>
+    <div className="p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Page Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-2">
+            <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold">🏟️</span>
             </div>
-            <Link href="/owner/courts/add">
-              <Button className="bg-green-600 hover:bg-green-700">
-                <Plus className="h-4 w-4 mr-2" />
-                Thêm sân mới
-              </Button>
-            </Link>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Quản lý sân</h1>
+              <p className="text-sm text-gray-600">{courts.length} sân</p>
+            </div>
           </div>
+          <Link href="/owner/courts/add">
+            <Button className="bg-green-600 hover:bg-green-700">
+              <Plus className="h-4 w-4 mr-2" />
+              Thêm sân mới
+            </Button>
+          </Link>
         </div>
-      </header>
-
-      <div className="container mx-auto px-4 py-6">
         {/* Filters */}
         <Card className="mb-6">
           <CardContent className="p-4">

@@ -198,7 +198,7 @@ console.log("Coordinates:", coordinates);
 
       if (data.success) {
         alert("Thêm sân thành công!")
-        router.push("/owner/dashboard")
+        router.push("/owner/courts")
       } else {
         alert(data.error || "Có lỗi xảy ra khi thêm sân")
       }
@@ -273,12 +273,12 @@ console.log("Coordinates:", coordinates);
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <Link href="/owner/dashboard">
-                <Button variant="ghost" size="sm">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Quay lại Dashboard
-                </Button>
-              </Link>
+                      <Link href="/owner/courts">
+          <Button variant="ghost" size="sm">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Quay lại Quản lý sân
+          </Button>
+        </Link>
               <div className="flex items-center space-x-2">
                 <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
                   <span className="text-white font-bold">🏟️</span>

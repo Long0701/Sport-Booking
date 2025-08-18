@@ -29,7 +29,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Popover, PopoverContent, PopoverTrigger } from "@radix-ui/react-popover";
 import { format } from "date-fns";
 import {
-  ArrowLeft,
   CalendarIcon,
   Check,
   Clock,
@@ -724,35 +723,20 @@ export default function OwnerBookingsPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Link href="/owner/dashboard">
-                <Button variant="ghost" size="sm">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Quay lại Dashboard
-                </Button>
-              </Link>
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold">📅</span>
-                </div>
-                <div>
-                  <h1 className="text-xl font-bold">Lịch đặt sân</h1>
-                  <p className="text-sm text-gray-600">
-                    {bookings.length} lượt đặt
-                  </p>
-                </div>
-              </div>
-            </div>
+    <div className="p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Page Header */}
+        <div className="flex items-center space-x-2 mb-6">
+          <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
+            <span className="text-white font-bold">📅</span>
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Lịch đặt sân</h1>
+            <p className="text-sm text-gray-600">
+              {bookings.length} lượt đặt
+            </p>
           </div>
         </div>
-      </header>
-
-      <div className="container mx-auto px-4 py-6">
         <div className="grid lg:grid-cols-4 gap-6">
           {/* Filters Sidebar */}
           <div className="lg:col-span-1 space-y-4">
