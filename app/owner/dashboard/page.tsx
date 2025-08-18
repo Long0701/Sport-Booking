@@ -1,27 +1,21 @@
 "use client";
 
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
-  CardTitle,
+  CardTitle
 } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Calendar,
-  Clock,
   DollarSign,
-  Phone,
-  RefreshCw,
   Star,
-  TrendingUp,
-  Users,
+  TrendingUp
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -224,17 +218,19 @@ export default function OwnerDashboard() {
     <div className="p-6">
       <div className="max-w-7xl mx-auto">
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          {/* <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="overview">Tổng quan</TabsTrigger>
             <TabsTrigger value="statistics">Thống kê</TabsTrigger>
             <TabsTrigger value="schedule">Lịch hôm nay</TabsTrigger>
             <TabsTrigger value="reviews">Đánh giá</TabsTrigger>
-          </TabsList>
+          </TabsList> */}
 
           {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-6">
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/**/}
+
+
+          {/* Statistics Tab */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <Card>
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
@@ -301,36 +297,6 @@ export default function OwnerDashboard() {
                 </CardContent>
               </Card>
             </div>
-
-            {/* Quick Actions */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Thao tác nhanh</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Link href="/owner/courts/add">
-                    <Button className="w-full bg-green-600 hover:bg-green-700">
-                      Thêm sân mới
-                    </Button>
-                  </Link>
-                  <Link href="/owner/bookings">
-                    <Button variant="outline" className="w-full">
-                      Xem tất cả booking
-                    </Button>
-                  </Link>
-                  <Link href="/owner/courts">
-                    <Button variant="outline" className="w-full">
-                      Quản lý sân
-                    </Button>
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Statistics Tab */}
-          <TabsContent value="statistics" className="space-y-6">
             <div className="grid lg:grid-cols-2 gap-6">
               {/* Revenue Chart */}
               <Card>
@@ -392,200 +358,7 @@ export default function OwnerDashboard() {
                 </CardContent>
               </Card>
             </div>
-          </TabsContent>
 
-          {/* Schedule Tab */}
-          <TabsContent value="schedule" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span>Lịch đặt hôm nay</span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={fetchTodayBookings}
-                  >
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Làm mới
-                  </Button>
-                </CardTitle>
-                <CardDescription>
-                  {new Date().toLocaleDateString("vi-VN", {
-                    weekday: "long",
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {todayBookings.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Calendar className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
-                      Không có lịch đặt hôm nay
-                    </h3>
-                    <p className="text-gray-600">
-                      Chưa có booking nào cho ngày hôm nay
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {todayBookings.map((booking) => (
-                      <Card
-                        key={booking._id}
-                        className="border-l-4 border-l-green-500"
-                      >
-                        <CardContent className="p-4">
-                          <div className="flex items-center justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center space-x-2 mb-2">
-                                <h4 className="font-semibold">
-                                  {booking.court.name}
-                                </h4>
-                                <Badge variant="outline">
-                                  {getSportTypeInVietnamese(booking.court.type)}
-                                </Badge>
-                                {getStatusBadge(booking.status)}
-                              </div>
-
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-600">
-                                <div className="flex items-center space-x-1">
-                                  <Users className="h-4 w-4" />
-                                  <span>{booking.user.name}</span>
-                                </div>
-                                <div className="flex items-center space-x-1">
-                                  <Phone className="h-4 w-4" />
-                                  <span>{booking.user.phone}</span>
-                                </div>
-                                <div className="flex items-center space-x-1">
-                                  <Clock className="h-4 w-4" />
-                                  <span>
-                                    {booking.startTime} - {booking.endTime}
-                                  </span>
-                                </div>
-                                <div className="flex items-center space-x-1">
-                                  <DollarSign className="h-4 w-4" />
-                                  <span>
-                                    {booking.totalAmount.toLocaleString(
-                                      "vi-VN"
-                                    )}
-                                    đ
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Reviews Tab */}
-          <TabsContent value="reviews" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span>Đánh giá từ khách hàng</span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={fetchReviews}
-                    disabled={reviewsLoading}
-                  >
-                    <RefreshCw
-                      className={`h-4 w-4 mr-2 ${
-                        reviewsLoading ? "animate-spin" : ""
-                      }`}
-                    />
-                    Làm mới
-                  </Button>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {reviewsLoading ? (
-                  <div className="space-y-4">
-                    {[1, 2, 3].map((i) => (
-                      <div key={i} className="animate-pulse">
-                        <div className="flex space-x-4">
-                          <div className="rounded-full bg-gray-200 h-10 w-10"></div>
-                          <div className="flex-1 space-y-2">
-                            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                            <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-                            <div className="h-3 bg-gray-200 rounded w-full"></div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : reviews.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Star className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
-                      Chưa có đánh giá nào
-                    </h3>
-                    <p className="text-gray-600">
-                      Khách hàng chưa để lại đánh giá nào cho sân của bạn
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    {reviews.map((review) => (
-                      <div key={review._id} className="flex space-x-4">
-                        <Avatar>
-                          <AvatarImage
-                            src={review.user.avatar || "/placeholder.svg"}
-                          />
-                          <AvatarFallback>
-                            {review.user.name.charAt(0).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between mb-2">
-                            <div>
-                              <h4 className="font-semibold">
-                                {review.user.name}
-                              </h4>
-                              <p className="text-sm text-gray-600">
-                                {review.court.name} •{" "}
-                                {getSportTypeInVietnamese(review.court.type)}
-                              </p>
-                            </div>
-                            <div className="text-right">
-                              <div className="flex items-center space-x-1 mb-1">
-                                {[1, 2, 3, 4, 5].map((star) => (
-                                  <Star
-                                    key={star}
-                                    className={`h-4 w-4 ${
-                                      star <= review.rating
-                                        ? "fill-yellow-400 text-yellow-400"
-                                        : "text-gray-300"
-                                    }`}
-                                  />
-                                ))}
-                              </div>
-                              <p className="text-xs text-gray-500">
-                                {formatTimeAgo(review.createdAt)}
-                              </p>
-                            </div>
-                          </div>
-
-                          <p className="text-gray-700 bg-gray-50 p-3 rounded-lg">
-                            {review.comment}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
         </Tabs>
       </div>
     </div>
