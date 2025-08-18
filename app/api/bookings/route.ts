@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: bookings.map(booking => ({
+      data: bookings.map((booking: any) => ({
         _id: booking.id,
         user: {
           name: booking.user_name,
