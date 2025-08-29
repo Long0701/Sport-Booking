@@ -389,9 +389,13 @@ export default function CourtDetailPage() {
                 {/* Legend + selection summary */}
                 <div className="px-4 py-3 border-b bg-white flex items-center justify-between">
                   <div className="flex flex-wrap items-center gap-3 text-xs">
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-200 text-gray-700">
-                      <span className="inline-block h-2 w-2 rounded-full bg-gray-500" />{" "}
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-red-100 text-red-700">
+                      <span className="inline-block h-2 w-2 rounded-full bg-red-500" />{" "}
                       Đã đặt
+                    </span>
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-100 text-gray-700">
+                      <span className="inline-block h-2 w-2 rounded-full bg-gray-500" />{" "}
+                      Quá thời gian
                     </span>
                     <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-emerald-100 text-emerald-700">
                       <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />{" "}
