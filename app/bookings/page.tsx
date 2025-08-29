@@ -33,6 +33,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { useAuth } from '@/contexts/AuthContext'
+import Header from "@/components/shared/header"
+import Footer from "@/components/shared/footer"
 import { ArrowLeft, Calendar, Clock, Eye, MapPin, MessageCircle, MoreHorizontal, Phone, Search, Star, X } from 'lucide-react'
 import Link from "next/link"
 import { useEffect, useState } from "react"
@@ -418,35 +420,7 @@ export default function UserBookingsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Link href="/">
-                <Button variant="ghost" size="sm">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Trang chủ
-                </Button>
-              </Link>
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold">📅</span>
-                </div>
-                <div>
-                  <h1 className="text-xl font-bold">Lịch sử đặt sân</h1>
-                  <p className="text-sm text-gray-600">Xin chào, {user.name}</p>
-                </div>
-              </div>
-            </div>
-            <Link href="/search">
-              <Button className="bg-green-600 hover:bg-green-700">
-                Đặt sân mới
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </header>
+      <Header />
 
       <div className="container mx-auto px-4 py-6">
         {/* Filters */}
@@ -727,6 +701,8 @@ export default function UserBookingsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      <Footer />
     </div>
   )
 }

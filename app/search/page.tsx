@@ -1,6 +1,7 @@
 'use client'
 
 import Header from "@/components/shared/header"
+import Footer from "@/components/shared/footer"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -401,6 +402,8 @@ const fetchCourts = async (reset: boolean = true) => {
           </div>
         )}
       </div>
+      
+      <Footer />
     </div>
   );
 }

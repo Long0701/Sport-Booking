@@ -28,6 +28,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import "./styles.css";
 import AvailabilityCalendar from "@/components/shared/availability-calendar/index";
+import Header from "@/components/shared/header";
+import Footer from "@/components/shared/footer";
 
 interface Court {
   _id: string;
@@ -357,17 +359,7 @@ export default function CourtDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b">
-        <div className="mx-auto max-w-7xl px-4 py-4">
-          <Link href="/search" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold">🏟️</span>
-            </div>
-            <span className="text-xl font-bold">SportBooking</span>
-          </Link>
-        </div>
-      </header>
+      <Header />
 
       <main className="mx-auto max-w-7xl px-4 py-6 space-y-6">
         {/* HERO */}
@@ -889,6 +881,8 @@ export default function CourtDetailPage() {
           </TabsContent>
         </Tabs>
       </main>
+      
+      <Footer />
     </div>
   );
 }
