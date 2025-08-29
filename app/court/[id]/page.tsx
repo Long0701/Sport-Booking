@@ -277,8 +277,8 @@ export default function CourtDetailPage() {
   const formatTime = (d?: Date | null) =>
     d
       ? `${String(d.getHours()).padStart(2, "0")}:${String(
-        d.getMinutes()
-      ).padStart(2, "0")}:00`
+          d.getMinutes()
+        ).padStart(2, "0")}:00`
       : "";
 
   const hoursSelected = useMemo(() => {
@@ -332,151 +332,457 @@ export default function CourtDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="container mx-auto px-4 py-8">
-          <div className="animate-pulse space-y-4">
-            <div className="h-8 bg-gray-200 rounded w-1/3" />
-            <div className="h-64 bg-gray-200 rounded" />
-            <div className="h-4 bg-gray-200 rounded w-2/3" />
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-cyan-50/30 relative overflow-hidden">
+        {/* Animated Background Elements */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-20 left-20 w-40 h-40 bg-emerald-500/10 rounded-full blur-3xl animate-bounce" style={{ animationDelay: '0s', animationDuration: '10s' }}></div>
+          <div className="absolute bottom-40 right-20 w-32 h-32 bg-cyan-500/10 rounded-full blur-2xl animate-bounce" style={{ animationDelay: '3s', animationDuration: '8s' }}></div>
+          <div className="absolute top-1/2 left-10 w-24 h-24 bg-teal-500/10 rounded-full blur-xl animate-bounce" style={{ animationDelay: '6s', animationDuration: '12s' }}></div>
+          </div>
+
+        <Header />
+        
+        <div className="mx-auto max-w-[100vh] px-4 py-8 relative z-10">
+          <div className="space-y-8">
+            {/* Enhanced Loading Hero */}
+            <div className="bg-white/70 backdrop-blur-sm border border-white/20 rounded-3xl shadow-2xl p-8 overflow-hidden">
+              <div className="flex flex-col lg:flex-row justify-between items-start gap-8">
+                <div className="flex-1 space-y-4">
+                  <div className="flex items-center gap-4">
+                    <div className="h-10 bg-gradient-to-r from-emerald-200 via-emerald-100 to-transparent rounded-lg animate-pulse w-64"></div>
+                    <div className="h-8 bg-gradient-to-r from-cyan-200 via-cyan-100 to-transparent rounded-full animate-pulse w-24"></div>
+        </div>
+                  <div className="space-y-3">
+                    <div className="h-6 bg-gradient-to-r from-gray-200 via-gray-100 to-transparent rounded animate-pulse w-80"></div>
+                    <div className="flex gap-6">
+                      <div className="h-5 bg-gradient-to-r from-emerald-200 via-emerald-100 to-transparent rounded animate-pulse w-32"></div>
+                      <div className="h-5 bg-gradient-to-r from-teal-200 via-teal-100 to-transparent rounded animate-pulse w-28"></div>
+                    </div>
+                  </div>
+                </div>
+                <div className="shrink-0">
+                  <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-white/30">
+                    <div className="h-8 bg-gradient-to-r from-yellow-200 via-yellow-100 to-transparent rounded animate-pulse w-32 mb-2"></div>
+                    <div className="h-10 bg-gradient-to-r from-emerald-200 via-emerald-100 to-transparent rounded animate-pulse w-40"></div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Loading Image Gallery */}
+              <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="aspect-[4/3] bg-gradient-to-br from-emerald-200 via-emerald-100 to-cyan-100 rounded-2xl animate-pulse"></div>
+                ))}
+              </div>
+            </div>
+
+            {/* Loading Tabs */}
+            <div className="bg-white/70 backdrop-blur-sm border border-white/20 rounded-2xl shadow-xl p-2">
+              <div className="grid grid-cols-4 gap-1">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="h-12 bg-gradient-to-r from-gray-200 via-gray-100 to-transparent rounded-xl animate-pulse"></div>
+                ))}
+              </div>
+            </div>
+
+            {/* Loading Content */}
+            <div className="grid lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-2 bg-white/70 backdrop-blur-sm border border-white/20 rounded-2xl shadow-xl p-6 space-y-4">
+                <div className="h-8 bg-gradient-to-r from-emerald-200 via-emerald-100 to-transparent rounded-lg animate-pulse w-48"></div>
+                <div className="h-96 bg-gradient-to-br from-emerald-200 via-emerald-100 to-cyan-100 rounded-xl animate-pulse"></div>
+              </div>
+              <div className="bg-white/70 backdrop-blur-sm border border-white/20 rounded-2xl shadow-xl p-6 space-y-4">
+                <div className="h-8 bg-gradient-to-r from-cyan-200 via-cyan-100 to-transparent rounded-lg animate-pulse w-32"></div>
+                <div className="space-y-3">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="h-6 bg-gradient-to-r from-gray-200 via-gray-100 to-transparent rounded animate-pulse"></div>
+                  ))}
+                </div>
+                <div className="h-12 bg-gradient-to-r from-emerald-200 via-emerald-100 to-transparent rounded-xl animate-pulse"></div>
+              </div>
+            </div>
           </div>
         </div>
+        
+        <Footer />
       </div>
     );
   }
 
   if (!court) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Không tìm thấy sân</h1>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-cyan-50/30 relative overflow-hidden flex items-center justify-center">
+        {/* Animated Background Elements */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-20 left-20 w-40 h-40 bg-emerald-500/10 rounded-full blur-3xl animate-bounce" style={{ animationDelay: '0s', animationDuration: '10s' }}></div>
+          <div className="absolute bottom-40 right-20 w-32 h-32 bg-cyan-500/10 rounded-full blur-2xl animate-bounce" style={{ animationDelay: '3s', animationDuration: '8s' }}></div>
+          <div className="absolute top-1/2 left-10 w-24 h-24 bg-teal-500/10 rounded-full blur-xl animate-bounce" style={{ animationDelay: '6s', animationDuration: '12s' }}></div>
+        </div>
+
+        <Header />
+
+        <div className="mx-auto max-w-[100vh] px-4 py-8 relative z-10">
+          <div className="text-center bg-white/70 backdrop-blur-sm border border-white/20 rounded-3xl shadow-2xl p-12 max-w-lg mx-auto animate-fade-in">
+          <div className="text-8xl mb-6 animate-bounce">🏟️</div>
+          <h1 className="text-3xl font-bold mb-4 bg-gradient-to-r from-gray-800 via-emerald-700 to-gray-800 bg-clip-text text-transparent">
+            Không tìm thấy sân
+          </h1>
+          <p className="text-gray-600 mb-8 font-medium">
+            Sân thể thao này có thể đã bị xóa hoặc không tồn tại trong hệ thống.
+          </p>
+          <div className="space-y-4">
           <Link href="/search">
-            <Button>Quay lại tìm kiếm</Button>
+              <Button className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white shadow-lg hover:shadow-emerald-500/25 transition-all duration-300 transform hover:scale-105 py-3 font-semibold">
+                <span className="flex items-center justify-center space-x-2">
+                  <span>🔍</span>
+                  <span>Tìm kiếm sân khác</span>
+                </span>
+              </Button>
+            </Link>
+            <Link href="/">
+              <Button variant="outline" className="w-full border-emerald-200 text-emerald-700 hover:bg-emerald-50 py-3 font-semibold">
+                <span className="flex items-center justify-center space-x-2">
+                  <span>🏠</span>
+                  <span>Về trang chủ</span>
+                </span>
+              </Button>
           </Link>
         </div>
+        </div>
+        </div>
+
+        <Footer />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-cyan-50/30 relative overflow-hidden">
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-20 left-20 w-40 h-40 bg-emerald-500/10 rounded-full blur-3xl animate-bounce" style={{ animationDelay: '0s', animationDuration: '10s' }}></div>
+        <div className="absolute bottom-40 right-20 w-32 h-32 bg-cyan-500/10 rounded-full blur-2xl animate-bounce" style={{ animationDelay: '3s', animationDuration: '8s' }}></div>
+        <div className="absolute top-1/2 left-10 w-24 h-24 bg-teal-500/10 rounded-full blur-xl animate-bounce" style={{ animationDelay: '6s', animationDuration: '12s' }}></div>
+        
+        {/* Floating Sports Icons */}
+        <div className="absolute top-32 right-32 text-4xl animate-spin opacity-10" style={{ animationDuration: '30s' }}>🏟️</div>
+        <div className="absolute bottom-32 left-32 text-3xl animate-pulse opacity-10" style={{ animationDelay: '2s' }}>⚽</div>
+        <div className="absolute top-2/3 right-10 text-3xl animate-spin opacity-10" style={{ animationDelay: '4s', animationDuration: '25s' }}>🏀</div>
+        <div className="absolute bottom-1/4 right-1/3 text-2xl animate-pulse opacity-10" style={{ animationDelay: '1s' }}>🎾</div>
+            </div>
+
       <Header />
 
-      <main className="mx-auto max-w-7xl px-4 py-6 space-y-6">
-        {/* HERO */}
-        <section className="bg-white rounded-2xl shadow-sm p-6">
-          <div className="flex flex-col md:flex-row justify-between items-start gap-6">
-            <div className="flex-1">
-              <div className="flex flex-wrap items-center gap-3">
-                <h1 className="text-2xl font-bold">{court.name}</h1>
-                <Badge>{getSportTypeInVietnamese(court.type)}</Badge>
+      <main className="mx-auto max-w-[100vh] px-4 py-8 space-y-6 relative z-10">
+        {/* Enhanced HERO Section */}
+        <section className="bg-gradient-to-br from-white/80 via-emerald-50/50 to-cyan-50/50 backdrop-blur-sm border border-white/20 rounded-3xl shadow-2xl p-8 animate-fade-in overflow-hidden relative">
+          {/* Hero Background Elements */}
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute top-4 right-4 w-20 h-20 bg-emerald-300/10 rounded-full blur-2xl animate-pulse"></div>
+            <div className="absolute bottom-4 left-4 w-16 h-16 bg-cyan-300/10 rounded-full blur-xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+        </div>
+
+          <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start gap-8">
+            <div className="flex-1 space-y-4">
+              <div className="flex flex-wrap items-center gap-4">
+                <h1 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-gray-800 via-emerald-700 to-gray-800 bg-clip-text text-transparent">
+                  {court.name}
+                </h1>
+                <Badge className="bg-gradient-to-r from-emerald-500 to-cyan-600 text-white border-0 shadow-lg px-4 py-2 text-sm font-semibold">
+                  {getSportTypeInVietnamese(court.type)}
+                </Badge>
               </div>
-              <div className="mt-2 flex items-center text-gray-600">
-                <MapPin className="h-4 w-4 mr-1" />
-                <span className="truncate">{court.address}</span>
+              
+              <div className="space-y-3">
+                <div className="flex items-center text-gray-700 group">
+                  <div className="w-8 h-8 bg-gradient-to-br from-cyan-400/20 to-cyan-500/20 rounded-lg flex items-center justify-center mr-3 group-hover:scale-110 transition-transform">
+                    <MapPin className="h-4 w-4 text-cyan-600" />
               </div>
-              <div className="mt-2 flex flex-wrap gap-4 text-sm text-gray-600">
-                <div className="flex items-center">
-                  <Clock className="h-4 w-4 mr-1" />
-                  <span>
+                  <span className="font-medium group-hover:text-cyan-700 transition-colors">{court.address}</span>
+                </div>
+                
+                <div className="flex flex-wrap gap-6">
+                  <div className="flex items-center text-gray-700 group">
+                    <div className="w-8 h-8 bg-gradient-to-br from-emerald-400/20 to-emerald-500/20 rounded-lg flex items-center justify-center mr-3 group-hover:scale-110 transition-transform">
+                      <Clock className="h-4 w-4 text-emerald-600" />
+                    </div>
+                    <span className="font-medium group-hover:text-emerald-700 transition-colors">
                     {court.openTime} - {court.closeTime}
                   </span>
                 </div>
-                <div className="flex items-center">
-                  <Phone className="h-4 w-4 mr-1" />
-                  <span>{court.phone}</span>
+                  
+                  <div className="flex items-center text-gray-700 group">
+                    <div className="w-8 h-8 bg-gradient-to-br from-teal-400/20 to-teal-500/20 rounded-lg flex items-center justify-center mr-3 group-hover:scale-110 transition-transform">
+                      <Phone className="h-4 w-4 text-teal-600" />
+                    </div>
+                    <span className="font-medium group-hover:text-teal-700 transition-colors">{court.phone}</span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="text-right shrink-0">
-              <div className="flex items-center justify-end gap-1">
-                <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                <span className="text-lg font-bold">{court.rating}</span>
-                <span className="text-gray-600">
+            {/* Enhanced Stats Section */}
+            <div className="lg:text-right shrink-0 space-y-4">
+              <div className="bg-gradient-to-br from-white/60 to-white/40 backdrop-blur-sm rounded-2xl p-6 border border-white/30 shadow-xl">
+                <div className="flex items-center justify-center lg:justify-end gap-2 mb-3">
+                  <div className="w-8 h-8 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center">
+                    <Star className="h-4 w-4 text-white" />
+                  </div>
+                  <span className="text-2xl font-bold text-gray-800">{court.rating}</span>
+                  <span className="text-gray-600 font-medium">
                   ({court.reviewCount} đánh giá)
                 </span>
               </div>
-              <div className="mt-1 text-2xl font-bold text-green-600">
-                {court.pricePerHour.toLocaleString("vi-VN")}đ/giờ
+                <div className="text-center lg:text-right">
+                  <div className="text-3xl font-black bg-gradient-to-r from-emerald-600 via-green-600 to-emerald-700 bg-clip-text text-transparent">
+                    {court.pricePerHour.toLocaleString("vi-VN")}đ
+                  </div>
+                  <div className="text-sm text-gray-600 font-medium">mỗi giờ</div>
+                </div>
               </div>
             </div>
           </div>
 
+          {/* Enhanced Image Gallery */}
           {!!court.images?.length && (
-            <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="mt-8 relative">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {court.images.map((src, i) => (
+                  <div key={i} className="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl transition-all duration-500 transform hover:scale-[1.02] hover:-translate-y-1">
                 <img
-                  key={i}
                   src={
                     src ||
                     "/placeholder.svg?height=200&width=300&query=sports court"
                   }
                   alt={`${court.name} ${i + 1}`}
-                  className="w-full aspect-[4/3] object-cover rounded-xl"
-                />
-              ))}
+                      className="w-full aspect-[4/3] object-cover group-hover:scale-110 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div className="absolute bottom-4 left-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <div className="bg-white/90 backdrop-blur-sm rounded-lg px-3 py-1">
+                        <span className="text-sm font-semibold text-gray-800">Ảnh {i + 1}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </section>
 
-        {/* Tabs */}
-        <Tabs defaultValue="booking" className="space-y-6">
-          <div className="bg-white rounded-xl shadow-sm top-16 z-10">
-            <TabsList className="w-full grid grid-cols-4 rounded-xl">
-              <TabsTrigger value="booking">Đặt sân</TabsTrigger>
-              <TabsTrigger value="info">Thông tin</TabsTrigger>
-              <TabsTrigger value="weather">Thời tiết</TabsTrigger>
-              <TabsTrigger value="reviews">Đánh giá</TabsTrigger>
+        {/* Enhanced Tabs */}
+        <Tabs defaultValue="booking" className="space-y-3">
+          <div className="bg-white/70 backdrop-blur-sm border border-white/20 rounded-2xl shadow-xl sticky top-16 z-10 p-2">
+            <TabsList className="w-full grid grid-cols-4 bg-transparent rounded-xl gap-1">
+              <TabsTrigger 
+                value="booking" 
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-emerald-500/25 font-semibold transition-all duration-300 hover:bg-white/80 rounded-xl py-3 px-4"
+              >
+                <span className="flex items-center space-x-2">
+                  <span>📅</span>
+                  <span>Đặt sân</span>
+                </span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="info" 
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:to-cyan-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-cyan-500/25 font-semibold transition-all duration-300 hover:bg-white/80 rounded-xl py-3 px-4"
+              >
+                <span className="flex items-center space-x-2">
+                  <span>ℹ️</span>
+                  <span>Thông tin</span>
+                </span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="weather" 
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-blue-500/25 font-semibold transition-all duration-300 hover:bg-white/80 rounded-xl py-3 px-4"
+              >
+                <span className="flex items-center space-x-2">
+                  <span>🌤️</span>
+                  <span>Thời tiết</span>
+                </span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="reviews" 
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/25 font-semibold transition-all duration-300 hover:bg-white/80 rounded-xl py-3 px-4"
+              >
+                <span className="flex items-center space-x-2">
+                  <span>⭐</span>
+                  <span>Đánh giá</span>
+                </span>
+              </TabsTrigger>
             </TabsList>
           </div>
 
-          {/* Booking tab */}
-          <TabsContent value="booking">
-            <div className="grid lg:grid-cols-3 gap-6">
-              <Card className="lg:col-span-2 overflow-hidden">
-                <CardHeader className="border-b">
-                  <CardTitle className="text-lg">Lịch đặt sân</CardTitle>
-                  <CardDescription>
-                    Chọn khoảng thời gian trống để đặt nhanh
+          {/* Enhanced Booking tab */}
+          <TabsContent value="booking" className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
+            <div className="grid 2xl:grid-cols-4 xl:grid-cols-4 lg:grid-cols-3 md:grid-cols-1 gap-6 max-w-none">
+              <Card className="2xl:col-span-3 xl:col-span-3 lg:col-span-2 md:col-span-1 overflow-hidden bg-gradient-to-br from-white/80 via-emerald-50/40 to-cyan-50/40 backdrop-blur-md border border-emerald-200/30 shadow-2xl ring-1 ring-emerald-500/10">
+                <CardHeader className="bg-gradient-to-br from-emerald-500/15 via-emerald-500/10 to-cyan-500/15 border-b border-emerald-200/40 p-8 relative overflow-hidden">
+                  {/* Header Background Elements */}
+                  <div className="absolute inset-0 pointer-events-none">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-400/10 rounded-full blur-3xl transform rotate-45"></div>
+                    <div className="absolute bottom-0 left-0 w-24 h-24 bg-cyan-400/10 rounded-full blur-2xl"></div>
+                  </div>
+                  
+                  <div className="relative z-10">
+                    <CardTitle className="text-3xl font-black bg-gradient-to-r from-emerald-700 via-green-600 to-emerald-800 bg-clip-text text-transparent flex items-center space-x-4 mb-3">
+                      <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl flex items-center justify-center shadow-lg transform rotate-3 hover:rotate-0 transition-transform duration-300">
+                        <span className="text-2xl">📅</span>
+                      </div>
+                      <span>Lịch đặt sân thông minh</span>
+                    </CardTitle>
+                    <CardDescription className="text-gray-700 font-semibold text-lg leading-relaxed">
+                      Hệ thống đặt sân hiện đại với AI tự động gợi ý khung giờ tối ưu.{" "}
+                      <span className="text-emerald-600 font-bold">Kéo và thả</span> để chọn nhiều giờ liên tiếp.
                   </CardDescription>
+                    
+                    {/* Quick Stats */}
+                    <div className="flex items-center gap-6 mt-4">
+                      <div className="flex items-center space-x-2 bg-white/60 backdrop-blur-sm rounded-full px-4 py-2 border border-emerald-200/50">
+                        <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                        <span className="text-sm font-semibold text-emerald-700">Thời gian thực</span>
+                      </div>
+                      <div className="flex items-center space-x-2 bg-white/60 backdrop-blur-sm rounded-full px-4 py-2 border border-cyan-200/50">
+                        <div className="w-2 h-2 bg-cyan-500 rounded-full animate-pulse"></div>
+                        <span className="text-sm font-semibold text-cyan-700">Tự động cập nhật</span>
+                      </div>
+                    </div>
+                  </div>
                 </CardHeader>
 
-                {/* Legend + selection summary */}
-                <div className="px-4 py-3 border-b bg-white flex items-center justify-between">
-                  <div className="flex flex-wrap items-center gap-3 text-xs">
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-red-100 text-red-700">
-                      <span className="inline-block h-2 w-2 rounded-full bg-red-500" />{" "}
-                      Đã đặt
+                {/* Premium Legend & Status Bar */}
+                <div className="relative bg-gradient-to-r from-emerald-50/80 via-white/60 to-cyan-50/80 backdrop-blur-md border-b border-emerald-200/40 p-6">
+                  {/* Background Pattern */}
+                  <div className="absolute inset-0 opacity-5">
+                    <div className="absolute inset-0" style={{ 
+                      backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23000000' fill-opacity='0.1'%3E%3Cpath d='m0 40l40-40h-40z'/%3E%3C/g%3E%3C/svg%3E")` 
+                    }}></div>
+                  </div>
+                  
+                  <div className="relative z-10 flex flex-col xl:flex-row xl:items-center justify-between gap-6">
+                    {/* Enhanced Legend */}
+                    <div className="flex flex-wrap items-center gap-4">
+                      <div className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2 xl:mb-0">
+                        <div className="w-6 h-6 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-lg flex items-center justify-center">
+                          <span className="text-xs text-white">📊</span>
+                        </div>
+                        <span>Trạng thái lịch:</span>
+                      </div>
+                      
+                      <div className="flex flex-wrap items-center gap-3">
+                        <div className="group cursor-pointer">
+                          <span className="inline-flex items-center gap-3 px-4 py-3 rounded-2xl bg-gradient-to-r from-red-50 to-red-100 border border-red-200/60 text-red-700 font-bold shadow-sm hover:shadow-md transition-all duration-300 hover:scale-105">
+                            <div className="relative">
+                              <span className="inline-block h-4 w-4 rounded-full bg-gradient-to-br from-red-400 to-red-600 shadow-md" />
+                              <span className="absolute inset-0 h-4 w-4 rounded-full bg-red-500 animate-ping opacity-75"></span>
+                            </div>
+                            <span>Đã được đặt</span>
+                            <div className="text-xs bg-red-200 text-red-800 px-2 py-1 rounded-full">Không thể chọn</div>
                     </span>
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-100 text-gray-700">
-                      <span className="inline-block h-2 w-2 rounded-full bg-gray-500" />{" "}
-                      Quá thời gian
-                    </span>
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-emerald-100 text-emerald-700">
-                      <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />{" "}
-                      Có thể chọn
+                        </div>
+                        
+                        <div className="group cursor-pointer">
+                          <span className="inline-flex items-center gap-3 px-4 py-3 rounded-2xl bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200/60 text-gray-700 font-bold shadow-sm hover:shadow-md transition-all duration-300 hover:scale-105">
+                            <span className="inline-block h-4 w-4 rounded-full bg-gradient-to-br from-gray-400 to-gray-600 shadow-md" />
+                            <span>Quá giờ</span>
+                            <div className="text-xs bg-gray-200 text-gray-800 px-2 py-1 rounded-full">Hết hạn</div>
                     </span>
                   </div>
-                  <div className="text-xs text-gray-600 flex items-center gap-3">
-                    <span className="hidden sm:inline">
-                      Bấm/Kéo để chọn khoảng
+                        
+                        <div className="group cursor-pointer">
+                          <span className="inline-flex items-center gap-3 px-4 py-3 rounded-2xl bg-gradient-to-r from-emerald-50 to-emerald-100 border border-emerald-200/60 text-emerald-700 font-bold shadow-sm hover:shadow-md transition-all duration-300 hover:scale-105">
+                            <div className="relative">
+                              <span className="inline-block h-4 w-4 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 shadow-md" />
+                              <span className="absolute inset-0 h-4 w-4 rounded-full bg-emerald-500 animate-ping opacity-75"></span>
+                            </div>
+                            <span>Có thể đặt</span>
+                            <div className="text-xs bg-emerald-200 text-emerald-800 px-2 py-1 rounded-full">✨ Sẵn sàng</div>
                     </span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Selection Display & Instructions */}
+                    <div className="flex flex-col xl:flex-row items-start xl:items-center gap-4">
+                      <div className="flex items-center gap-3 text-sm font-semibold text-gray-600 bg-white/70 backdrop-blur-sm rounded-xl px-4 py-2 border border-gray-200/50">
+                        <div className="w-6 h-6 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center">
+                          <span className="text-xs text-white">💡</span>
+                        </div>
+                        <span className="hidden lg:inline">Kéo chuột để chọn nhiều giờ liên tiếp</span>
+                        <span className="lg:hidden">Bấm để chọn giờ</span>
+                      </div>
+                      
                     {selStart && selEnd && (
-                      <span className="px-2 py-1 rounded bg-emerald-50 text-emerald-700">
-                        {selectedDate.toLocaleDateString("vi-VN")} —{" "}
-                        {formatTime(selStart).slice(0, 5)}–
-                        {formatTime(selEnd).slice(0, 5)}
-                      </span>
-                    )}
+                        <div className="bg-gradient-to-r from-emerald-500 via-emerald-600 to-green-600 text-white rounded-2xl px-6 py-3 shadow-xl transform hover:scale-105 transition-all duration-300 animate-fade-in">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                              <span className="text-lg">🕐</span>
+                            </div>
+                            <div>
+                              <div className="font-black text-lg">
+                                {selectedDate.toLocaleDateString("vi-VN")}
+                              </div>
+                              <div className="text-emerald-100 font-semibold">
+                                {formatTime(selStart).slice(0, 5)} – {formatTime(selEnd).slice(0, 5)}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-xs text-emerald-200 font-medium">Đã chọn</div>
+                              <div className="font-bold">{hoursSelected}h</div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                <CardContent className="p-3">
+                <CardContent className="p-6 bg-gradient-to-br from-white/50 to-emerald-50/30 relative">
+                  {/* Loading State */}
                   {availLoading && (
-                    <div className="px-1 pb-2 text-xs text-gray-500">
-                      Đang tải lịch trống…
+                    <div className="absolute inset-0 z-20 bg-white/80 backdrop-blur-sm rounded-lg flex items-center justify-center">
+                      <div className="text-center">
+                        <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-spin">
+                          <span className="text-xl">⚡</span>
+                        </div>
+                        <div className="text-emerald-700 font-bold text-lg">Đang tải lịch thông minh...</div>
+                        <div className="text-emerald-600 text-sm font-medium">Hệ thống đang cập nhật trạng thái sân</div>
+                      </div>
                     </div>
                   )}
+                  
+                  {/* Calendar Background Pattern */}
+                  <div className="absolute inset-0 opacity-5 pointer-events-none">
+                    <div className="absolute inset-0" style={{ 
+                      backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%2310b981' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/svg%3E")` 
+                    }}></div>
+                  </div>
+                  
+                  {/* Enhanced Calendar Container */}
+                  <div className="relative z-10 bg-white/60 backdrop-blur-sm rounded-2xl border border-emerald-200/40 shadow-lg overflow-hidden">
+                    <div className="bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 p-4 border-b border-emerald-200/30">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-lg flex items-center justify-center shadow-md">
+                            <span className="text-white text-sm">📋</span>
+                          </div>
+                          <div>
+                            <div className="font-black text-emerald-800 text-lg">Lịch chi tiết</div>
+                            <div className="text-emerald-600 text-sm font-semibold">Tương tác trực tiếp với lịch</div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <div className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold border border-emerald-200">
+                            Thời gian thực
+                          </div>
+                          <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="p-6">
+                      <div className="min-h-[600px]">
                   <AvailabilityCalendar
                     courtId={String(court._id)}
                     openTime={slotMinTime}
@@ -485,62 +791,258 @@ export default function CourtDetailPage() {
                     onSelect={handleSelect}
                     onLoadingChange={setAvailLoading}
                   />
+                      </div>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
 
-              {/* Sidebar */}
-              <Card className="h-fit lg:sticky lg:top-20">
-                <CardHeader>
-                  <CardTitle>Đặt sân</CardTitle>
-                  <CardDescription>
-                    Chọn khoảng trên lịch → Xác nhận
+              {/* Premium Booking Sidebar */}
+              <Card className="xl:col-span-1 lg:col-span-1 md:col-span-1 h-fit lg:sticky lg:top-20 bg-gradient-to-br from-white/80 via-cyan-50/40 to-emerald-50/40 backdrop-blur-md border border-cyan-200/30 shadow-2xl overflow-hidden ring-1 ring-cyan-500/10">
+                <CardHeader className="bg-gradient-to-br from-cyan-500/15 via-emerald-500/10 to-cyan-500/15 border-b border-cyan-200/40 p-6 relative overflow-hidden">
+                  {/* Header Background Effects */}
+                  <div className="absolute inset-0 pointer-events-none">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-400/10 rounded-full blur-3xl"></div>
+                    <div className="absolute bottom-0 left-0 w-20 h-20 bg-emerald-400/10 rounded-full blur-2xl transform rotate-45"></div>
+                    <div className="absolute top-1/2 left-1/2 w-16 h-16 bg-blue-400/5 rounded-full blur-xl"></div>
+                  </div>
+                  
+                  <div className="relative z-10">
+                    <CardTitle className="text-2xl font-black bg-gradient-to-r from-cyan-700 via-emerald-600 to-cyan-800 bg-clip-text text-transparent flex items-center space-x-4 mb-3">
+                      <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-emerald-600 rounded-2xl flex items-center justify-center shadow-xl transform -rotate-3 hover:rotate-0 transition-all duration-300">
+                        <span className="text-2xl">🎯</span>
+                      </div>
+                      <span>Đặt sân thông minh</span>
+                    </CardTitle>
+                    <CardDescription className="text-gray-700 font-semibold text-base leading-relaxed">
+                      <span className="text-cyan-600 font-bold">AI-powered</span> booking system với{" "}
+                      <span className="text-emerald-600 font-bold">xác nhận tức thì</span>
                   </CardDescription>
+                    
+                    {/* Status Indicators */}
+                    <div className="flex items-center gap-4 mt-4">
+                      <div className="flex items-center space-x-2 bg-white/70 backdrop-blur-sm rounded-full px-3 py-2 border border-cyan-200/50">
+                        <div className="w-2 h-2 bg-cyan-500 rounded-full animate-pulse"></div>
+                        <span className="text-xs font-bold text-cyan-700">Sẵn sàng</span>
+                      </div>
+                      <div className="flex items-center space-x-2 bg-white/70 backdrop-blur-sm rounded-full px-3 py-2 border border-emerald-200/50">
+                        <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                        <span className="text-xs font-bold text-emerald-700">An toàn</span>
+                      </div>
+                    </div>
+                  </div>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="rounded-xl border p-4 bg-white">
-                    <div className="flex justify-between text-sm">
-                      <span>Ngày</span>
-                      <span className="font-medium">
-                        {selStart ? selStart.toLocaleDateString("vi-VN") : "—"}
+                <CardContent className="p-6 space-y-6 bg-gradient-to-br from-white/50 to-cyan-50/30 relative">
+                  {/* Background Pattern */}
+                  <div className="absolute inset-0 opacity-5 pointer-events-none">
+                    <div className="absolute inset-0" style={{ 
+                      backgroundImage: `url("data:image/svg+xml,%3Csvg width='30' height='30' viewBox='0 0 30 30' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%2306b6d4' fill-opacity='0.1'%3E%3Cpath d='M15 15m-5 0a5,5 0 1,1 10,0a5,5 0 1,1 -10,0'/%3E%3C/g%3E%3C/svg%3E")` 
+                    }}></div>
+                  </div>
+                  
+                  {/* Premium Booking Summary */}
+                  <div className="relative z-10 bg-gradient-to-br from-white/80 to-white/60 backdrop-blur-md rounded-3xl border border-white/40 shadow-xl p-6 space-y-5">
+                    {/* Header */}
+                    <div className="text-center pb-4 border-b border-gray-200/50">
+                      <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-xl transform rotate-3 hover:rotate-0 transition-all duration-300">
+                        <span className="text-2xl">📊</span>
+                      </div>
+                      <h3 className="text-xl font-black bg-gradient-to-r from-cyan-700 to-emerald-700 bg-clip-text text-transparent">
+                        Chi tiết đặt sân
+                      </h3>
+                      <p className="text-gray-600 font-semibold">Thông tin booking của bạn</p>
+                    </div>
+                    
+                    {/* Booking Details */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-2xl border border-blue-200/40">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl flex items-center justify-center shadow-md">
+                            <span className="text-lg">📅</span>
+                          </div>
+                          <span className="font-bold text-gray-800">Ngày đặt</span>
+                        </div>
+                        <span className="font-black text-lg text-blue-700">
+                          {selStart ? selStart.toLocaleDateString("vi-VN") : "Chưa chọn"}
                       </span>
                     </div>
-                    <div className="flex justify-between text-sm mt-2">
-                      <span>Khung giờ</span>
-                      <span className="font-medium">
+                      
+                      <div className="flex items-center justify-between p-4 bg-gradient-to-r from-emerald-50 to-green-50 rounded-2xl border border-emerald-200/40">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl flex items-center justify-center shadow-md">
+                            <span className="text-lg">🕐</span>
+                          </div>
+                          <span className="font-bold text-gray-800">Khung giờ</span>
+                        </div>
+                        <span className="font-black text-lg text-emerald-700">
                         {selStart && selEnd
-                          ? `${formatTime(selStart).slice(0, 5)} – ${formatTime(
-                            selEnd
-                          ).slice(0, 5)}`
-                          : "—"}
+                            ? `${formatTime(selStart).slice(0, 5)} – ${formatTime(selEnd).slice(0, 5)}`
+                            : "Chưa chọn"}
                       </span>
                     </div>
+                      
                     {hoursSelected > 0 && (
                       <>
-                        <div className="flex justify-between text-sm mt-2">
-                          <span>Số giờ</span>
-                          <span className="font-medium">{hoursSelected}</span>
+                          <div className="flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-violet-50 rounded-2xl border border-purple-200/40">
+                            <div className="flex items-center space-x-3">
+                              <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-violet-600 rounded-xl flex items-center justify-center shadow-md">
+                                <span className="text-lg">⏱️</span>
                         </div>
-                        <div className="flex justify-between mt-3 pt-3 border-t">
-                          <span className="text-sm">Tổng tiền</span>
-                          <span className="text-lg font-bold text-green-600">
+                              <span className="font-bold text-gray-800">Tổng thời gian</span>
+                            </div>
+                            <span className="font-black text-lg text-purple-700">{hoursSelected} giờ</span>
+                          </div>
+                          
+                          {/* Total Price Section */}
+                          <div className="relative">
+                            <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 rounded-3xl blur-lg opacity-20 animate-pulse"></div>
+                            <div className="relative bg-gradient-to-br from-yellow-50 via-orange-50 to-red-50 rounded-3xl p-6 border-2 border-orange-200/60 shadow-xl">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-4">
+                                  <div className="w-14 h-14 bg-gradient-to-br from-yellow-500 via-orange-500 to-red-500 rounded-2xl flex items-center justify-center shadow-xl animate-bounce">
+                                    <span className="text-2xl">💰</span>
+                                  </div>
+                                  <div>
+                                    <div className="font-black text-xl text-gray-800">Tổng thanh toán</div>
+                                    <div className="text-sm text-orange-600 font-semibold">
+                                      {court.pricePerHour.toLocaleString("vi-VN")}đ × {hoursSelected}h
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <div className="text-4xl font-black bg-gradient-to-r from-orange-600 via-red-600 to-red-700 bg-clip-text text-transparent">
                             {totalPrice.toLocaleString("vi-VN")}đ
-                          </span>
+                                  </div>
+                                  <div className="text-xs text-orange-600 font-bold mt-1">VND</div>
+                                </div>
+                              </div>
+                            </div>
                         </div>
                       </>
                     )}
+                      
+                      {!selStart && !selEnd && (
+                        <div className="text-center py-8">
+                          <div className="w-20 h-20 bg-gradient-to-br from-gray-300 to-gray-400 rounded-3xl flex items-center justify-center mx-auto mb-4 opacity-60">
+                            <span className="text-3xl">⏰</span>
+                          </div>
+                          <div className="text-gray-500 font-bold text-lg">Chưa chọn thời gian</div>
+                          <div className="text-gray-400 text-sm font-medium">Vui lòng chọn khung giờ trên lịch</div>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
+                  {/* Premium Booking Button */}
+                  <div className="relative">
+                    {!selStart || !selEnd ? (
                   <Button
-                    className="w-full bg-green-600 hover:bg-green-700"
+                        className="w-full py-6 font-black text-xl bg-gradient-to-r from-gray-400 to-gray-500 text-white rounded-2xl shadow-lg cursor-not-allowed opacity-60"
+                        disabled={true}
+                      >
+                        <span className="flex items-center justify-center space-x-4">
+                          <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                            <span className="text-xl">⏰</span>
+                          </div>
+                          <span>Chọn thời gian để tiếp tục</span>
+                        </span>
+                      </Button>
+                    ) : (
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 via-green-500 to-emerald-600 rounded-2xl blur-lg opacity-40 animate-pulse"></div>
+                        <Button
+                          className="relative w-full py-6 font-black text-xl bg-gradient-to-r from-emerald-500 via-emerald-600 to-green-600 hover:from-emerald-600 hover:via-green-600 hover:to-emerald-700 text-white rounded-2xl shadow-2xl transform hover:scale-105 hover:-translate-y-2 transition-all duration-300 border-2 border-emerald-300/50"
                     onClick={handleBooking}
-                    disabled={!selStart || !selEnd}
-                  >
-                    Đặt sân ngay
+                        >
+                          <span className="flex items-center justify-center space-x-4">
+                            <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center animate-bounce">
+                              <span className="text-xl">🚀</span>
+                            </div>
+                            <div className="text-left">
+                              <div className="text-xl font-black">Đặt sân ngay lập tức</div>
+                              <div className="text-xs text-emerald-100 font-semibold">Xác nhận trong 3 giây</div>
+                            </div>
+                          </span>
                   </Button>
+                      </div>
+                    )}
+                  </div>
 
-                  <p className="text-xs text-gray-500">
-                    * Chuyển view Ngày/Tuần/Danh sách ở thanh trên lịch.
-                  </p>
+                  {/* Enhanced Guide Section */}
+                  <div className="bg-gradient-to-br from-blue-50/80 via-indigo-50/60 to-purple-50/80 backdrop-blur-sm border border-blue-200/40 rounded-3xl p-6 relative overflow-hidden">
+                    {/* Background Pattern */}
+                    <div className="absolute inset-0 opacity-5">
+                      <div className="absolute inset-0" style={{ 
+                        backgroundImage: `url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%233b82f6' fill-opacity='0.1'%3E%3Cpath d='M10 10m-3 0a3,3 0 1,1 6,0a3,3 0 1,1 -6,0'/%3E%3C/g%3E%3C/svg%3E")` 
+                      }}></div>
+                    </div>
+                    
+                    <div className="relative z-10">
+                      <div className="flex items-center gap-4 mb-6">
+                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg transform rotate-6 hover:rotate-0 transition-transform duration-300">
+                          <span className="text-2xl">💡</span>
+                        </div>
+                        <div>
+                          <h4 className="text-xl font-black bg-gradient-to-r from-blue-700 to-indigo-700 bg-clip-text text-transparent">
+                            Hướng dẫn đặt sân thông minh
+                          </h4>
+                          <p className="text-blue-600 font-semibold text-sm">AI-powered booking experience</p>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <div className="flex items-start gap-4 p-4 bg-white/60 backdrop-blur-sm rounded-2xl border border-white/40">
+                          <div className="w-8 h-8 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-xl flex items-center justify-center text-white font-bold shadow-md flex-shrink-0">
+                            1
+                          </div>
+                          <div>
+                            <div className="font-bold text-gray-800 mb-1">Chọn thời gian</div>
+                            <div className="text-sm text-gray-600 font-medium">Kéo chuột trên lịch để chọn khung giờ mong muốn. Hệ thống hỗ trợ chọn nhiều giờ liên tiếp.</div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-start gap-4 p-4 bg-white/60 backdrop-blur-sm rounded-2xl border border-white/40">
+                          <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl flex items-center justify-center text-white font-bold shadow-md flex-shrink-0">
+                            2
+                          </div>
+                          <div>
+                            <div className="font-bold text-gray-800 mb-1">Kiểm tra thông tin</div>
+                            <div className="text-sm text-gray-600 font-medium">Xem lại ngày, giờ và tổng chi phí. AI sẽ tự động tính toán giá thuê phù hợp.</div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-start gap-4 p-4 bg-white/60 backdrop-blur-sm rounded-2xl border border-white/40">
+                          <div className="w-8 h-8 bg-gradient-to-br from-purple-400 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold shadow-md flex-shrink-0">
+                            3
+                          </div>
+                          <div>
+                            <div className="font-bold text-gray-800 mb-1">Xác nhận đặt sân</div>
+                            <div className="text-sm text-gray-600 font-medium">Bấm nút "Đặt sân ngay" để hoàn tất. Bạn sẽ nhận được xác nhận trong vài giây.</div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Pro Tips */}
+                      <div className="mt-6 p-4 bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200/50 rounded-2xl">
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className="w-6 h-6 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-lg flex items-center justify-center">
+                            <span className="text-xs text-white">⭐</span>
+                          </div>
+                          <span className="font-bold text-yellow-800">Pro Tips:</span>
+                        </div>
+                        <ul className="space-y-2 text-sm text-yellow-700 font-medium">
+                          <li className="flex items-start gap-2">
+                            <span className="text-yellow-500 font-bold">•</span>
+                            <span>Đặt sân vào khung giờ vàng (17:00-19:00) để có trải nghiệm tốt nhất</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-yellow-500 font-bold">•</span>
+                            <span>Chọn nhiều giờ liên tiếp để được ưu đãi giá tốt hơn</span>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -561,109 +1063,253 @@ export default function CourtDetailPage() {
             )}
           </TabsContent>
 
-          {/* Info */}
-          <TabsContent value="info">
-            <Card>
-              <CardHeader>
-                <CardTitle>Thông tin</CardTitle>
+          {/* Enhanced Info Tab */}
+          <TabsContent value="info" className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
+            <div className="space-y-6">
+              {/* Court Description */}
+              <Card className="bg-white/70 backdrop-blur-sm border border-white/20 shadow-xl">
+                <CardHeader className="bg-gradient-to-r from-cyan-50/50 to-blue-50/50 border-b border-white/20 p-6">
+                  <CardTitle className="text-2xl font-bold bg-gradient-to-r from-gray-800 via-cyan-700 to-gray-800 bg-clip-text text-transparent flex items-center space-x-3">
+                    <span className="text-2xl">📋</span>
+                    <span>Mô tả sân</span>
+                  </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+                <CardContent className="p-8">
+                  <div className="bg-gradient-to-br from-white/60 to-white/40 backdrop-blur-sm rounded-2xl border border-white/30 p-6">
+                    <p className="text-gray-700 leading-8 font-medium text-lg">
+                      {court.description || "Không có mô tả chi tiết về sân thể thao này."}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Enhanced Amenities */}
+              <Card className="bg-white/70 backdrop-blur-sm border border-white/20 shadow-xl">
+                <CardHeader className="bg-gradient-to-r from-emerald-50/50 to-green-50/50 border-b border-white/20 p-6">
+                  <CardTitle className="text-2xl font-bold bg-gradient-to-r from-gray-800 via-emerald-700 to-gray-800 bg-clip-text text-transparent flex items-center space-x-3">
+                    <span className="text-2xl">🏆</span>
+                    <span>Tiện ích & Dịch vụ</span>
+                  </CardTitle>
+                  <CardDescription className="text-gray-600 font-medium mt-2">
+                    Các tiện ích và dịch vụ có sẵn tại sân thể thao
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-8">
+                  {court.amenities && court.amenities.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {court.amenities.map((amenity, i) => (
+                        <div key={i} className="group bg-gradient-to-br from-white/60 to-white/40 backdrop-blur-sm rounded-xl border border-white/30 p-4 hover:shadow-lg hover:scale-105 transition-all duration-300">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 bg-gradient-to-br from-emerald-400/20 to-emerald-500/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                              {getAmenityIcon(amenity)}
+                            </div>
+                            <span className="font-semibold text-gray-800 group-hover:text-emerald-700 transition-colors">
+                              {amenity}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <div className="text-6xl mb-4">🏟️</div>
+                      <p className="text-gray-600 font-medium">Chưa có thông tin về tiện ích</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Court Owner Information */}
+              {court.owner && (
+                <Card className="bg-white/70 backdrop-blur-sm border border-white/20 shadow-xl">
+                  <CardHeader className="bg-gradient-to-r from-purple-50/50 to-pink-50/50 border-b border-white/20 p-6">
+                    <CardTitle className="text-2xl font-bold bg-gradient-to-r from-gray-800 via-purple-700 to-gray-800 bg-clip-text text-transparent flex items-center space-x-3">
+                      <span className="text-2xl">👤</span>
+                      <span>Thông tin chủ sân</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-8">
+                    <div className="bg-gradient-to-br from-white/60 to-white/40 backdrop-blur-sm rounded-2xl border border-white/30 p-6">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-3">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 bg-gradient-to-br from-purple-400/20 to-purple-500/20 rounded-lg flex items-center justify-center">
+                              <Users className="h-5 w-5 text-purple-600" />
+                            </div>
                 <div>
-                  <h3 className="font-semibold mb-2">Mô tả</h3>
-                  <p className="text-gray-600 leading-7">{court.description}</p>
+                              <div className="text-sm text-gray-600 font-medium">Chủ sân</div>
+                              <div className="font-bold text-gray-800 text-lg">{court.owner.name}</div>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 bg-gradient-to-br from-green-400/20 to-green-500/20 rounded-lg flex items-center justify-center">
+                              <Phone className="h-5 w-5 text-green-600" />
                 </div>
                 <div>
-                  <h3 className="font-semibold mb-2">Tiện ích</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {court.amenities.map((a, i) => (
-                      <div key={i} className="flex items-center gap-2 text-sm">
-                        {getAmenityIcon(a)} <span>{a}</span>
+                              <div className="text-sm text-gray-600 font-medium">Số điện thoại</div>
+                              <a href={`tel:${court.owner.phone}`} className="font-bold text-green-600 text-lg hover:text-green-700 transition-colors">
+                                {court.owner.phone}
+                              </a>
                       </div>
-                    ))}
+                          </div>
+                        </div>
+
+                        <div className="hidden md:block">
+                          <a href={`tel:${court.owner.phone}`}>
+                            <Button className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg hover:shadow-green-500/25 transition-all duration-300 transform hover:scale-105">
+                              <span className="flex items-center space-x-2">
+                                <Phone className="h-4 w-4" />
+                                <span>Gọi ngay</span>
+                              </span>
+                            </Button>
+                          </a>
+                        </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
+              )}
+
+              {/* Court Details */}
+              <Card className="bg-white/70 backdrop-blur-sm border border-white/20 shadow-xl">
+                <CardHeader className="bg-gradient-to-r from-orange-50/50 to-yellow-50/50 border-b border-white/20 p-6">
+                  <CardTitle className="text-2xl font-bold bg-gradient-to-r from-gray-800 via-orange-700 to-gray-800 bg-clip-text text-transparent flex items-center space-x-3">
+                    <span className="text-2xl">🕐</span>
+                    <span>Chi tiết sân</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="bg-gradient-to-br from-white/60 to-white/40 backdrop-blur-sm rounded-2xl border border-white/30 p-6 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 bg-gradient-to-br from-blue-400/20 to-blue-500/20 rounded-lg flex items-center justify-center">
+                            <Clock className="h-5 w-5 text-blue-600" />
+                          </div>
+                          <span className="font-semibold text-gray-700">Giờ mở cửa</span>
+                        </div>
+                        <span className="font-bold text-gray-800 text-lg">
+                          {court.openTime} - {court.closeTime}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="bg-gradient-to-br from-white/60 to-white/40 backdrop-blur-sm rounded-2xl border border-white/30 p-6 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 bg-gradient-to-br from-emerald-400/20 to-emerald-500/20 rounded-lg flex items-center justify-center">
+                            <span className="text-emerald-600 font-bold">$</span>
+                          </div>
+                          <span className="font-semibold text-gray-700">Giá thuê</span>
+                        </div>
+                        <span className="font-bold text-emerald-600 text-lg">
+                          {court.pricePerHour.toLocaleString("vi-VN")}đ/giờ
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
-          {/* Weather */}
-          <TabsContent value="weather">
+          {/* Enhanced Weather Tab */}
+          <TabsContent value="weather" className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
             <div className="space-y-6">
               {/* Current Weather */}
               {weather && (
-                <Card className={`bg-gradient-to-br ${getWeatherBackground(weather.current.icon)} border-0 shadow-lg`}>
-                  <CardContent className="p-6">
+                <Card className={`bg-gradient-to-br ${getWeatherBackground(weather.current.icon)} border-0 shadow-xl overflow-hidden`}>
+                  <CardContent className="p-8">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="text-6xl">
+                      <div className="flex items-center gap-6">
+                        <div className="text-8xl animate-bounce" style={{ animationDuration: '3s' }}>
                           {getWeatherIcon(weather.current.icon)}
                         </div>
-                        <div>
-                          <div className="text-4xl font-bold text-gray-800">
+                        <div className="space-y-2">
+                          <div className="text-5xl font-black text-gray-800">
                             {weather.current.temp}°C
                           </div>
-                          <div className="text-lg text-gray-600 capitalize">
+                          <div className="text-xl font-semibold text-gray-700 capitalize">
                             {weather.current.condition}
                           </div>
-                          <div className="text-sm text-gray-500 mt-1">
+                          <div className="text-sm text-gray-600 font-medium">
                             Cảm giác như {weather.current.feelsLike}°C
                           </div>
-                          <div className="text-sm text-gray-600 my-2">Tại {court?.address}</div>
+                          <div className="flex items-center space-x-2 text-sm text-gray-600 font-medium">
+                            <MapPin className="h-4 w-4" />
+                            <span>{court?.address}</span>
+                          </div>
                         </div>
                       </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
-
-                      {/* Weather Alert & Sports Recommendation */}
-                      {weather && (
-                        <Card className="bg-gradient-to-r from-blue-50 to-green-50 border-blue-200">
-                          <CardHeader>
-                            <CardTitle className="flex items-center gap-2 text-blue-800">
-                              <span>🎾</span>
-                              Khuyến nghị hoạt động thể thao
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="space-y-3">
-                              {weather.current.temp >= 25 && weather.current.temp <= 35 && !weather.current.condition.includes('mưa') && (
-                                <div className="flex items-center gap-3 p-3 rounded-lg">
-                                  <div>
-                                    <div className="font-medium text-green-800">Thời tiết lý tưởng!</div>
-                                    <div className="text-sm text-green-600">Nhiệt độ {weather.current.temp}°C phù hợp cho hoạt động thể thao ngoài trời</div>
-                                  </div>
-                                </div>
-                              )}
-                              {weather.current.temp > 35 && (
-                                <div className="flex items-center gap-3 p-3 bg-orange-100 rounded-lg">
-                                  <span className="text-2xl">⚠️</span>
-                                  <div>
-                                    <div className="font-medium text-orange-800">Nhiệt độ cao</div>
-                                    <div className="text-sm text-orange-600">Nhiệt độ {weather.current.temp}°C khá cao, nên chơi vào sáng sớm hoặc chiều tối</div>
-                                  </div>
-                                </div>
-                              )}
-                              {weather.current.condition.includes('mưa') && (
-                                <div className="flex items-center gap-3 p-3 bg-blue-100 rounded-lg">
-                                  <span className="text-2xl">🌧️</span>
-                                  <div>
-                                    <div className="font-medium text-blue-800">Có mưa</div>
-                                    <div className="text-sm text-blue-600">Thời tiết có mưa, nên kiểm tra sân có mái che hoặc đặt sân trong nhà</div>
-                                  </div>
-                                </div>
-                              )}
-                              {weather.current.windSpeed > 20 && (
-                                <div className="flex items-center gap-3 p-3 bg-yellow-100 rounded-lg">
-                                  <span className="text-2xl">💨</span>
-                                  <div>
-                                    <div className="font-medium text-yellow-800">Gió mạnh</div>
-                                    <div className="text-sm text-yellow-600">Gió {weather.current.windSpeed} km/h có thể ảnh hưởng đến một số môn thể thao</div>
-                                  </div>
-                                </div>
-                              )}
+              {/* Weather Alert & Sports Recommendation */}
+              {weather && (
+                <Card className="bg-gradient-to-r from-blue-50/80 to-green-50/80 backdrop-blur-sm border border-blue-200/50 shadow-xl">
+                  <CardHeader className="bg-gradient-to-r from-blue-50/50 to-green-50/50 border-b border-blue-200/30 p-6">
+                    <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-800 via-green-700 to-blue-800 bg-clip-text text-transparent flex items-center space-x-3">
+                      <span className="text-2xl">🎾</span>
+                      <span>Khuyến nghị hoạt động thể thao</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <div className="space-y-4">
+                      {weather.current.temp >= 25 && weather.current.temp <= 35 && !weather.current.condition.includes('mưa') && (
+                        <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200/50 rounded-xl p-4">
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center">
+                              <span className="text-2xl">✅</span>
                             </div>
-                          </CardContent>
-                        </Card>
+                            <div>
+                              <div className="font-bold text-green-800 text-lg">Thời tiết lý tưởng!</div>
+                              <div className="text-sm text-green-700 font-medium">Nhiệt độ {weather.current.temp}°C phù hợp cho hoạt động thể thao ngoài trời</div>
+                            </div>
+                          </div>
+                        </div>
                       )}
-
+                      {weather.current.temp > 35 && (
+                        <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border border-orange-200/50 rounded-xl p-4">
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-yellow-500 rounded-full flex items-center justify-center">
+                              <span className="text-2xl">⚠️</span>
+                            </div>
+                            <div>
+                              <div className="font-bold text-orange-800 text-lg">Nhiệt độ cao</div>
+                              <div className="text-sm text-orange-700 font-medium">Nhiệt độ {weather.current.temp}°C khá cao, nên chơi vào sáng sớm hoặc chiều tối</div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      {weather.current.condition.includes('mưa') && (
+                        <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200/50 rounded-xl p-4">
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-cyan-500 rounded-full flex items-center justify-center">
+                              <span className="text-2xl">🌧️</span>
+                            </div>
+                            <div>
+                              <div className="font-bold text-blue-800 text-lg">Có mưa</div>
+                              <div className="text-sm text-blue-700 font-medium">Thời tiết có mưa, nên kiểm tra sân có mái che hoặc đặt sân trong nhà</div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      {weather.current.windSpeed > 20 && (
+                        <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200/50 rounded-xl p-4">
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center">
+                              <span className="text-2xl">💨</span>
+                            </div>
+                            <div>
+                              <div className="font-bold text-yellow-800 text-lg">Gió mạnh</div>
+                              <div className="text-sm text-yellow-700 font-medium">Gió {weather.current.windSpeed} km/h có thể ảnh hưởng đến một số môn thể thao</div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -671,31 +1317,31 @@ export default function CourtDetailPage() {
 
 
 
-              {/* Weather Details */}
+              {/* Enhanced Weather Details */}
               {weather && (
                 <div className="grid md:grid-cols-2 gap-6">
                   {/* Hourly Forecast */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Clock className="h-5 w-5" />
-                        Dự báo theo giờ
+                  <Card className="bg-white/70 backdrop-blur-sm border border-white/20 shadow-xl">
+                    <CardHeader className="bg-gradient-to-r from-cyan-50/50 to-blue-50/50 border-b border-white/20 p-6">
+                      <CardTitle className="text-xl font-bold bg-gradient-to-r from-gray-800 via-cyan-700 to-gray-800 bg-clip-text text-transparent flex items-center space-x-3">
+                        <Clock className="h-6 w-6 text-cyan-600" />
+                        <span>Dự báo theo giờ</span>
                       </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-4 gap-3">
+                    <CardContent className="p-6">
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                         {weather.hourly.slice(0, 8).map((item, idx) => (
-                          <div key={idx} className="text-center p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
-                            <div className="text-sm font-medium text-gray-700 mb-1">
+                          <div key={idx} className="group bg-gradient-to-br from-white/60 to-white/40 backdrop-blur-sm rounded-xl border border-white/30 p-4 text-center hover:shadow-lg hover:scale-105 transition-all duration-300">
+                            <div className="text-sm font-semibold text-gray-700 mb-2">
                               {item.time}
                             </div>
-                            <div className="text-2xl mb-2">
+                            <div className="text-3xl mb-3 group-hover:animate-bounce">
                               {getWeatherIcon(item.icon)}
                             </div>
-                            <div className="text-lg font-bold text-gray-800">
+                            <div className="text-lg font-bold text-gray-800 mb-1">
                               {item.temp}°
                             </div>
-                            <div className="text-xs text-gray-500 mt-1 capitalize">
+                            <div className="text-xs text-gray-600 capitalize font-medium">
                               {item.condition}
                             </div>
                           </div>
@@ -704,49 +1350,60 @@ export default function CourtDetailPage() {
                     </CardContent>
                   </Card>
 
-                  {/* Weather Stats */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <span>📊</span>
-                        Thông tin chi tiết
+                  {/* Enhanced Weather Stats */}
+                  <Card className="bg-white/70 backdrop-blur-sm border border-white/20 shadow-xl">
+                    <CardHeader className="bg-gradient-to-r from-purple-50/50 to-pink-50/50 border-b border-white/20 p-6">
+                      <CardTitle className="text-xl font-bold bg-gradient-to-r from-gray-800 via-purple-700 to-gray-800 bg-clip-text text-transparent flex items-center space-x-3">
+                        <span className="text-2xl">📊</span>
+                        <span>Thông tin chi tiết</span>
                       </CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="p-6">
                       <div className="space-y-4">
-                        <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                          <div className="flex items-center gap-3">
-                            <span className="text-2xl">💨</span>
-                            <div>
-                              <div className="font-medium">Gió</div>
-                              <div className="text-sm text-gray-500">{weather.current.windSpeed} km/h</div>
+                        <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl p-4 border border-blue-200/30">
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-cyan-500 rounded-full flex items-center justify-center">
+                              <span className="text-2xl">💨</span>
+                            </div>
+                            <div className="flex-1">
+                              <div className="font-bold text-gray-800 text-lg">Gió</div>
+                              <div className="text-sm text-blue-700 font-semibold">{weather.current.windSpeed} km/h</div>
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                          <div className="flex items-center gap-3">
-                            <span className="text-2xl">💧</span>
-                            <div>
-                              <div className="font-medium">Độ ẩm</div>
-                              <div className="text-sm text-gray-500">{weather.current.humidity}%</div>
+                        
+                        <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 border border-green-200/30">
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center">
+                              <span className="text-2xl">💧</span>
+                            </div>
+                            <div className="flex-1">
+                              <div className="font-bold text-gray-800 text-lg">Độ ẩm</div>
+                              <div className="text-sm text-green-700 font-semibold">{weather.current.humidity}%</div>
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
-                          <div className="flex items-center gap-3">
-                            <span className="text-2xl">👁️</span>
-                            <div>
-                              <div className="font-medium">Tầm nhìn</div>
-                              <div className="text-sm text-gray-500">{weather.current.visibility} km</div>
+                        
+                        <div className="bg-gradient-to-r from-purple-50 to-violet-50 rounded-xl p-4 border border-purple-200/30">
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-violet-500 rounded-full flex items-center justify-center">
+                              <span className="text-2xl">👁️</span>
+                            </div>
+                            <div className="flex-1">
+                              <div className="font-bold text-gray-800 text-lg">Tầm nhìn</div>
+                              <div className="text-sm text-purple-700 font-semibold">{weather.current.visibility} km</div>
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
-                          <div className="flex items-center gap-3">
-                            <span className="text-2xl">🌡️</span>
-                            <div>
-                              <div className="font-medium">Áp suất</div>
-                              <div className="text-sm text-gray-500">{weather.current.pressure} hPa</div>
+                        
+                        <div className="bg-gradient-to-r from-orange-50 to-yellow-50 rounded-xl p-4 border border-orange-200/30">
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-yellow-500 rounded-full flex items-center justify-center">
+                              <span className="text-2xl">🌡️</span>
+                            </div>
+                            <div className="flex-1">
+                              <div className="font-bold text-gray-800 text-lg">Áp suất</div>
+                              <div className="text-sm text-orange-700 font-semibold">{weather.current.pressure} hPa</div>
                             </div>
                           </div>
                         </div>
@@ -758,23 +1415,23 @@ export default function CourtDetailPage() {
 
               {/* Daily Forecast */}
               {weather && (
-                <Card>
-                  <CardHeader>
+            <Card>
+              <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Sun className="h-5 w-5" />
                       Dự báo 7 ngày
                     </CardTitle>
-                  </CardHeader>
+              </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
                       {weather.daily.map((item, idx) => (
                         <div key={idx} className="flex flex-col items-center p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
                           <div className="text-sm font-medium text-gray-700 mb-2">
                             {item.day}
-                          </div>
+                    </div>
                           <div className="text-2xl mb-2">
                             {getWeatherIcon(item.icon)}
-                          </div>
+                            </div>
                           <div className="text-xs text-gray-500 capitalize text-center mb-2">
                             {item.condition}
                           </div>
@@ -788,9 +1445,9 @@ export default function CourtDetailPage() {
                           </div>
                         </div>
                       ))}
-                    </div>
-                  </CardContent>
-                </Card>
+                            </div>
+                          </CardContent>
+                        </Card>
               )}
 
 
@@ -812,7 +1469,7 @@ export default function CourtDetailPage() {
                     </div>
                     <div className="text-gray-500 mb-4">
                       Vui lòng kiểm tra cấu hình API key hoặc thử lại sau
-                    </div>
+                  </div>
                     <Button
                       onClick={async () => {
                         if (court?.latitude && court?.longitude) {
@@ -835,8 +1492,8 @@ export default function CourtDetailPage() {
                     >
                       {weatherLoading ? 'Đang tải...' : 'Thử lại'}
                     </Button>
-                  </CardContent>
-                </Card>
+              </CardContent>
+            </Card>
               )}
             </div>
           </TabsContent>
