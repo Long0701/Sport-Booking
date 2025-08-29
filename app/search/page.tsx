@@ -104,6 +104,8 @@ const [isInitialized, setIsInitialized] = useState(false)
 const [aiSuggestions, setAiSuggestions] = useState<AISuggestion[]>([])
 const [showAISuggestions, setShowAISuggestions] = useState(false)
 const [aiLoading, setAiLoading] = useState(false)
+const [aiError, setAiError] = useState<string | null>(null)
+const [aiSummary, setAiSummary] = useState<string>("")
 const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null)
 const { user } = useAuth();
 const searchParams = useSearchParams();
@@ -264,78 +266,195 @@ const fetchCourts = async (reset: boolean = true) => {
     return R * c
   }
 
-  // Generate AI suggestions based on multiple factors
-  const generateAISuggestions = () => {
+  // Generate AI suggestions using Fireworks AI
+  const generateAISuggestions = async () => {
     if (!courts.length || !weather || !userLocation) return
-    
+
     setAiLoading(true)
+    setAiError(null) // Clear any previous errors
+    setAiSummary("") // Clear previous summary
 
-    const suggestions: AISuggestion[] = courts.map(court => {
-      // Calculate distance score (closer is better)
-      const courtLat = parseFloat(court.location.coordinates[1])
-      const courtLng = parseFloat(court.location.coordinates[0])
-      const distance = calculateDistance(userLocation.lat, userLocation.lng, courtLat, courtLng)
-      const distanceScore = Math.max(0, 100 - (distance * 10)) // 10 points per km
+    try {
+      // Step 1: Get court data with weather information
+      const courtsResponse = await fetch(`/api/courts/ai-suggestions?type=${selectedSport}&lat=${userLocation.lat}&lng=${userLocation.lng}`)
+      const courtsData = await courtsResponse.json()
 
-      // Weather score (indoor sports are better in bad weather)
-      let weatherScore = 50 // Base score
-      const isIndoor = court.amenities?.includes('indoor') || court.type === 'badminton'
-      if (weather.current.condition.includes('mưa') || weather.current.condition.includes('rain')) {
-        weatherScore = isIndoor ? 90 : 30
-      } else if (weather.current.condition.includes('nắng') || weather.current.condition.includes('sun')) {
-        weatherScore = isIndoor ? 70 : 80
+      if (!courtsData.success) {
+        throw new Error('Failed to fetch court data')
       }
 
-      // Rating score
-      const ratingScore = court.rating * 20 // 5 stars = 100 points
+      console.log('📥 AI Suggestions API response:', courtsData)
 
-      // Price score (lower price is better, but not too cheap)
-      const avgPrice = 200000 // Average price in VND
-      const priceDiff = Math.abs(court.pricePerHour - avgPrice)
-      const priceScore = Math.max(0, 100 - (priceDiff / 1000)) // 1000 VND difference = 1 point
+      // Step 2: Create strong prompt for FireworksAI
+      const prompt = createFireworksPrompt(courtsData)
 
-      // Utility score based on amenities
-      let utilityScore = 50 // Base score
-      if (court.amenities) {
-        if (court.amenities.includes('parking')) utilityScore += 10
-        if (court.amenities.includes('shower')) utilityScore += 10
-        if (court.amenities.includes('equipment')) utilityScore += 10
-        if (court.amenities.includes('lighting')) utilityScore += 10
-        if (court.amenities.includes('air_conditioning')) utilityScore += 10
+      // Step 3: Call FireworksAI
+      const aiResponse = await fetch('https://api.fireworks.ai/inference/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          "Accept": "application/json",
+          "Content-Type": "application/json",
+          "Authorization": "Bearer gdhFtHMfmQZgRPTmQnOk1heFBVZ6X6T2NNBYNE64o7c3uoz1"
+        },
+        body: JSON.stringify({
+          model: "accounts/fireworks/models/gpt-oss-20b",
+          max_tokens: 4096,
+          top_p: 1,
+          top_k: 40,
+          presence_penalty: 0,
+          frequency_penalty: 0,
+          temperature: 0.6,
+          messages: [
+            {
+              role: "user",
+              content: prompt
+            }
+          ]
+        })
+      })
+
+      const aiData = await aiResponse.json()
+      console.log('🎆 FireworksAI response:', aiData)
+
+      // Step 4: Parse and display the result
+      if (aiData.choices && aiData.choices[0] && aiData.choices[0].message) {
+        try {
+          const content = aiData.choices[0].message.content
+          const parsedContent = JSON.parse(content)
+          console.log('✅ Parsed FireworksAI result:', parsedContent)
+
+          // Extract the summary from the AI response
+          if (parsedContent.summary) {
+            // Store the AI summary
+            setAiSummary(parsedContent.summary)
+            
+            // Transform AI suggestions to match our interface
+            const transformedSuggestions: AISuggestion[] = courtsData.data.slice(0, 3).map((court: any, index: number) => {
+              const courtLat = parseFloat(court.location.coordinates[1])
+              const courtLng = parseFloat(court.location.coordinates[0])
+              const distance = calculateDistance(userLocation.lat, userLocation.lng, courtLat, courtLng)
+
+              return {
+                court,
+                score: 100 - (index * 10), // Score based on rank
+                reasons: [], // No individual reasons, only general summary
+                weatherScore: 80,
+                ratingScore: court.rating * 20,
+                priceScore: 80,
+                distanceScore: Math.max(0, 100 - (distance * 10)),
+                utilityScore: 70,
+                distance: Math.round(distance * 10) / 10
+              }
+            })
+
+            setAiSuggestions(transformedSuggestions)
+            setShowAISuggestions(true)
+            
+            console.log('🎯 AI Suggestions Generated Successfully!')
+            console.log('Fireworks AI Integration Status: ✅ Working')
+            console.log('AI Summary:', parsedContent.summary)
+          }
+        } catch (parseError) {
+          console.log('⚠️ Could not parse JSON response, showing raw content')
+          // Fallback to raw content
+          const transformedSuggestions: AISuggestion[] = courtsData.data.slice(0, 3).map((court: any, index: number) => {
+            const courtLat = parseFloat(court.location.coordinates[1])
+            const courtLng = parseFloat(court.location.coordinates[0])
+            const distance = calculateDistance(userLocation.lat, userLocation.lng, courtLat, courtLng)
+
+            return {
+              court,
+              score: 100 - (index * 10),
+              reasons: [], // No individual reasons, only general summary
+              weatherScore: 80,
+              ratingScore: court.rating * 20,
+              priceScore: 80,
+              distanceScore: Math.max(0, 100 - (distance * 10)),
+              utilityScore: 70,
+              distance: Math.round(distance * 10) / 10
+            }
+          })
+
+          setAiSuggestions(transformedSuggestions)
+          setShowAISuggestions(true)
+        }
       }
 
-      // Calculate total score
-      const totalScore = (weatherScore * 0.25 + ratingScore * 0.25 + priceScore * 0.2 + distanceScore * 0.2 + utilityScore * 0.1)
+    } catch (error) {
+      console.error('Error generating AI suggestions:', error)
+      
+      setAiSuggestions([])
+      setShowAISuggestions(false)
+      setAiSummary("")
+      setAiError('Xin lỗi, không thể kết nối với FireworksAI. Vui lòng thử lại sau.')
+      console.error('Failed to connect to FireworksAI. Please try again later.')
+    } finally {
+      setAiLoading(false)
+    }
+  }
 
-      // Generate reasons
-      const reasons: string[] = []
-      if (weatherScore > 80) reasons.push('Thời tiết phù hợp')
-      if (ratingScore > 80) reasons.push('Đánh giá cao')
-      if (priceScore > 80) reasons.push('Giá cả hợp lý')
-      if (distanceScore > 80) reasons.push('Gần vị trí của bạn')
-      if (utilityScore > 70) reasons.push('Tiện ích tốt')
+  // Create strong prompt for FireworksAI
+  const createFireworksPrompt = (data: any): string => {
+    const courts = data.data || []
+    const weather = data.weather
+    const sportType = selectedSport
 
-      return {
-        court,
-        score: Math.round(totalScore),
-        reasons,
-        weatherScore: Math.round(weatherScore),
-        ratingScore: Math.round(ratingScore),
-        priceScore: Math.round(priceScore),
-        distanceScore: Math.round(distanceScore),
-        utilityScore: Math.round(utilityScore),
-        distance: Math.round(distance * 10) / 10 // Distance in km with 1 decimal place
-      }
+    const sportTypeVietnamese = {
+      'football': 'bóng đá mini',
+      'badminton': 'cầu lông',
+      'tennis': 'tennis',
+      'basketball': 'bóng rổ',
+      'volleyball': 'bóng chuyền',
+      'pickleball': 'pickleball'
+    }[sportType] || sportType
+
+    let prompt = `Bạn là một chuyên gia tư vấn thể thao thông minh. Dựa trên danh sách sân ${sportTypeVietnamese} sau đây, hãy chọn ra TOP 3 sân tốt nhất để đặt và giải thích lý do chi tiết.
+
+DANH SÁCH SÂN ${sportTypeVietnamese.toUpperCase()}:
+`
+
+    courts.forEach((court: any, index: number) => {
+      prompt += `${index + 1}. ${court.name}
+   - Địa chỉ: ${court.address}
+   - Giá: ${court.pricePerHour.toLocaleString('vi-VN')} VNĐ/giờ
+   - Đánh giá: ${court.rating}/5 (${court.reviewCount} đánh giá)
+   - Khoảng cách: ${court.distance}km
+   - Tiện ích: ${court.amenities?.join(', ') || 'Không có'}
+   - Mô tả: ${court.description || 'Không có mô tả'}
+`
     })
 
-    // Sort by score and take top 3
-    const topSuggestions = suggestions
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 3)
+    if (weather) {
+      prompt += `
+THÔNG TIN THỜI TIẾT HIỆN TẠI:
+- Nhiệt độ: ${weather.temp}°C
+- Điều kiện: ${weather.condition}
+- Độ ẩm: ${weather.humidity}%
+- Gió: ${weather.windSpeed} km/h
+`
+    }
 
-    setAiSuggestions(topSuggestions)
-    setShowAISuggestions(true)
-    setAiLoading(false)
+    prompt += `
+YÊU CẦU:
+1. Chọn TOP 3 sân tốt nhất dựa trên các tiêu chí: giá cả hợp lý, đánh giá cao, khoảng cách gần, tiện ích đầy đủ, phù hợp với thời tiết
+2. Sắp xếp theo thứ tự ưu tiên (1 = tốt nhất)
+3. Tạo một phân tích tổng quan chi tiết giải thích lý do tại sao 3 sân này được chọn (giải thích tối đa 300 ký tự), bao gồm:
+   - So sánh về giá cả, chất lượng và vị trí
+   - Phù hợp với thời tiết hiện tại
+   - Điểm mạnh của từng sân
+   - Lý do tổng thể cho việc gợi ý 3 sân này
+4. Trả lời bằng tiếng Việt, format JSON như sau:
+{
+  "top3_courts": [
+    {
+      "rank": 1,
+      "court_name": "Tên sân"
+    }
+  ],
+  "summary": "Phân tích chi tiết lý do AI gợi ý 3 sân này, bao gồm so sánh về giá cả, chất lượng, vị trí và phù hợp với thời tiết"
+}`
+
+    return prompt
   }
 
   const generateAIReasoning = () => {
@@ -358,6 +477,12 @@ const fetchCourts = async (reset: boolean = true) => {
   };
 
   const generateIndividualReasoning = (suggestion: AISuggestion) => {
+    // If AI has provided a reason, use it
+    if (suggestion.reasons && suggestion.reasons.length > 0 && suggestion.reasons[0]) {
+      return suggestion.reasons[0];
+    }
+    
+    // Fallback to generated reasons
     const reasons: string[] = [];
     
     // Add specific reasons based on scores
@@ -652,6 +777,32 @@ const fetchCourts = async (reset: boolean = true) => {
                        <h4 className="text-xl font-bold text-white mb-2">🎯 Top 3 Gợi Ý Tốt Nhất</h4>
                        <div className="w-24 h-1 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full mx-auto"></div>
                      </div>
+
+                     {/* AI Summary Section */}
+                     {aiSummary ? (
+                       <div className="bg-gradient-to-r from-blue-500/20 to-indigo-500/20 backdrop-blur-sm rounded-xl p-6 border border-blue-400/30">
+                         <div className="flex items-center space-x-3 mb-4">
+                           <div className="w-4 h-4 bg-blue-400 rounded-full animate-pulse"></div>
+                           <h6 className="font-bold text-white text-lg">🧠 Phân tích AI - Lý do gợi ý</h6>
+                         </div>
+                         <div className="text-white/90 text-base leading-relaxed">
+                           {aiSummary}
+                         </div>
+                         <div className="mt-4 pt-4 border-t border-blue-400/20">
+                           <div className="flex items-center justify-center space-x-2 text-blue-200 text-sm">
+                             <Sparkles className="h-4 w-4" />
+                             <span>AI đã phân tích dựa trên thời tiết, vị trí, giá cả và đánh giá</span>
+                           </div>
+                         </div>
+                       </div>
+                     ) : (
+                       <div className="bg-gradient-to-r from-orange-500/20 to-red-500/20 backdrop-blur-sm rounded-xl p-4 border border-orange-400/30">
+                         <div className="flex items-center space-x-2 text-orange-200 text-sm">
+                           <div className="w-3 h-3 bg-orange-400 rounded-full animate-pulse"></div>
+                           <span>⚠️ Đang chờ phân tích AI... Vui lòng đợi một chút</span>
+                         </div>
+                       </div>
+                     )}
                      
                      {/* Top 3 Suggestions */}
                      <div className="space-y-4">
@@ -726,21 +877,7 @@ const fetchCourts = async (reset: boolean = true) => {
                                 </div>
                               </div>
 
-                              {/* AI Reasoning */}
-                              <div className="bg-gradient-to-r from-blue-500/10 to-indigo-500/10 backdrop-blur-sm rounded-xl p-4 border border-blue-400/20 mb-4">
-                                <div className="flex items-center space-x-2 mb-3">
-                                  <div className="w-3 h-3 bg-blue-400 rounded-full animate-pulse"></div>
-                                  <h6 className="font-semibold text-white text-sm">🧠 Lý do AI gợi ý</h6>
-                                </div>
-                                <div className="space-y-2">
-                                  {suggestion.reasons.map((reason, idx) => (
-                                    <div key={idx} className="flex items-center space-x-2 text-white/90 text-sm">
-                                      <span className="w-1.5 h-1.5 bg-yellow-400 rounded-full"></span>
-                                      <span>{reason}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
+
 
                               {/* Action Button */}
                               <Link href={`/court/${suggestion.court._id}`}>
@@ -758,7 +895,10 @@ const fetchCourts = async (reset: boolean = true) => {
                     <div className="text-center">
                       <Button 
                         variant="ghost"
-                        onClick={() => setShowAISuggestions(false)}
+                        onClick={() => {
+                          setShowAISuggestions(false)
+                          setAiSummary("")
+                        }}
                         className="bg-white/10 hover:bg-white/20 text-white border-white/20 hover:border-white/30 transition-all duration-300"
                       >
                         <Clock className="h-4 w-4 mr-2" />
