@@ -104,6 +104,7 @@ const [isInitialized, setIsInitialized] = useState(false)
 const [aiSuggestions, setAiSuggestions] = useState<AISuggestion[]>([])
 const [showAISuggestions, setShowAISuggestions] = useState(false)
 const [aiLoading, setAiLoading] = useState(false)
+const [aiError, setAiError] = useState<string | null>(null)
 const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null)
 const { user } = useAuth();
 const searchParams = useSearchParams();
@@ -264,78 +265,96 @@ const fetchCourts = async (reset: boolean = true) => {
     return R * c
   }
 
-  // Generate AI suggestions based on multiple factors
-  const generateAISuggestions = () => {
+  // Generate AI suggestions using Fireworks AI
+    const generateAISuggestions = async () => {
     if (!courts.length || !weather || !userLocation) return
-    
+
     setAiLoading(true)
+    setAiError(null) // Clear any previous errors
 
-    const suggestions: AISuggestion[] = courts.map(court => {
-      // Calculate distance score (closer is better)
-      const courtLat = parseFloat(court.location.coordinates[1])
-      const courtLng = parseFloat(court.location.coordinates[0])
-      const distance = calculateDistance(userLocation.lat, userLocation.lng, courtLat, courtLng)
-      const distanceScore = Math.max(0, 100 - (distance * 10)) // 10 points per km
+    try {
+      // First, get all court data with weather information
+      const courtsResponse = await fetch(`/api/courts/ai-suggestions?type=${selectedSport}&lat=${userLocation.lat}&lng=${userLocation.lng}`)
+      const courtsData = await courtsResponse.json()
 
-      // Weather score (indoor sports are better in bad weather)
-      let weatherScore = 50 // Base score
-      const isIndoor = court.amenities?.includes('indoor') || court.type === 'badminton'
-      if (weather.current.condition.includes('mưa') || weather.current.condition.includes('rain')) {
-        weatherScore = isIndoor ? 90 : 30
-      } else if (weather.current.condition.includes('nắng') || weather.current.condition.includes('sun')) {
-        weatherScore = isIndoor ? 70 : 80
+      if (!courtsData.success) {
+        throw new Error('Failed to fetch court data')
       }
 
-      // Rating score
-      const ratingScore = court.rating * 20 // 5 stars = 100 points
+      // Call the AI suggestions API
+      const aiResponse = await fetch('https://api.fireworks.ai/inference/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          "Accept": "application/json",
+          "Content-Type": "application/json",
+          "Authorization": "Bearer gdhFtHMfmQZgRPTmQnOk1heFBVZ6X6T2NNBYNE64o7c3uoz1"
+        },
+        body: JSON.stringify({
+          model: "accounts/fireworks/models/gpt-oss-20b",
+          max_tokens: 4096,
+          top_p: 1,
+          top_k: 40,
+          presence_penalty: 0,
+          frequency_penalty: 0,
+          temperature: 0.6,
+          messages: []
+        })
+      })
 
-      // Price score (lower price is better, but not too cheap)
-      const avgPrice = 200000 // Average price in VND
-      const priceDiff = Math.abs(court.pricePerHour - avgPrice)
-      const priceScore = Math.max(0, 100 - (priceDiff / 1000)) // 1000 VND difference = 1 point
+      console.log('🚀🚀🚀...........: ', courtsData)
+      console.log('🚀🚀🚀...........: ', aiResponse)
 
-      // Utility score based on amenities
-      let utilityScore = 50 // Base score
-      if (court.amenities) {
-        if (court.amenities.includes('parking')) utilityScore += 10
-        if (court.amenities.includes('shower')) utilityScore += 10
-        if (court.amenities.includes('equipment')) utilityScore += 10
-        if (court.amenities.includes('lighting')) utilityScore += 10
-        if (court.amenities.includes('air_conditioning')) utilityScore += 10
+      const aiData = await aiResponse.json()
+      
+      console.log('🚀🚀🚀...........: ', aiData)
+
+      if (!aiData.success) {
+        throw new Error(aiData.error || 'Failed to generate AI suggestions')
       }
 
-      // Calculate total score
-      const totalScore = (weatherScore * 0.25 + ratingScore * 0.25 + priceScore * 0.2 + distanceScore * 0.2 + utilityScore * 0.1)
+      // Transform AI suggestions to match our interface
+      const transformedSuggestions: AISuggestion[] = aiData.data.suggestions.map((suggestion: any) => {
+        const court = suggestion.court
+        const courtLat = parseFloat(court.location.coordinates[1])
+        const courtLng = parseFloat(court.location.coordinates[0])
+        const distance = calculateDistance(userLocation.lat, userLocation.lng, courtLat, courtLng)
 
-      // Generate reasons
-      const reasons: string[] = []
-      if (weatherScore > 80) reasons.push('Thời tiết phù hợp')
-      if (ratingScore > 80) reasons.push('Đánh giá cao')
-      if (priceScore > 80) reasons.push('Giá cả hợp lý')
-      if (distanceScore > 80) reasons.push('Gần vị trí của bạn')
-      if (utilityScore > 70) reasons.push('Tiện ích tốt')
+        return {
+          court,
+          score: 100 - (suggestion.rank - 1) * 10, // Score based on rank
+          reasons: [suggestion.reason],
+          weatherScore: 80, // Default scores for display
+          ratingScore: court.rating * 20,
+          priceScore: 80,
+          distanceScore: Math.max(0, 100 - (distance * 10)),
+          utilityScore: 70,
+          distance: Math.round(distance * 10) / 10
+        }
+      })
 
-      return {
-        court,
-        score: Math.round(totalScore),
-        reasons,
-        weatherScore: Math.round(weatherScore),
-        ratingScore: Math.round(ratingScore),
-        priceScore: Math.round(priceScore),
-        distanceScore: Math.round(distanceScore),
-        utilityScore: Math.round(utilityScore),
-        distance: Math.round(distance * 10) / 10 // Distance in km with 1 decimal place
-      }
-    })
+      setAiSuggestions(transformedSuggestions)
+      setShowAISuggestions(true)
+      
+      // Log success to console for verification
+      console.log('🎯 AI Suggestions Generated Successfully!')
+      console.log('Fireworks AI Integration Status: ✅ Working')
+      console.log('Suggestions:', transformedSuggestions.map(s => ({
+        court: s.court.name,
+        rank: 100 - s.score,
+        reason: s.reasons[0]
+      })))
 
-    // Sort by score and take top 3
-    const topSuggestions = suggestions
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 3)
-
-    setAiSuggestions(topSuggestions)
-    setShowAISuggestions(true)
-    setAiLoading(false)
+    } catch (error) {
+      console.error('Error generating AI suggestions:', error)
+      
+      // Show error message instead of fallback suggestions
+      setAiSuggestions([])
+      setShowAISuggestions(false)
+      setAiError('Xin lỗi, không thể kết nối với FireworksAI. Vui lòng thử lại sau.')
+      console.error('Failed to connect to FireworksAI. Please try again later.')
+    } finally {
+      setAiLoading(false)
+    }
   }
 
   const generateAIReasoning = () => {
@@ -358,6 +377,12 @@ const fetchCourts = async (reset: boolean = true) => {
   };
 
   const generateIndividualReasoning = (suggestion: AISuggestion) => {
+    // If AI has provided a reason, use it
+    if (suggestion.reasons && suggestion.reasons.length > 0 && suggestion.reasons[0]) {
+      return suggestion.reasons[0];
+    }
+    
+    // Fallback to generated reasons
     const reasons: string[] = [];
     
     // Add specific reasons based on scores
@@ -508,7 +533,7 @@ const fetchCourts = async (reset: boolean = true) => {
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900">AI Gợi Ý Thông Minh</h3>
-                    <p className="text-sm text-gray-600">Chọn môn thể thao để nhận gợi ý tối ưu</p>
+                    <p className="text-sm text-gray-600">Powered by Fireworks AI • Chọn môn thể thao để nhận gợi ý tối ưu</p>
                   </div>
                 </div>
 
@@ -651,6 +676,12 @@ const fetchCourts = async (reset: boolean = true) => {
                                 <div className="flex items-center space-x-2 mb-2">
                                   <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                                   <h6 className="font-semibold text-gray-900 text-sm">Lý do AI gợi ý</h6>
+                                  {suggestion.reasons && suggestion.reasons.length > 0 && suggestion.reasons[0] && (
+                                    <div className="flex items-center space-x-1">
+                                      <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+                                      <span className="text-xs text-green-600 font-medium">Fireworks AI</span>
+                                    </div>
+                                  )}
                                 </div>
                                 <p className="text-sm text-gray-700 leading-relaxed">
                                   {generateIndividualReasoning(suggestion)}
@@ -689,6 +720,33 @@ const fetchCourts = async (reset: boolean = true) => {
                       >
                         <Clock className="h-4 w-4 mr-2" />
                         Ẩn gợi ý
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* AI Error Message */}
+                {showAISuggestions && aiError && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                      <h6 className="font-semibold text-red-800 text-sm">Lỗi kết nối AI</h6>
+                    </div>
+                    <p className="text-sm text-red-700 leading-relaxed">
+                      {aiError}
+                    </p>
+                    <div className="mt-3">
+                      <Button 
+                        variant="outline" 
+                        onClick={() => {
+                          setShowAISuggestions(false)
+                          setAiError(null)
+                        }}
+                        size="sm"
+                        className="border-red-300 text-red-700 hover:bg-red-100"
+                      >
+                        <Clock className="h-4 w-4 mr-2" />
+                        Đóng
                       </Button>
                     </div>
                   </div>
