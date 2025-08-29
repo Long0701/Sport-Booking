@@ -4,9 +4,10 @@ interface LogoProps {
   className?: string;
   showText?: boolean;
   size?: 'sm' | 'md' | 'lg';
+  variant?: 'light' | 'dark';
 }
 
-export default function Logo({ className = "", showText = true, size = 'md' }: LogoProps) {
+export default function Logo({ className = "", showText = true, size = 'md', variant = 'dark' }: LogoProps) {
   const sizeClasses = {
     sm: 'w-6 h-6',
     md: 'w-10 h-10',
@@ -17,6 +18,16 @@ export default function Logo({ className = "", showText = true, size = 'md' }: L
     sm: 'text-lg',
     md: 'text-xl',
     lg: 'text-3xl'
+  };
+
+  const textColorClasses = {
+    dark: 'bg-gradient-to-r from-gray-800 via-gray-900 to-gray-800 bg-clip-text text-transparent',
+    light: 'bg-gradient-to-r from-white via-emerald-100 to-white bg-clip-text text-transparent'
+  };
+
+  const subtitleColorClasses = {
+    dark: 'text-gray-500',
+    light: 'text-emerald-200'
   };
 
   return (
@@ -49,11 +60,11 @@ export default function Logo({ className = "", showText = true, size = 'md' }: L
 
       {showText && (
         <div className="flex flex-col">
-          <span className={`${textSizeClasses[size]} font-bold bg-gradient-to-r from-gray-800 via-gray-900 to-gray-800 bg-clip-text text-transparent`}>
+          <span className={`${textSizeClasses[size]} font-bold ${textColorClasses[variant]}`}>
             SportBooking
           </span>
           {size === 'lg' && (
-            <span className="text-xs text-gray-500 -mt-1 tracking-wide">
+            <span className={`text-xs ${subtitleColorClasses[variant]} -mt-1 tracking-wide`}>
               Smart Court Booking
             </span>
           )}

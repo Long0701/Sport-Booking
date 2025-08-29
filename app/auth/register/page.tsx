@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { Eye, EyeOff, Lock, Mail, Phone, User } from 'lucide-react'
 import Link from "next/link"
 import { useState } from "react"
+import Logo from '@/components/shared/logo'
 
 export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -48,125 +49,164 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-emerald-900 to-teal-900 flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0">
+        {/* Floating Orbs */}
+        <div className="absolute top-1/3 right-1/4 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl animate-bounce" style={{ animationDelay: '0s', animationDuration: '8s' }}></div>
+        <div className="absolute bottom-1/4 left-1/4 w-24 h-24 bg-cyan-500/10 rounded-full blur-2xl animate-bounce" style={{ animationDelay: '1s', animationDuration: '6s' }}></div>
+        <div className="absolute top-1/4 left-1/3 w-20 h-20 bg-teal-500/10 rounded-full blur-xl animate-bounce" style={{ animationDelay: '3s', animationDuration: '9s' }}></div>
+        
+        {/* Floating Sports Icons */}
+        <div className="absolute top-16 left-16 text-4xl animate-spin opacity-20" style={{ animationDuration: '25s' }}>🏆</div>
+        <div className="absolute bottom-16 right-16 text-3xl animate-pulse opacity-20" style={{ animationDelay: '2s' }}>🏟️</div>
+        <div className="absolute top-2/3 left-10 text-2xl animate-spin opacity-20" style={{ animationDelay: '1s', animationDuration: '18s' }}>🏀</div>
+        <div className="absolute top-10 right-1/3 text-3xl animate-pulse opacity-20" style={{ animationDelay: '4s' }}>⚽</div>
+        <div className="absolute bottom-1/3 left-1/2 text-2xl animate-spin opacity-20" style={{ animationDelay: '2s', animationDuration: '22s' }}>🎾</div>
+        
+        {/* Particle System */}
+        <div className="absolute top-1/4 right-1/3 w-2 h-2 bg-emerald-400 rounded-full animate-ping opacity-40" style={{ animationDelay: '0s' }}></div>
+        <div className="absolute bottom-1/4 left-1/3 w-1 h-1 bg-cyan-400 rounded-full animate-ping opacity-60" style={{ animationDelay: '2s' }}></div>
+        <div className="absolute top-3/4 right-1/4 w-1.5 h-1.5 bg-teal-400 rounded-full animate-ping opacity-50" style={{ animationDelay: '1s' }}></div>
+      </div>
+
+      <Card className="w-full max-w-md bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl relative z-10">
         <CardHeader className="text-center">
-          <div className="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center mx-auto mb-4">
-            <span className="text-white font-bold text-xl">🏟️</span>
+          <div className="flex justify-center mb-6">
+            <Logo 
+              size="lg" 
+              showText={true} 
+              variant="light"
+              className="animate-fade-in"
+            />
           </div>
-          <CardTitle className="text-2xl">Đăng ký</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-3xl font-bold bg-gradient-to-r from-white via-emerald-100 to-white bg-clip-text text-transparent animate-fade-in" style={{ animationDelay: '0.2s' }}>
+            Đăng ký
+          </CardTitle>
+          <CardDescription className="text-emerald-100 animate-fade-in" style={{ animationDelay: '0.4s' }}>
             Tạo tài khoản SportBooking mới
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <form onSubmit={handleRegister} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Họ và tên</Label>
-              <div className="relative">
-                <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+        <CardContent className="space-y-5">
+          <form onSubmit={handleRegister} className="space-y-5">
+            <div className="space-y-2 animate-fade-in" style={{ animationDelay: '0.6s' }}>
+              <Label htmlFor="name" className="text-white font-medium">Họ và tên</Label>
+              <div className="relative group">
+                <User className="absolute left-3 top-3 h-4 w-4 text-emerald-300 group-hover:text-emerald-200 transition-colors" />
                 <Input
                   id="name"
                   type="text"
                   placeholder="Nguyễn Văn A"
                   value={formData.name}
                   onChange={(e) => handleInputChange('name', e.target.value)}
-                  className="pl-10"
+                  className="pl-10 bg-white/10 backdrop-blur-sm border-white/20 text-white placeholder:text-emerald-200/70 focus:border-emerald-400 focus:ring-emerald-400/20 hover:bg-white/15 transition-all duration-300"
                   required
                 />
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+            <div className="space-y-2 animate-fade-in" style={{ animationDelay: '0.8s' }}>
+              <Label htmlFor="email" className="text-white font-medium">Email</Label>
+              <div className="relative group">
+                <Mail className="absolute left-3 top-3 h-4 w-4 text-emerald-300 group-hover:text-emerald-200 transition-colors" />
                 <Input
                   id="email"
                   type="email"
                   placeholder="your@email.com"
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
-                  className="pl-10"
+                  className="pl-10 bg-white/10 backdrop-blur-sm border-white/20 text-white placeholder:text-emerald-200/70 focus:border-emerald-400 focus:ring-emerald-400/20 hover:bg-white/15 transition-all duration-300"
                   required
                 />
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="phone">Số điện thoại</Label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+            <div className="space-y-2 animate-fade-in" style={{ animationDelay: '1s' }}>
+              <Label htmlFor="phone" className="text-white font-medium">Số điện thoại</Label>
+              <div className="relative group">
+                <Phone className="absolute left-3 top-3 h-4 w-4 text-emerald-300 group-hover:text-emerald-200 transition-colors" />
                 <Input
                   id="phone"
                   type="tel"
                   placeholder="0901234567"
                   value={formData.phone}
                   onChange={(e) => handleInputChange('phone', e.target.value)}
-                  className="pl-10"
+                  className="pl-10 bg-white/10 backdrop-blur-sm border-white/20 text-white placeholder:text-emerald-200/70 focus:border-emerald-400 focus:ring-emerald-400/20 hover:bg-white/15 transition-all duration-300"
                 />
               </div>
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="password">Mật khẩu</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+            <div className="space-y-2 animate-fade-in" style={{ animationDelay: '1.2s' }}>
+              <Label htmlFor="password" className="text-white font-medium">Mật khẩu</Label>
+              <div className="relative group">
+                <Lock className="absolute left-3 top-3 h-4 w-4 text-emerald-300 group-hover:text-emerald-200 transition-colors" />
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
                   value={formData.password}
                   onChange={(e) => handleInputChange('password', e.target.value)}
-                  className="pl-10 pr-10"
+                  className="pl-10 pr-10 bg-white/10 backdrop-blur-sm border-white/20 text-white placeholder:text-emerald-200/70 focus:border-emerald-400 focus:ring-emerald-400/20 hover:bg-white/15 transition-all duration-300"
                   required
                 />
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-white/10 text-emerald-300 hover:text-emerald-200 transition-colors"
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
-                    <EyeOff className="h-4 w-4 text-gray-400" />
+                    <EyeOff className="h-4 w-4" />
                   ) : (
-                    <Eye className="h-4 w-4 text-gray-400" />
+                    <Eye className="h-4 w-4" />
                   )}
                 </Button>
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="role">Loại tài khoản</Label>
+            <div className="space-y-2 animate-fade-in" style={{ animationDelay: '1.4s' }}>
+              <Label htmlFor="role" className="text-white font-medium">Loại tài khoản</Label>
               <Select value={formData.role} onValueChange={(value: "user" | "owner") => handleInputChange('role', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Chọn loại tài khoản" />
+                <SelectTrigger className="bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/15 focus:border-emerald-400 focus:ring-emerald-400/20 transition-all duration-300">
+                  <SelectValue placeholder="Chọn loại tài khoản" className="text-emerald-200" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="user">Người dùng</SelectItem>
-                  <SelectItem value="owner">Chủ sân</SelectItem>
+                <SelectContent className="bg-slate-800 border-white/20">
+                  <SelectItem value="user" className="text-white hover:bg-emerald-600/20">Người dùng</SelectItem>
+                  <SelectItem value="owner" className="text-white hover:bg-emerald-600/20">Chủ sân</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            <Button type="submit" className="w-full bg-green-600 hover:bg-green-700" disabled={loading}>
-              {loading ? "Đang đăng ký..." : "Đăng ký"}
+            <Button 
+              type="submit" 
+              className="w-full bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600 hover:from-emerald-600 hover:via-emerald-700 hover:to-teal-700 text-white font-semibold py-3 shadow-lg hover:shadow-emerald-500/25 transition-all duration-300 transform hover:scale-[1.02] animate-fade-in" 
+              disabled={loading}
+              style={{ animationDelay: '1.6s' }}
+            >
+              {loading ? (
+                <div className="flex items-center space-x-2">
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  <span>Đang đăng ký...</span>
+                </div>
+              ) : (
+                "Đăng ký"
+              )}
             </Button>
           </form>
 
-          <div className="relative">
+          <div className="relative animate-fade-in" style={{ animationDelay: '1.8s' }}>
             <div className="absolute inset-0 flex items-center">
-              <Separator className="w-full" />
+              <Separator className="w-full border-white/20" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-2 text-muted-foreground">Hoặc</span>
+              <span className="bg-white/10 backdrop-blur-sm px-4 py-1 text-emerald-200 rounded-full border border-white/20">Hoặc</span>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <Button variant="outline" className="w-full">
-              <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
+          <div className="grid grid-cols-2 gap-4 animate-fade-in" style={{ animationDelay: '2s' }}>
+            <Button variant="outline" className="w-full bg-white/5 backdrop-blur-sm border-white/20 text-white hover:bg-white/10 hover:border-white/30 transition-all duration-300 group">
+              <svg className="mr-2 h-4 w-4 group-hover:scale-110 transition-transform" viewBox="0 0 24 24">
                 <path
                   d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
                   fill="#4285F4"
@@ -186,17 +226,17 @@ export default function RegisterPage() {
               </svg>
               Google
             </Button>
-            <Button variant="outline" className="w-full">
-              <svg className="mr-2 h-4 w-4" fill="#1877F2" viewBox="0 0 24 24">
+            <Button variant="outline" className="w-full bg-white/5 backdrop-blur-sm border-white/20 text-white hover:bg-white/10 hover:border-white/30 transition-all duration-300 group">
+              <svg className="mr-2 h-4 w-4 group-hover:scale-110 transition-transform" fill="#1877F2" viewBox="0 0 24 24">
                 <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
               </svg>
               Facebook
             </Button>
           </div>
 
-          <div className="text-center text-sm">
-            Đã có tài khoản?{" "}
-            <Link href="/auth/login" className="text-green-600 hover:underline font-medium">
+          <div className="text-center text-sm animate-fade-in" style={{ animationDelay: '2.2s' }}>
+            <span className="text-emerald-200">Đã có tài khoản?</span>{" "}
+            <Link href="/auth/login" className="text-emerald-300 hover:text-emerald-200 hover:underline font-medium transition-colors">
               Đăng nhập ngay
             </Link>
           </div>
