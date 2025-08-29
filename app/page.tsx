@@ -12,6 +12,8 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { MapPin, Shield, Star, Users, Zap } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 function AuthButtons() {
   const { user, logout } = useAuth();
@@ -44,16 +46,107 @@ function AuthButtons() {
   );
 }
 
+interface SportStat {
+  type: string;
+  name: string;
+  icon: string;
+  count: number;
+  displayCount: string;
+}
+
+interface StatData {
+  value: number;
+  display: string;
+  label: string;
+}
+
+interface Stats {
+  courts: StatData;
+  users: StatData;
+  bookings: StatData;
+  rating: StatData;
+}
+
 export default function HomePage() {
   const { user } = useAuth();
-  const sports = [
-    { name: "Bóng đá mini", icon: "⚽", count: "120+ sân" },
-    { name: "Cầu lông", icon: "🏸", count: "85+ sân" },
-    { name: "Tennis", icon: "🎾", count: "45+ sân" },
-    { name: "Bóng rổ", icon: "🏀", count: "60+ sân" },
-    { name: "Bóng chuyền", icon: "🏐", count: "35+ sân" },
-    { name: "Pickleball", icon: "🏓", count: "25+ sân" },
-  ];
+  const router = useRouter();
+  const [sports, setSports] = useState<SportStat[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+  
+  const handleSportClick = (sportName: string) => {
+    router.push(`/search?sport=${encodeURIComponent(sportName)}`);
+  };
+
+  useEffect(() => {
+    fetchSportsStats();
+    fetchStats();
+  }, []);
+
+  const fetchSportsStats = async () => {
+    try {
+      const response = await fetch('/api/sports');
+      const data = await response.json();
+      
+      if (data.success) {
+        setSports(data.data);
+      } else {
+        // Fallback to hardcoded data if API fails
+        setSports([
+          { type: "football", name: "Bóng đá mini", icon: "⚽", count: 0, displayCount: "0 sân" },
+          { type: "badminton", name: "Cầu lông", icon: "🏸", count: 0, displayCount: "0 sân" },
+          { type: "tennis", name: "Tennis", icon: "🎾", count: 0, displayCount: "0 sân" },
+          { type: "basketball", name: "Bóng rổ", icon: "🏀", count: 0, displayCount: "0 sân" },
+          { type: "volleyball", name: "Bóng chuyền", icon: "🏐", count: 0, displayCount: "0 sân" },
+          { type: "pickleball", name: "Pickleball", icon: "🏓", count: 0, displayCount: "0 sân" },
+        ]);
+      }
+    } catch (error) {
+      console.error('Error fetching sports stats:', error);
+      // Fallback to hardcoded data
+      setSports([
+        { type: "football", name: "Bóng đá mini", icon: "⚽", count: 0, displayCount: "0 sân" },
+        { type: "badminton", name: "Cầu lông", icon: "🏸", count: 0, displayCount: "0 sân" },
+        { type: "tennis", name: "Tennis", icon: "🎾", count: 0, displayCount: "0 sân" },
+        { type: "basketball", name: "Bóng rổ", icon: "🏀", count: 0, displayCount: "0 sân" },
+        { type: "volleyball", name: "Bóng chuyền", icon: "🏐", count: 0, displayCount: "0 sân" },
+        { type: "pickleball", name: "Pickleball", icon: "🏓", count: 0, displayCount: "0 sân" },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchStats = async () => {
+    try {
+      const response = await fetch('/api/stats');
+      const data = await response.json();
+      
+      if (data.success) {
+        setStats(data.data);
+      } else {
+        // Fallback stats
+        setStats({
+          courts: { value: 0, display: '0', label: 'Sân thể thao' },
+          users: { value: 0, display: '0', label: 'Người dùng' },
+          bookings: { value: 0, display: '0', label: 'Lượt đặt sân' },
+          rating: { value: 0, display: '0★', label: 'Đánh giá' }
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+      // Fallback stats
+      setStats({
+        courts: { value: 0, display: '0', label: 'Sân thể thao' },
+        users: { value: 0, display: '0', label: 'Người dùng' },
+        bookings: { value: 0, display: '0', label: 'Lượt đặt sân' },
+        rating: { value: 0, display: '0★', label: 'Đánh giá' }
+      });
+    } finally {
+      setStatsLoading(false);
+    }
+  };
 
   const features = [
     {
@@ -93,6 +186,9 @@ export default function HomePage() {
             </span>
           </div>
           <nav className="hidden md:flex items-center space-x-6">
+            <Link href="/" className="text-gray-600 hover:text-green-600">
+              Trang chủ
+            </Link>
             <Link href="/search" className="text-gray-600 hover:text-green-600">
               Tìm sân
             </Link>
@@ -163,18 +259,32 @@ export default function HomePage() {
             Các môn thể thao phổ biến
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
-            {sports.map((sport, index) => (
-              <Card
-                key={index}
-                className="text-center hover:shadow-lg transition-shadow cursor-pointer"
-              >
-                <CardContent className="p-6">
-                  <div className="text-4xl mb-3">{sport.icon}</div>
-                  <h3 className="font-semibold mb-2">{sport.name}</h3>
-                  <p className="text-sm text-gray-600">{sport.count}</p>
-                </CardContent>
-              </Card>
-            ))}
+            {loading ? (
+              // Loading skeleton
+              Array.from({ length: 6 }).map((_, index) => (
+                <Card key={index} className="text-center animate-pulse">
+                  <CardContent className="p-6">
+                    <div className="w-12 h-12 bg-gray-200 rounded-full mx-auto mb-3"></div>
+                    <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                    <div className="h-3 bg-gray-200 rounded w-16 mx-auto"></div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              sports.map((sport, index) => (
+                <Card
+                  key={sport.type}
+                  className="text-center hover:shadow-lg transition-shadow cursor-pointer"
+                  onClick={() => handleSportClick(sport.name)}
+                >
+                  <CardContent className="p-6">
+                    <div className="text-4xl mb-3">{sport.icon}</div>
+                    <h3 className="font-semibold mb-2">{sport.name}</h3>
+                    <p className="text-sm text-gray-600">{sport.displayCount}</p>
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </div>
         </div>
       </section>
@@ -207,22 +317,54 @@ export default function HomePage() {
       <section className="py-16 px-4 bg-green-600 text-white">
         <div className="container mx-auto">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-            <div>
-              <div className="text-4xl font-bold mb-2">500+</div>
-              <div className="text-green-100">Sân thể thao</div>
-            </div>
-            <div>
-              <div className="text-4xl font-bold mb-2">10K+</div>
-              <div className="text-green-100">Người dùng</div>
-            </div>
-            <div>
-              <div className="text-4xl font-bold mb-2">50K+</div>
-              <div className="text-green-100">Lượt đặt sân</div>
-            </div>
-            <div>
-              <div className="text-4xl font-bold mb-2">4.8★</div>
-              <div className="text-green-100">Đánh giá</div>
-            </div>
+            {statsLoading ? (
+              // Loading skeleton for stats
+              Array.from({ length: 4 }).map((_, index) => (
+                <div key={index} className="animate-pulse">
+                  <div className="h-12 bg-green-500 rounded mb-2"></div>
+                  <div className="h-4 bg-green-500 rounded w-24 mx-auto"></div>
+                </div>
+              ))
+            ) : stats ? (
+              <>
+                <div>
+                  <div className="text-4xl font-bold mb-2">{stats.courts.display}</div>
+                  <div className="text-green-100">{stats.courts.label}</div>
+                </div>
+                <div>
+                  <div className="text-4xl font-bold mb-2">{stats.users.display}</div>
+                  <div className="text-green-100">{stats.users.label}</div>
+                </div>
+                <div>
+                  <div className="text-4xl font-bold mb-2">{stats.bookings.display}</div>
+                  <div className="text-green-100">{stats.bookings.label}</div>
+                </div>
+                <div>
+                  <div className="text-4xl font-bold mb-2">{stats.rating.display}</div>
+                  <div className="text-green-100">{stats.rating.label}</div>
+                </div>
+              </>
+            ) : (
+              // Fallback display
+              <>
+                <div>
+                  <div className="text-4xl font-bold mb-2">0</div>
+                  <div className="text-green-100">Sân thể thao</div>
+                </div>
+                <div>
+                  <div className="text-4xl font-bold mb-2">0</div>
+                  <div className="text-green-100">Người dùng</div>
+                </div>
+                <div>
+                  <div className="text-4xl font-bold mb-2">0</div>
+                  <div className="text-green-100">Lượt đặt sân</div>
+                </div>
+                <div>
+                  <div className="text-4xl font-bold mb-2">0★</div>
+                  <div className="text-green-100">Đánh giá</div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </section>
