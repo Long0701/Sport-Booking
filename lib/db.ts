@@ -1,7 +1,9 @@
 import { Pool } from 'pg'
 
 if (!process.env.DATABASE_URL) {
-  throw new Error('DATABASE_URL must be set')
+  console.error('DATABASE_URL environment variable is not set')
+  console.error('Please create a .env file with DATABASE_URL=postgresql://username:password@localhost:5432/sportbooking')
+  throw new Error('DATABASE_URL must be set. Check SETUP.md for instructions.')
 }
 
 // Create a connection pool
@@ -19,6 +21,11 @@ export async function query(text: string, params?: any[]) {
   try {
     const result = await client.query(text, params)
     return result.rows
+  } catch (error) {
+    console.error('Database query error:', error)
+    console.error('Query:', text)
+    console.error('Params:', params)
+    throw error
   } finally {
     client.release()
   }

@@ -295,7 +295,7 @@ export default function AdminReviewsPage() {
                         ))}
                       </div>
                     </div>
-                    <Badge variant="secondary">{ratingDistribution[rating]}</Badge>
+                    <Badge variant="secondary">{ratingDistribution[rating as keyof typeof ratingDistribution] || 0}</Badge>
                   </div>
                 ))}
               </CardContent>

@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
       'pickleball': { name: 'Pickleball', icon: '🏓' }
     }
 
-    const formattedStats = sportStats.map(stat => ({
+    const formattedStats = sportStats.map((stat: any) => ({
       type: stat.type,
       name: sportMapping[stat.type as keyof typeof sportMapping]?.name || stat.type,
       icon: sportMapping[stat.type as keyof typeof sportMapping]?.icon || '🏟️',
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
 
     // Add missing sports with 0 count if they don't exist in database
     const allSportTypes = Object.keys(sportMapping)
-    const existingTypes = sportStats.map(stat => stat.type)
+    const existingTypes = sportStats.map((stat: any) => stat.type)
     
     for (const sportType of allSportTypes) {
       if (!existingTypes.includes(sportType)) {
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Sort by count descending
-    formattedStats.sort((a, b) => b.count - a.count)
+    formattedStats.sort((a: any, b: any) => b.count - a.count)
 
     return NextResponse.json({
       success: true,
