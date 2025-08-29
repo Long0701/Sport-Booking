@@ -18,7 +18,7 @@ type CourtEvent = {
   end: string;
   display: "background";
   classNames: string[];
-  extendedProps: { status: "booked" };
+  extendedProps: { status: "booked" | "past" };
 };
 
 export type AvailabilityCalendarProps = {
@@ -166,6 +166,9 @@ export default function AvailabilityCalendar({
   // render background events
   const bookedEvents = useMemo(() => {
     const events: CourtEvent[] = [];
+    const now = new Date();
+    
+    // Tạo events cho slots đã đặt
     Object.entries(bookedByDate).forEach(([dateStr, slots]) => {
       slots.forEach((s, idx) => {
         let st: Date, en: Date;
@@ -177,18 +180,48 @@ export default function AvailabilityCalendar({
           st = new Date(`${dateStr}T${s}:00`);
           en = new Date(st.getTime() + 60 * 60 * 1000);
         }
+        
+        // Xác định class dựa trên thời gian
+        const isPast = en <= now;
+        const className = isPast ? "booking-past" : "booking-busy";
+        const status = isPast ? "past" : "booked";
+        
         events.push({
           id: `booked-${dateStr}-${idx}`,
           start: st.toISOString(),
           end: en.toISOString(),
           display: "background",
-          classNames: ["booking-busy"],
-          extendedProps: { status: "booked" },
+          classNames: [className],
+          extendedProps: { status },
         });
       });
     });
+
+    // Tạo background xám cho tất cả slot quá thời gian
+    if (visibleStart && visibleEnd) {
+      for (let d = new Date(visibleStart); d <= visibleEnd; d.setDate(d.getDate() + 1)) {
+        const dateStr = ymd(d);
+        const dayStart = new Date(`${dateStr}T${openTime}`);
+        const dayEnd = new Date(`${dateStr}T${closeTime}`);
+        
+        // Nếu ngày này có phần quá thời gian hiện tại
+        if (dayStart < now && dayEnd > dayStart) {
+          const pastEnd = now < dayEnd ? now : dayEnd;
+          
+          events.push({
+            id: `past-background-${dateStr}`,
+            start: dayStart.toISOString(),
+            end: pastEnd.toISOString(),
+            display: "background",
+            classNames: ["slot-past"],
+            extendedProps: { status: "past" },
+          });
+        }
+      }
+    }
+    
     return events;
-  }, [bookedByDate]);
+  }, [bookedByDate, visibleStart, visibleEnd, openTime, closeTime, slotMinutes]);
 
   return (
     <div className="[&_.fc]:text-sm [&_.fc-toolbar-title]:text-base">

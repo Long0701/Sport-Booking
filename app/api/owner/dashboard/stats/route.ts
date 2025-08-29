@@ -2,6 +2,8 @@ import { verifyToken } from '@/lib/auth'
 import { query } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
     const token = request.headers.get('authorization')?.replace('Bearer ', '')
@@ -126,7 +128,11 @@ export async function GET(request: NextRequest) {
     if (filterType === 'day') {
       // Single day - show hourly breakdown if available, otherwise single point
       const dayData = revenueData.find(
+<<<<<<< HEAD
         (d) => d.date.toISOString().split('T')[0] === finalStartDate
+=======
+        (d: any) => d.date.toISOString().split('T')[0] === nextDateStr
+>>>>>>> main
       );
       
       chartData.push({
@@ -214,7 +220,7 @@ export async function GET(request: NextRequest) {
 
     // Format hourly data for chart
     const hourlyBookings = Array.from({ length: 24 }, (_, hour) => {
-      const hourData = hourlyData.find(h => parseInt(h.hour) === hour)
+      const hourData = hourlyData.find((h: any) => parseInt(h.hour) === hour)
       return {
         hour: `${hour.toString().padStart(2, '0')}:00`,
         bookings: hourData ? parseInt(hourData.bookings) : 0

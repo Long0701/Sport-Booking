@@ -41,7 +41,7 @@ export async function GET(
 
     return NextResponse.json({
       success: true,
-      data: reviews.map(review => ({
+      data: reviews.map((review: any) => ({
         _id: review.id,
         user: {
           name: review.user_name,
