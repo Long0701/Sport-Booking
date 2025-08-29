@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { Menu, X, User, LogOut, Settings, BookOpen, Home } from "lucide-react";
+import { Menu, X, User, LogOut, Settings, BookOpen, Home, Calendar } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
@@ -30,6 +30,7 @@ export default function Header() {
   const navigation = [
     { name: 'Trang chủ', href: '/', icon: Home },
     { name: 'Tìm sân', href: '/search', icon: BookOpen },
+    { name: 'Sân đã đặt', href: '/bookings', icon: Calendar },
     { name: 'Về chúng tôi', href: '/about', icon: User },
     { name: 'Liên hệ', href: '/contact', icon: Settings }
   ];
