@@ -342,7 +342,7 @@ export default function CourtDetailPage() {
 
         <Header />
         
-        <div className="mx-auto max-w-[100vh] px-4 py-8 relative z-10">
+        <div className="mx-auto max-w-[75%] px-4 py-8 relative z-10">
           <div className="space-y-8">
             {/* Enhanced Loading Hero */}
             <div className="bg-white/70 backdrop-blur-sm border border-white/20 rounded-3xl shadow-2xl p-8 overflow-hidden">
@@ -421,7 +421,7 @@ export default function CourtDetailPage() {
 
         <Header />
 
-        <div className="mx-auto max-w-[100vh] px-4 py-8 relative z-10">
+        <div className="mx-auto max-w-[75%] px-4 py-8 relative z-10">
           <div className="text-center bg-white/70 backdrop-blur-sm border border-white/20 rounded-3xl shadow-2xl p-12 max-w-lg mx-auto animate-fade-in">
           <div className="text-8xl mb-6 animate-bounce">🏟️</div>
           <h1 className="text-3xl font-bold mb-4 bg-gradient-to-r from-gray-800 via-emerald-700 to-gray-800 bg-clip-text text-transparent">
@@ -473,7 +473,7 @@ export default function CourtDetailPage() {
 
       <Header />
 
-      <main className="mx-auto max-w-[100vh] px-4 py-8 space-y-6 relative z-10">
+      <main className="mx-auto max-w-[75%] px-4 py-8 space-y-6 relative z-10">
         {/* Enhanced HERO Section */}
         <section className="bg-gradient-to-br from-white/80 via-emerald-50/50 to-cyan-50/50 backdrop-blur-sm border border-white/20 rounded-3xl shadow-2xl p-8 animate-fade-in overflow-hidden relative">
           {/* Hero Background Elements */}
@@ -615,8 +615,8 @@ export default function CourtDetailPage() {
 
           {/* Enhanced Booking tab */}
           <TabsContent value="booking" className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
-            <div className="grid 2xl:grid-cols-4 xl:grid-cols-4 lg:grid-cols-3 md:grid-cols-1 gap-6 max-w-none">
-              <Card className="2xl:col-span-3 xl:col-span-3 lg:col-span-2 md:col-span-1 overflow-hidden bg-gradient-to-br from-white/80 via-emerald-50/40 to-cyan-50/40 backdrop-blur-md border border-emerald-200/30 shadow-2xl ring-1 ring-emerald-500/10">
+            <div className="grid 2xl:grid-cols-10 xl:grid-cols-10 lg:grid-cols-3 md:grid-cols-1 gap-6 max-w-none">
+              <Card className="2xl:col-span-7 xl:col-span-7 lg:col-span-2 md:col-span-1 overflow-hidden bg-gradient-to-br from-white/80 via-emerald-50/40 to-cyan-50/40 backdrop-blur-md border border-emerald-200/30 shadow-2xl ring-1 ring-emerald-500/10">
                 <CardHeader className="bg-gradient-to-br from-emerald-500/15 via-emerald-500/10 to-cyan-500/15 border-b border-emerald-200/40 p-8 relative overflow-hidden">
                   {/* Header Background Elements */}
                   <div className="absolute inset-0 pointer-events-none">
@@ -625,9 +625,9 @@ export default function CourtDetailPage() {
                   </div>
                   
                   <div className="relative z-10">
-                    <CardTitle className="text-3xl font-black bg-gradient-to-r from-emerald-700 via-green-600 to-emerald-800 bg-clip-text text-transparent flex items-center space-x-4 mb-3">
-                      <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl flex items-center justify-center shadow-lg transform rotate-3 hover:rotate-0 transition-transform duration-300">
-                        <span className="text-2xl">📅</span>
+                    <CardTitle className="text-4xl font-black bg-gradient-to-r from-emerald-700 via-green-600 to-emerald-800 bg-clip-text text-transparent flex items-center space-x-5 mb-4">
+                      <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl flex items-center justify-center shadow-lg transform rotate-3 hover:rotate-0 transition-transform duration-300">
+                        <span className="text-3xl">📅</span>
                       </div>
                       <span>Lịch đặt sân thông minh</span>
                     </CardTitle>
@@ -677,7 +677,7 @@ export default function CourtDetailPage() {
                               <span className="absolute inset-0 h-4 w-4 rounded-full bg-red-500 animate-ping opacity-75"></span>
                             </div>
                             <span>Đã được đặt</span>
-                            <div className="text-xs bg-red-200 text-red-800 px-2 py-1 rounded-full">Không thể chọn</div>
+                            {/* <div className="text-xs bg-red-200 text-red-800 px-2 py-1 rounded-full">Không thể chọn</div> */}
                     </span>
                         </div>
                         
@@ -685,7 +685,7 @@ export default function CourtDetailPage() {
                           <span className="inline-flex items-center gap-3 px-4 py-3 rounded-2xl bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200/60 text-gray-700 font-bold shadow-sm hover:shadow-md transition-all duration-300 hover:scale-105">
                             <span className="inline-block h-4 w-4 rounded-full bg-gradient-to-br from-gray-400 to-gray-600 shadow-md" />
                             <span>Quá giờ</span>
-                            <div className="text-xs bg-gray-200 text-gray-800 px-2 py-1 rounded-full">Hết hạn</div>
+                            {/* <div className="text-xs bg-gray-200 text-gray-800 px-2 py-1 rounded-full">Hết hạn</div> */}
                     </span>
                   </div>
                         
@@ -696,7 +696,7 @@ export default function CourtDetailPage() {
                               <span className="absolute inset-0 h-4 w-4 rounded-full bg-emerald-500 animate-ping opacity-75"></span>
                             </div>
                             <span>Có thể đặt</span>
-                            <div className="text-xs bg-emerald-200 text-emerald-800 px-2 py-1 rounded-full">✨ Sẵn sàng</div>
+                            {/* <div className="text-xs bg-emerald-200 text-emerald-800 px-2 py-1 rounded-full">✨ Sẵn sàng</div> */}
                     </span>
                         </div>
                       </div>
@@ -712,8 +712,12 @@ export default function CourtDetailPage() {
                         <span className="lg:hidden">Bấm để chọn giờ</span>
                       </div>
                       
-                    {selStart && selEnd && (
-                        <div className="bg-gradient-to-r from-emerald-500 via-emerald-600 to-green-600 text-white rounded-2xl px-6 py-3 shadow-xl transform hover:scale-105 transition-all duration-300 animate-fade-in">
+                    
+                    </div>
+                    
+                  </div>
+                  {selStart && selEnd && (
+                        <div className="bg-gradient-to-r from-emerald-500 via-emerald-600 to-green-600 text-white rounded-2xl px-6 py-3 shadow-xl transform hover:scale-105 transition-all duration-300 animate-fade-in mt-3 max-w-[40%]">
                           <div className="flex items-center gap-3">
                             <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
                               <span className="text-lg">🕐</span>
@@ -726,16 +730,16 @@ export default function CourtDetailPage() {
                                 {formatTime(selStart).slice(0, 5)} – {formatTime(selEnd).slice(0, 5)}
                               </div>
                             </div>
-                            <div className="text-right">
-                              <div className="text-xs text-emerald-200 font-medium">Đã chọn</div>
+                            <div className="text-right flex ml-4">
+                              <div className="text-emerald-200 font-medium pr-4">Đã chọn</div>
                               <div className="font-bold">{hoursSelected}h</div>
                             </div>
                           </div>
                         </div>
                       )}
-                    </div>
-                  </div>
                 </div>
+
+               
 
                 <CardContent className="p-6 bg-gradient-to-br from-white/50 to-emerald-50/30 relative">
                   {/* Loading State */}
@@ -781,8 +785,8 @@ export default function CourtDetailPage() {
                       </div>
                     </div>
                     
-                    <div className="p-6">
-                      <div className="min-h-[600px]">
+                    <div className="p-10">
+                      <div className="min-h-[750px] w-full">
                   <AvailabilityCalendar
                     courtId={String(court._id)}
                     openTime={slotMinTime}
@@ -798,7 +802,7 @@ export default function CourtDetailPage() {
               </Card>
 
               {/* Premium Booking Sidebar */}
-              <Card className="xl:col-span-1 lg:col-span-1 md:col-span-1 h-fit lg:sticky lg:top-20 bg-gradient-to-br from-white/80 via-cyan-50/40 to-emerald-50/40 backdrop-blur-md border border-cyan-200/30 shadow-2xl overflow-hidden ring-1 ring-cyan-500/10">
+              <Card className="2xl:col-span-3 xl:col-span-3 lg:col-span-1 md:col-span-1 h-fit lg:sticky lg:top-20 bg-gradient-to-br from-white/80 via-cyan-50/40 to-emerald-50/40 backdrop-blur-md border border-cyan-200/30 shadow-2xl overflow-hidden ring-1 ring-cyan-500/10">
                 <CardHeader className="bg-gradient-to-br from-cyan-500/15 via-emerald-500/10 to-cyan-500/15 border-b border-cyan-200/40 p-6 relative overflow-hidden">
                   {/* Header Background Effects */}
                   <div className="absolute inset-0 pointer-events-none">
@@ -847,14 +851,14 @@ export default function CourtDetailPage() {
                       <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-xl transform rotate-3 hover:rotate-0 transition-all duration-300">
                         <span className="text-2xl">📊</span>
                       </div>
-                      <h3 className="text-xl font-black bg-gradient-to-r from-cyan-700 to-emerald-700 bg-clip-text text-transparent">
+                      <h3 className="text-2xl font-black bg-gradient-to-r from-cyan-700 to-emerald-700 bg-clip-text text-transparent">
                         Chi tiết đặt sân
                       </h3>
                       <p className="text-gray-600 font-semibold">Thông tin booking của bạn</p>
                     </div>
                     
                     {/* Booking Details */}
-                    <div className="space-y-4">
+                    <div className="space-y-5">
                       <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-2xl border border-blue-200/40">
                         <div className="flex items-center space-x-3">
                           <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl flex items-center justify-center shadow-md">
@@ -897,23 +901,26 @@ export default function CourtDetailPage() {
                           <div className="relative">
                             <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 rounded-3xl blur-lg opacity-20 animate-pulse"></div>
                             <div className="relative bg-gradient-to-br from-yellow-50 via-orange-50 to-red-50 rounded-3xl p-6 border-2 border-orange-200/60 shadow-xl">
-                              <div className="flex items-center justify-between">
+                              <div className="space-y-4">
+                                {/* Title and Icon Section */}
                                 <div className="flex items-center space-x-4">
-                                  <div className="w-14 h-14 bg-gradient-to-br from-yellow-500 via-orange-500 to-red-500 rounded-2xl flex items-center justify-center shadow-xl animate-bounce">
+                                  <div className="w-14 h-14 bg-gradient-to-br from-yellow-500 via-orange-500 to-red-500 rounded-2xl flex items-center justify-center shadow-xl animate-bounce flex-shrink-0">
                                     <span className="text-2xl">💰</span>
                                   </div>
-                                  <div>
+                                  <div className="min-w-0 flex-1">
                                     <div className="font-black text-xl text-gray-800">Tổng thanh toán</div>
                                     <div className="text-sm text-orange-600 font-semibold">
                                       {court.pricePerHour.toLocaleString("vi-VN")}đ × {hoursSelected}h
                                     </div>
                                   </div>
                                 </div>
-                                <div className="text-right">
-                                  <div className="text-4xl font-black bg-gradient-to-r from-orange-600 via-red-600 to-red-700 bg-clip-text text-transparent">
-                            {totalPrice.toLocaleString("vi-VN")}đ
+                                
+                                {/* Price Section */}
+                                <div className="text-center">
+                                  <div className="text-4xl lg:text-5xl font-black bg-gradient-to-r from-orange-600 via-red-600 to-red-700 bg-clip-text text-transparent">
+                                    {totalPrice.toLocaleString("vi-VN")}đ
                                   </div>
-                                  <div className="text-xs text-orange-600 font-bold mt-1">VND</div>
+                                  <div className="text-sm text-orange-600 font-bold mt-1">VND</div>
                                 </div>
                               </div>
                             </div>
