@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
     const total = parseInt(countResult[0].total)
 
     // Format reviews data
-    const formattedReviews = reviews.map(review => ({
+    const formattedReviews = reviews.map((review: any) => ({
       _id: review.id,
       user: {
         name: review.user_name,

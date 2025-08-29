@@ -118,7 +118,7 @@ export async function GET(request: NextRequest) {
     
       const nextDateStr = nextDate.toISOString().split('T')[0];
       const dayData = revenueData.find(
-        (d) => d.date.toISOString().split('T')[0] === nextDateStr
+        (d: any) => d.date.toISOString().split('T')[0] === nextDateStr
       );
     
       // Format ngày hiện tại để hiển thị (dd/MM)
@@ -135,7 +135,7 @@ export async function GET(request: NextRequest) {
 
     // Format hourly data for chart
     const hourlyBookings = Array.from({ length: 24 }, (_, hour) => {
-      const hourData = hourlyData.find(h => parseInt(h.hour) === hour)
+      const hourData = hourlyData.find((h: any) => parseInt(h.hour) === hour)
       return {
         hour: `${hour.toString().padStart(2, '0')}:00`,
         bookings: hourData ? parseInt(hourData.bookings) : 0

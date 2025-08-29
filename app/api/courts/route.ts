@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: courts.map(court => ({
+      data: courts.map((court: any) => ({
         _id: court.id,
         name: court.name,
         type: court.type,
@@ -92,6 +92,7 @@ export async function GET(request: NextRequest) {
         rating: Math.round(parseFloat(court.calculated_rating) * 100) / 100,
         reviewCount: parseInt(court.actual_review_count),
         images: court.images,
+        amenities: court.amenities || [],
         location: {
           coordinates: [court.longitude.toString(), court.latitude.toString()]
         },
@@ -111,8 +112,22 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('Error fetching courts:', error)
+    
+    // Check if it's a database connection error
+    if (error instanceof Error && error.message.includes('DATABASE_URL')) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Database not configured',
+          message: 'Please set up your database connection. Check SETUP.md for instructions.',
+          details: error.message
+        },
+        { status: 500 }
+      )
+    }
+    
     return NextResponse.json(
-      { success: false, error: 'Lỗi server' },
+      { success: false, error: 'Lỗi server', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     )
   }

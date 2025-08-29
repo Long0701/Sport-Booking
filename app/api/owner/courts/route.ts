@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: courts.map(court => ({
+      data: courts.map((court: any) => ({
         id: court.id,
         name: court.name,
         type: court.type,

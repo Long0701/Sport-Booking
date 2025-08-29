@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useAuth } from "@/contexts/AuthContext"
 import { formatRating } from "@/lib/utils"
-import { Cloud, CloudRain, MapPin, Star, Sun } from 'lucide-react'
+import { Cloud, CloudRain, MapPin, Star, Sun, Sparkles, Zap, Clock, TrendingUp, DollarSign, Navigation } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import Link from "next/link"
 import { useEffect, useState, Suspense } from "react"
@@ -37,6 +37,19 @@ interface Court {
     name: string
     phone: string
   }
+  amenities?: string[]
+}
+
+interface AISuggestion {
+  court: Court
+  score: number
+  reasons: string[]
+  weatherScore: number
+  ratingScore: number
+  priceScore: number
+  distanceScore: number
+  utilityScore: number
+  distance: number
 }
 
 // Function to map Vietnamese sport names to English values
@@ -88,6 +101,10 @@ const [totalPages, setTotalPages] = useState(1)
 const [loadingMore, setLoadingMore] = useState(false)
 const [total, setTotal] = useState(0)
 const [isInitialized, setIsInitialized] = useState(false)
+const [aiSuggestions, setAiSuggestions] = useState<AISuggestion[]>([])
+const [showAISuggestions, setShowAISuggestions] = useState(false)
+const [aiLoading, setAiLoading] = useState(false)
+const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null)
 const { user } = useAuth();
 const searchParams = useSearchParams();
 
@@ -188,6 +205,206 @@ const fetchCourts = async (reset: boolean = true) => {
     return sportMap[type] || type
   }
 
+  const getAmenityDisplayName = (amenity: string) => {
+    const amenityMap: { [key: string]: string } = {
+      'parking': 'Bãi đỗ xe',
+      'shower': 'Phòng tắm',
+      'equipment': 'Trang thiết bị',
+      'lighting': 'Ánh sáng',
+      'air_conditioning': 'Điều hòa',
+      'indoor': 'Trong nhà',
+      'outdoor': 'Ngoài trời',
+      'wifi': 'WiFi',
+      'water': 'Nước uống',
+      'locker': 'Tủ khóa',
+      'coaching': 'Huấn luyện viên',
+      'pro_shop': 'Cửa hàng dụng cụ'
+    }
+    return amenityMap[amenity] || amenity
+  }
+
+  // Get user location on component mount
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          })
+        },
+        (error) => {
+          console.log('Error getting location:', error)
+          // Default to Ho Chi Minh City
+          setUserLocation({ lat: 10.7769, lng: 106.7009 })
+        }
+      )
+    } else {
+      // Default to Ho Chi Minh City
+      setUserLocation({ lat: 10.7769, lng: 106.7009 })
+    }
+  }, [])
+
+  // Regenerate AI suggestions when sport type changes and suggestions are already shown
+  useEffect(() => {
+    if (showAISuggestions && courts.length > 0 && weather && userLocation) {
+      generateAISuggestions()
+    }
+  }, [selectedSport])
+
+  // Calculate distance between two points using Haversine formula
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371 // Earth's radius in kilometers
+    const dLat = (lat2 - lat1) * Math.PI / 180
+    const dLon = (lon2 - lon1) * Math.PI / 180
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon/2) * Math.sin(dLon/2)
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+    return R * c
+  }
+
+  // Generate AI suggestions based on multiple factors
+  const generateAISuggestions = () => {
+    if (!courts.length || !weather || !userLocation) return
+    
+    setAiLoading(true)
+
+    const suggestions: AISuggestion[] = courts.map(court => {
+      // Calculate distance score (closer is better)
+      const courtLat = parseFloat(court.location.coordinates[1])
+      const courtLng = parseFloat(court.location.coordinates[0])
+      const distance = calculateDistance(userLocation.lat, userLocation.lng, courtLat, courtLng)
+      const distanceScore = Math.max(0, 100 - (distance * 10)) // 10 points per km
+
+      // Weather score (indoor sports are better in bad weather)
+      let weatherScore = 50 // Base score
+      const isIndoor = court.amenities?.includes('indoor') || court.type === 'badminton'
+      if (weather.current.condition.includes('mưa') || weather.current.condition.includes('rain')) {
+        weatherScore = isIndoor ? 90 : 30
+      } else if (weather.current.condition.includes('nắng') || weather.current.condition.includes('sun')) {
+        weatherScore = isIndoor ? 70 : 80
+      }
+
+      // Rating score
+      const ratingScore = court.rating * 20 // 5 stars = 100 points
+
+      // Price score (lower price is better, but not too cheap)
+      const avgPrice = 200000 // Average price in VND
+      const priceDiff = Math.abs(court.pricePerHour - avgPrice)
+      const priceScore = Math.max(0, 100 - (priceDiff / 1000)) // 1000 VND difference = 1 point
+
+      // Utility score based on amenities
+      let utilityScore = 50 // Base score
+      if (court.amenities) {
+        if (court.amenities.includes('parking')) utilityScore += 10
+        if (court.amenities.includes('shower')) utilityScore += 10
+        if (court.amenities.includes('equipment')) utilityScore += 10
+        if (court.amenities.includes('lighting')) utilityScore += 10
+        if (court.amenities.includes('air_conditioning')) utilityScore += 10
+      }
+
+      // Calculate total score
+      const totalScore = (weatherScore * 0.25 + ratingScore * 0.25 + priceScore * 0.2 + distanceScore * 0.2 + utilityScore * 0.1)
+
+      // Generate reasons
+      const reasons: string[] = []
+      if (weatherScore > 80) reasons.push('Thời tiết phù hợp')
+      if (ratingScore > 80) reasons.push('Đánh giá cao')
+      if (priceScore > 80) reasons.push('Giá cả hợp lý')
+      if (distanceScore > 80) reasons.push('Gần vị trí của bạn')
+      if (utilityScore > 70) reasons.push('Tiện ích tốt')
+
+      return {
+        court,
+        score: Math.round(totalScore),
+        reasons,
+        weatherScore: Math.round(weatherScore),
+        ratingScore: Math.round(ratingScore),
+        priceScore: Math.round(priceScore),
+        distanceScore: Math.round(distanceScore),
+        utilityScore: Math.round(utilityScore),
+        distance: Math.round(distance * 10) / 10 // Distance in km with 1 decimal place
+      }
+    })
+
+    // Sort by score and take top 3
+    const topSuggestions = suggestions
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3)
+
+    setAiSuggestions(topSuggestions)
+    setShowAISuggestions(true)
+    setAiLoading(false)
+  }
+
+  const generateAIReasoning = () => {
+    if (aiSuggestions.length === 0) {
+      return 'Không có gợi ý AI nào được tìm thấy.';
+    }
+    
+    const avgScore = Math.round(aiSuggestions.reduce((sum, s) => sum + s.score, 0) / aiSuggestions.length);
+    const avgDistance = Math.round(aiSuggestions.reduce((sum, s) => sum + s.distance, 0) / aiSuggestions.length * 10) / 10;
+    const avgPrice = Math.round(aiSuggestions.reduce((sum, s) => sum + s.court.pricePerHour, 0) / aiSuggestions.length);
+    const avgRating = Math.round(aiSuggestions.reduce((sum, s) => sum + s.court.rating, 0) / aiSuggestions.length * 10) / 10;
+    
+    let reasoning = `Dựa trên phân tích thông minh, AI đã chọn ra ${aiSuggestions.length} sân ${getSportTypeInVietnamese(selectedSport).toLowerCase()} tốt nhất cho bạn. `;
+    reasoning += `Các sân này có điểm trung bình ${avgScore}đ, khoảng cách trung bình ${avgDistance}km, `;
+    reasoning += `giá thuê trung bình ${avgPrice.toLocaleString("vi-VN")}đ/giờ và đánh giá trung bình ${avgRating}⭐. `;
+    reasoning += `Gợi ý này dựa trên thời tiết hiện tại (${weather?.current?.condition || 'không xác định'}), `;
+    reasoning += `vị trí của bạn và các tiêu chí về chất lượng, giá cả và tiện ích.`;
+    
+    return reasoning.substring(0, 400) + (reasoning.length > 400 ? '...' : '');
+  };
+
+  const generateIndividualReasoning = (suggestion: AISuggestion) => {
+    const reasons: string[] = [];
+    
+    // Add specific reasons based on scores
+    if (suggestion.weatherScore > 80) {
+      const isIndoor = suggestion.court.amenities?.includes('indoor') || suggestion.court.type === 'badminton';
+      if (weather?.current?.condition.includes('mưa') || weather?.current?.condition.includes('rain')) {
+        reasons.push(isIndoor ? 'Sân trong nhà phù hợp với thời tiết mưa hiện tại, giúp bạn chơi thể thao mà không bị ảnh hưởng bởi thời tiết' : 'Mặc dù thời tiết mưa, nhưng sân ngoài trời này vẫn là lựa chọn tốt với hệ thống thoát nước hiệu quả');
+      } else if (weather?.current?.condition.includes('nắng') || weather?.current?.condition.includes('sun')) {
+        reasons.push(isIndoor ? 'Sân trong nhà mát mẻ với hệ thống điều hòa, phù hợp với thời tiết nắng nóng hiện tại' : 'Thời tiết nắng đẹp hoàn hảo cho sân ngoài trời, không gian thoáng đãng và ánh sáng tự nhiên');
+      }
+    }
+    
+    if (suggestion.ratingScore > 80) {
+      reasons.push(`Sân có đánh giá rất cao từ người dùng (${suggestion.court.rating}⭐), chứng tỏ chất lượng dịch vụ và cơ sở vật chất xuất sắc`);
+    }
+    
+    if (suggestion.priceScore > 80) {
+      reasons.push(`Giá thuê ${suggestion.court.pricePerHour.toLocaleString("vi-VN")}đ/giờ rất hợp lý so với chất lượng và vị trí của sân`);
+    }
+    
+    if (suggestion.distanceScore > 80) {
+      reasons.push(`Chỉ cách vị trí của bạn ${suggestion.distance}km, thuận tiện cho việc di chuyển và tiết kiệm thời gian`);
+    }
+    
+    if (suggestion.utilityScore > 70) {
+      const amenities = suggestion.court.amenities || [];
+      const amenityList = [];
+      if (amenities.includes('parking')) amenityList.push('bãi đỗ xe rộng rãi');
+      if (amenities.includes('shower')) amenityList.push('phòng tắm sạch sẽ');
+      if (amenities.includes('equipment')) amenityList.push('trang thiết bị đầy đủ');
+      if (amenities.includes('lighting')) amenityList.push('ánh sáng tốt');
+      if (amenities.includes('air_conditioning')) amenityList.push('điều hòa mát mẻ');
+      
+      if (amenityList.length > 0) {
+        reasons.push(`Sân được trang bị ${amenityList.slice(0, 3).join(', ')} giúp trải nghiệm chơi thể thao hoàn hảo hơn`);
+      }
+    }
+    
+    // If no specific reasons, provide a general one
+    if (reasons.length === 0) {
+      reasons.push('Sân phù hợp với tiêu chí của bạn về chất lượng, giá cả và vị trí thuận tiện');
+    }
+    
+    const fullReasoning = reasons.join('. ') + '.';
+    return fullReasoning.length > 400 ? fullReasoning.substring(0, 400) + '...' : fullReasoning;
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header></Header>
@@ -279,8 +496,210 @@ const fetchCourts = async (reset: boolean = true) => {
           )}
         </div>
 
-        {/* Results */}
-        {viewMode === "list" ? (
+        {/* Main Content - Left-Right Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* AI Section - Left Side */}
+          <div className="lg:col-span-1">
+            {weather && courts.length > 0 && (
+              <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg shadow-sm p-6 border border-purple-100 sticky top-24">
+                <div className="flex items-center space-x-2 mb-4">
+                  <div className="p-2 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg">
+                    <Sparkles className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">AI Gợi Ý Thông Minh</h3>
+                    <p className="text-sm text-gray-600">Chọn môn thể thao để nhận gợi ý tối ưu</p>
+                  </div>
+                </div>
+
+                {/* Sport Selection */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Chọn môn thể thao bạn muốn chơi:
+                  </label>
+                  <Select value={selectedSport} onValueChange={setSelectedSport}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Chọn môn thể thao" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tất cả môn</SelectItem>
+                      <SelectItem value="football">Bóng đá mini</SelectItem>
+                      <SelectItem value="badminton">Cầu lông</SelectItem>
+                      <SelectItem value="tennis">Tennis</SelectItem>
+                      <SelectItem value="basketball">Bóng rổ</SelectItem>
+                      <SelectItem value="volleyball">Bóng chuyền</SelectItem>
+                      <SelectItem value="pickleball">Pickleball</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Generate Button */}
+                <div className="mb-4">
+                  <Button 
+                    onClick={generateAISuggestions}
+                    disabled={aiLoading || selectedSport === 'all'}
+                    className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white disabled:opacity-50"
+                  >
+                    {aiLoading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Đang tính toán...
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="h-4 w-4 mr-2" />
+                        {selectedSport === 'all' ? 'Vui lòng chọn môn thể thao' : 'Xem gợi ý AI'}
+                      </>
+                    )}
+                  </Button>
+                </div>
+
+                                 {/* AI Suggestions Results */}
+                 {showAISuggestions && aiSuggestions.length > 0 && (
+                   <div className="space-y-4">
+                     {/* Top 3 Suggestions */}
+                     <div className="space-y-3">
+                       <h4 className="font-semibold text-gray-900">Top 3 gợi ý tốt nhất</h4>
+                                               {aiSuggestions.map((suggestion, index) => (
+                          <Card key={suggestion.court._id} className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-white to-gray-50">
+                            {/* Gradient Background Overlay */}
+                            <div className={`absolute inset-0 bg-gradient-to-br ${
+                              index === 0 ? 'from-yellow-50 to-orange-50' :
+                              index === 1 ? 'from-gray-50 to-slate-50' :
+                              'from-orange-50 to-red-50'
+                            } opacity-50`} />
+                            
+                            {/* Rank Badge */}
+                            <div className="absolute top-4 left-4 z-20">
+                              <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg`}>
+                                {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}
+                              </div>
+                            </div>
+                          
+
+                            <div className="relative z-10 p-6 pt-16">
+                              {/* Court Name and Sport Type */}
+                              <div className="mb-4">
+                                <div className="flex items-start justify-between mb-2">
+                                  <h5 className="font-bold text-gray-900 text-lg leading-tight flex-1 mr-3">
+                                    {suggestion.court.name}
+                                  </h5>
+                                  <Badge variant="secondary" className="bg-purple-100 text-purple-800 text-xs font-medium">
+                                    {getSportTypeInVietnamese(suggestion.court.type)}
+                                  </Badge>
+                                </div>
+                              </div>
+
+                              {/* Court Info Grid */}
+                              <div className="grid grid-cols-2 gap-4 mb-4">
+                                <div className="bg-white/70 backdrop-blur-sm rounded-xl p-3 border border-gray-100">
+                                  <div className="flex items-center space-x-2 mb-1">
+                                    <MapPin className="h-4 w-4 text-blue-500" />
+                                    <span className="text-xs font-medium text-gray-700">Địa chỉ</span>
+                                  </div>
+                                  <p className="text-xs text-gray-600 truncate">{suggestion.court.address}</p>
+                                </div>
+                                
+                                <div className="bg-white/70 backdrop-blur-sm rounded-xl p-3 border border-gray-100">
+                                  <div className="flex items-center space-x-2 mb-1">
+                                    <Star className="h-4 w-4 text-yellow-500" />
+                                    <span className="text-xs font-medium text-gray-700">Đánh giá</span>
+                                  </div>
+                                  <p className="text-xs text-gray-600">{suggestion.court.rating} sao ({suggestion.court.reviewCount} đánh giá)</p>
+                                </div>
+                                
+                                <div className="bg-white/70 backdrop-blur-sm rounded-xl p-3 border border-gray-100">
+                                  <div className="flex items-center space-x-2 mb-1">
+                                    <DollarSign className="h-4 w-4 text-green-500" />
+                                    <span className="text-xs font-medium text-gray-700">Giá thuê</span>
+                                  </div>
+                                  <p className="text-xs font-semibold text-green-600">{suggestion.court.pricePerHour.toLocaleString("vi-VN")}đ/giờ</p>
+                                </div>
+                                
+                                <div className="bg-white/70 backdrop-blur-sm rounded-xl p-3 border border-gray-100">
+                                  <div className="flex items-center space-x-2 mb-1">
+                                    <Navigation className="h-4 w-4 text-purple-500" />
+                                    <span className="text-xs font-medium text-gray-700">Khoảng cách</span>
+                                  </div>
+                                  <p className="text-xs text-gray-600">{suggestion.distance}km từ bạn</p>
+                                </div>
+                              </div>
+
+                              {/* Amenities Section */}
+                              {suggestion.court.amenities && suggestion.court.amenities.length > 0 && (
+                                <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 border border-green-100 mb-4">
+                                  <div className="flex items-center space-x-2 mb-3">
+                                    <TrendingUp className="h-4 w-4 text-green-600" />
+                                    <h6 className="font-semibold text-gray-900 text-sm">Tiện ích có sẵn</h6>
+                                  </div>
+                                  <div className="flex flex-wrap gap-2">
+                                    {suggestion.court.amenities.map((amenity, idx) => (
+                                      <Badge 
+                                        key={idx} 
+                                        variant="secondary" 
+                                        className="bg-green-100 text-green-800 text-xs font-medium border border-green-200"
+                                      >
+                                        {getAmenityDisplayName(amenity)}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* AI Reasoning */}
+                              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-100 mb-4">
+                                <div className="flex items-center space-x-2 mb-2">
+                                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                  <h6 className="font-semibold text-gray-900 text-sm">Lý do AI gợi ý</h6>
+                                </div>
+                                <p className="text-sm text-gray-700 leading-relaxed">
+                                  {generateIndividualReasoning(suggestion)}
+                                </p>
+                              </div>
+
+                              {/* Action Button */}
+                              <div className="flex justify-center">
+                                {user ? (
+                                  <Link href={`/court/${suggestion.court._id}`}>
+                                    <Button size="lg" className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300">
+                                      <span className="mr-2">🏟️</span>
+                                      Đặt sân ngay
+                                    </Button>
+                                  </Link>
+                                ) : (
+                                  <Link href={`/auth/login`}>
+                                    <Button size="lg" className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300">
+                                      <span className="mr-2">🏟️</span>
+                                      Đặt sân ngay
+                                    </Button>
+                                  </Link>
+                                )}
+                              </div>
+                            </div>
+                          </Card>
+                        ))}
+                     </div>
+
+                    {/* Reset Button */}
+                    <div className="flex justify-center">
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setShowAISuggestions(false)}
+                        size="sm"
+                      >
+                        <Clock className="h-4 w-4 mr-2" />
+                        Ẩn gợi ý
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Results Section - Right Side */}
+          <div className="lg:col-span-2">
+            {viewMode === "list" ? (
           <div className="space-y-4  overflow-auto h-[calc(100vh-372px)]">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold">
@@ -402,10 +821,12 @@ const fetchCourts = async (reset: boolean = true) => {
           </div>
         )}
       </div>
-      
-      <Footer />
     </div>
-  );
+  </div>
+  
+  <Footer />
+</div>
+);
 }
 
 export default function SearchPage() {
