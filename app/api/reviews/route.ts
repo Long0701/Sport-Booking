@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { query, transaction } from '@/lib/db'
+import { analyzeSentiment } from '@/lib/sentiment-analysis'
 
 export async function GET(request: NextRequest) {
   try {
@@ -37,7 +38,7 @@ export async function GET(request: NextRequest) {
       FROM reviews r
       LEFT JOIN users u ON r.user_id = u.id
       LEFT JOIN courts c ON r.court_id = c.id
-      ${whereClause}
+      ${whereConditions.length > 0 ? whereClause + ' AND' : 'WHERE'} r.status = 'visible'
       ORDER BY r.created_at DESC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `
@@ -50,7 +51,7 @@ export async function GET(request: NextRequest) {
     const countQuery = `
       SELECT COUNT(*) as total
       FROM reviews r
-      ${whereClause}
+      ${whereConditions.length > 0 ? whereClause + ' AND' : 'WHERE'} r.status = 'visible'
     `
     const countParams = params.slice(0, -2)
     const countResult = await query(countQuery, countParams)
@@ -126,20 +127,33 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Analyze sentiment of the comment
+    const sentimentResult = await analyzeSentiment(comment, true, 'vi');
+    
+    // Determine initial status based on AI analysis
+    const initialStatus = sentimentResult.flagged ? 'pending_review' : 'visible';
+
     // Use transaction to create review and update court rating
     const result = await transaction(async (client) => {
-      // Create review
+      // Create review with sentiment analysis
       const reviewResult = await client.query(`
-        INSERT INTO reviews (user_id, court_id, booking_id, rating, comment)
-        VALUES ($1, $2, $3, $4, $5)
+        INSERT INTO reviews (
+          user_id, court_id, booking_id, rating, comment,
+          sentiment_score, sentiment_label, status, ai_flagged
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         RETURNING *
-      `, [userId, courtId, bookingId, rating, comment])
+      `, [
+        userId, courtId, bookingId, rating, comment,
+        sentimentResult.score, sentimentResult.label, 
+        initialStatus, sentimentResult.flagged
+      ])
 
       const review = reviewResult.rows[0]
 
-      // Get all reviews for this court
+      // Get all visible reviews for this court (for rating calculation)
       const reviewsResult = await client.query(`
-        SELECT rating FROM reviews WHERE court_id = $1
+        SELECT rating FROM reviews WHERE court_id = $1 AND status = 'visible'
       `, [courtId])
       
       const reviews = reviewsResult.rows

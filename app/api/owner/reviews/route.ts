@@ -30,13 +30,18 @@ export async function GET(request: NextRequest) {
 
     const ownerId = decoded.id
 
-    // Get reviews for all courts owned by this user
+    // Get reviews for all courts owned by this user (include all statuses for owner view)
     const reviewsQuery = `
       SELECT 
         r.id,
         r.rating,
         r.comment,
         r.created_at,
+        r.sentiment_score,
+        r.sentiment_label,
+        r.status,
+        r.ai_flagged,
+        r.admin_reviewed,
         u.name as user_name,
         u.avatar as user_avatar,
         c.name as court_name,
@@ -74,6 +79,11 @@ export async function GET(request: NextRequest) {
       },
       rating: review.rating,
       comment: review.comment,
+      sentimentScore: review.sentiment_score || 0,
+      sentimentLabel: review.sentiment_label || 'neutral',
+      status: review.status || 'visible',
+      aiFlagged: review.ai_flagged || false,
+      adminReviewed: review.admin_reviewed || false,
       createdAt: review.created_at
     }))
 
