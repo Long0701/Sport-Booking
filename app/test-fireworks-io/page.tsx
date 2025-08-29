@@ -96,19 +96,14 @@ THÔNG TIN THỜI TIẾT HIỆN TẠI:
 YÊU CẦU:
 1. Chọn TOP 3 sân tốt nhất dựa trên các tiêu chí: giá cả hợp lý, đánh giá cao, khoảng cách gần, tiện ích đầy đủ, phù hợp với thời tiết
 2. Sắp xếp theo thứ tự ưu tiên (1 = tốt nhất)
-3. Giải thích lý do chi tiết cho mỗi sân được chọn
-4. Đưa ra lời khuyên về thời gian đặt sân phù hợp với thời tiết
-5. Trả lời bằng tiếng Việt, format JSON như sau:
+3. Giải thích tóm tắt lý do cho top 3 sân tốt nhất
+4. Trả lời bằng tiếng Việt, format JSON như sau:
 
 {
   "top3_courts": [
     {
       "rank": 1,
-      "court_name": "Tên sân",
-      "reasons": ["Lý do 1", "Lý do 2", "Lý do 3"],
-      "price_analysis": "Phân tích giá cả",
-      "weather_advice": "Lời khuyên về thời tiết",
-      "booking_tip": "Mẹo đặt sân"
+      "court_name": "Tên sân"
     }
   ],
   "summary": "Tóm tắt tổng quan về 3 sân được chọn"
