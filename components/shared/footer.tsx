@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Mail, Phone, MapPin, Facebook, Instagram, Twitter, Youtube, ExternalLink, ArrowRight } from "lucide-react";
+import Logo from "./logo";
 
 export default function Footer() {
   return (
@@ -17,19 +18,18 @@ export default function Footer() {
       }}></div>
 
       <div className="container mx-auto px-4 py-16 relative z-10">
-        <div className="grid lg:grid-cols-5 md:grid-cols-2 gap-8 md:gap-12">
+        <div className="grid lg:grid-cols-6 md:grid-cols-2 sm:grid-cols-1 gap-6 lg:gap-8">
           {/* Company Info */}
-          <div className="lg:col-span-2">
-            <div className="flex items-center space-x-3 mb-6 group cursor-pointer">
-              <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-emerald-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-emerald-400/25 transition-all duration-300 group-hover:scale-105">
-                <span className="text-2xl">🏟️</span>
-              </div>
-              <div>
-                <span className="text-2xl font-bold bg-gradient-to-r from-white to-emerald-100 bg-clip-text text-transparent">
-                  SportBooking
-                </span>
-                <div className="w-0 group-hover:w-full h-0.5 bg-gradient-to-r from-emerald-400 to-cyan-400 transition-all duration-300 rounded-full"></div>
-              </div>
+          <div className="lg:col-span-2 md:col-span-2 mb-8 md:mb-0">
+            <div className="mb-6 group cursor-pointer">
+              <Link href="/" className="inline-block transition-transform hover:scale-105">
+                <Logo 
+                  size="lg" 
+                  showText={true} 
+                  variant="light"
+                  className="filter brightness-110 contrast-110"
+                />
+              </Link>
             </div>
             
             <p className="text-emerald-100 leading-relaxed mb-8 text-lg">
@@ -64,7 +64,7 @@ export default function Footer() {
           </div>
 
           {/* Products */}
-          <div>
+          <div className="mb-8 md:mb-0">
             <h3 className="text-xl font-bold mb-6 text-white flex items-center">
               Sản phẩm
               <ArrowRight className="w-4 h-4 ml-2 text-emerald-400" />
@@ -95,7 +95,7 @@ export default function Footer() {
           </div>
 
           {/* Support */}
-          <div>
+          <div className="mb-8 md:mb-0">
             <h3 className="text-xl font-bold mb-6 text-white flex items-center">
               Hỗ trợ
               <ArrowRight className="w-4 h-4 ml-2 text-emerald-400" />
@@ -126,12 +126,12 @@ export default function Footer() {
           </div>
 
           {/* Contact Info */}
-          <div>
+          <div className="lg:col-span-2 md:col-span-2">
             <h3 className="text-xl font-bold mb-6 text-white flex items-center">
               Liên hệ
               <ArrowRight className="w-4 h-4 ml-2 text-emerald-400" />
             </h3>
-            <div className="space-y-5">
+            <div className="space-y-4">
               {[
                 { 
                   icon: Mail, 
@@ -147,7 +147,7 @@ export default function Footer() {
                 },
                 { 
                   icon: MapPin, 
-                  label: "TP.HCM, Việt Nam", 
+                  label: "TP Đà Nẵng, Việt Nam", 
                   href: "#",
                   desc: "Văn phòng chính"
                 }
@@ -155,18 +155,18 @@ export default function Footer() {
                 <Link 
                   key={label}
                   href={href}
-                  className="group flex items-center space-x-4 p-4 bg-white/5 rounded-2xl hover:bg-white/10 transition-all duration-300 hover:scale-[1.02] border border-white/10 hover:border-emerald-400/30"
+                  className="group flex items-start space-x-3 p-3 bg-white/5 rounded-xl hover:bg-white/10 transition-all duration-300 hover:scale-[1.01] border border-white/10 hover:border-emerald-400/30"
                 >
-                  <div className="w-12 h-12 bg-gradient-to-br from-emerald-400/20 to-emerald-500/10 rounded-xl flex items-center justify-center group-hover:from-emerald-400/30 group-hover:to-emerald-500/20 transition-all duration-300">
-                    <Icon className="w-5 h-5 text-emerald-300 group-hover:text-emerald-200 transition-colors" />
+                  <div className="w-10 h-10 bg-gradient-to-br from-emerald-400/20 to-emerald-500/10 rounded-lg flex items-center justify-center group-hover:from-emerald-400/30 group-hover:to-emerald-500/20 transition-all duration-300 flex-shrink-0 mt-0.5">
+                    <Icon className="w-4 h-4 text-emerald-300 group-hover:text-emerald-200 transition-colors" />
                   </div>
-                  <div className="flex-1">
-                    <div className="text-white font-medium group-hover:text-emerald-200 transition-colors">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-white font-medium group-hover:text-emerald-200 transition-colors text-sm break-words">
                       {label}
                     </div>
-                    <div className="text-emerald-300 text-sm">{desc}</div>
+                    <div className="text-emerald-300 text-xs mt-1">{desc}</div>
                   </div>
-                  <ExternalLink className="w-4 h-4 text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <ExternalLink className="w-3 h-3 text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 mt-1" />
                 </Link>
               ))}
             </div>
