@@ -11,7 +11,7 @@ import { formatRating } from "@/lib/utils"
 import { Cloud, CloudRain, MapPin, Star, Sun } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import Link from "next/link"
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 
 // Dynamic import for map to avoid SSR issues
@@ -51,14 +51,37 @@ const mapVietnameseToEnglish = (vietnameseName: string): string => {
   return sportMap[vietnameseName] || 'all'
 }
 
-export default function SearchPage() {
+function SearchPageContent() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedSport, setSelectedSport] = useState("all")
   const [selectedTime, setSelectedTime] = useState("all")
   const [courts, setCourts] = useState<Court[]>([])
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list')
-  const [weather, setWeather] = useState<any>(null)
+  const [weather, setWeather] = useState<{
+    current: {
+      temp: number;
+      feelsLike: number;
+      condition: string;
+      humidity: number;
+      windSpeed: number;
+      pressure: number;
+      visibility: number;
+      icon: string;
+    };
+    hourly: Array<{
+      time: string;
+      temp: number;
+      condition: string;
+      icon: string;
+    }>;
+    daily: Array<{
+      day: string;
+      temp: { min: number; max: number };
+      condition: string;
+      icon: string;
+    }>;
+  } | null>(null)
   const [page, setPage] = useState(1)
 const [totalPages, setTotalPages] = useState(1)
 const [loadingMore, setLoadingMore] = useState(false)
@@ -241,14 +264,14 @@ const fetchCourts = async (reset: boolean = true) => {
           {weather && (
             <div className="mt-4 p-3 bg-blue-50 rounded-lg">
               <div className="flex items-center space-x-2">
-                {getWeatherIcon(weather.current.condition)}
+                {getWeatherIcon(weather.current?.condition || '')}
                 <span className="text-sm font-medium">
-                  Thời tiết hiện tại: {weather.current.temp}°C -{" "}
-                  {weather.current.condition}
+                  Thời tiết hiện tại: {weather.current?.temp || 0}°C -{" "}
+                  {weather.current?.condition || 'Không xác định'}
                 </span>
                 <span className="text-xs text-gray-600">
-                  Độ ẩm: {weather.current.humidity}% | Gió:{" "}
-                  {weather.current.windSpeed}km/h
+                  Độ ẩm: {weather.current?.humidity || 0}% | Gió:{" "}
+                  {weather.current?.windSpeed || 0}km/h
                 </span>
               </div>
             </div>
@@ -379,5 +402,20 @@ const fetchCourts = async (reset: boolean = true) => {
         )}
       </div>
     </div>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-4"></div>
+          <div className="text-gray-500">Đang tải...</div>
+        </div>
+      </div>
+    }>
+      <SearchPageContent />
+    </Suspense>
   );
 }
