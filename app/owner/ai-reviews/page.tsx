@@ -26,11 +26,11 @@ interface Review {
   };
   rating: number;
   comment: string;
-  sentimentScore: number;
-  sentimentLabel: 'positive' | 'negative' | 'neutral';
-  status: 'visible' | 'hidden' | 'pending_review';
-  aiFlagged: boolean;
-  adminReviewed: boolean;
+  sentimentScore?: number;
+  sentimentLabel?: 'positive' | 'negative' | 'neutral';
+  status?: 'visible' | 'hidden' | 'pending_review';
+  aiFlagged?: boolean;
+  adminReviewed?: boolean;
   adminNotes?: string;
   hiddenBy?: string;
   hiddenAt?: string;
@@ -172,7 +172,7 @@ export default function AIReviewsPage() {
     }
   };
 
-  const getSentimentIcon = (label: string, score: number) => {
+  const getSentimentIcon = (label?: string, score?: number) => {
     if (label === 'positive') {
       return <TrendingUp className="h-4 w-4 text-green-600" />;
     } else if (label === 'negative') {
@@ -181,22 +181,24 @@ export default function AIReviewsPage() {
     return <span className="h-4 w-4 text-gray-600">-</span>;
   };
 
-  const getSentimentBadge = (label: string, score: number) => {
+  const getSentimentBadge = (label?: string, score?: number) => {
+    if (!label) return null;
+    
     const color = label === 'positive' ? 'bg-green-100 text-green-800' :
                   label === 'negative' ? 'bg-red-100 text-red-800' :
                   'bg-gray-100 text-gray-800';
     
     return (
       <Badge className={color}>
-        {label} ({(score * 100).toFixed(0)}%)
+        {label} {score ? `(${(score * 100).toFixed(0)}%)` : ''}
       </Badge>
     );
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status?: string) => {
+    if (!status || status === 'visible') return null;
+    
     switch (status) {
-      case 'visible':
-        return <Badge className="bg-green-100 text-green-800">Hiển thị</Badge>;
       case 'hidden':
         return <Badge className="bg-red-100 text-red-800">Ẩn</Badge>;
       case 'pending_review':
@@ -467,6 +469,9 @@ export default function AIReviewsPage() {
                           {getSentimentIcon(review.sentimentLabel, review.sentimentScore)}
                           {getSentimentBadge(review.sentimentLabel, review.sentimentScore)}
                           {getStatusBadge(review.status)}
+                          {(!review.sentimentLabel || !review.status) && (
+                            <Badge className="bg-blue-100 text-blue-800">Legacy</Badge>
+                          )}
                         </div>
 
                         {/* Admin Notes */}
@@ -486,15 +491,17 @@ export default function AIReviewsPage() {
 
                     {/* Actions */}
                     <div className="flex items-center gap-2">
-                      <div title="Re-analyze sentiment">
-                        <Button
-                          onClick={() => reanalyzeSentiment(review._id)}
-                          size="sm"
-                          variant="outline"
-                        >
-                          <Brain className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      {review.sentimentLabel && (
+                        <div title="Re-analyze sentiment">
+                          <Button
+                            onClick={() => reanalyzeSentiment(review._id)}
+                            size="sm"
+                            variant="outline"
+                          >
+                            <Brain className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
 
                       <Dialog>
                         <DialogTrigger asChild>

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
 import { query } from '@/lib/db'
 import { analyzeSentiment } from '@/lib/sentiment-analysis'
+import { updateCourtRating } from '@/lib/court-rating'
 
 // GET - Admin view all reviews with filtering
 export async function GET(request: NextRequest) {
@@ -30,7 +31,21 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '20')
     const offset = (page - 1) * limit
-    console.log('🔍 Admin Reviews API - User role:', decoded.role, 'User ID:', decoded.id)
+
+    // Check if sentiment columns exist
+    let hasSentimentColumns = false;
+    try {
+      const columnCheck = await query(`
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_name = 'reviews' 
+        AND column_name IN ('sentiment_score', 'sentiment_label', 'status', 'ai_flagged')
+      `);
+      hasSentimentColumns = columnCheck.length >= 4;
+    } catch (error) {
+      console.warn('Could not check sentiment columns:', error);
+      hasSentimentColumns = false;
+    }
 
     let whereConditions = []
     let params: any[] = []
@@ -41,25 +56,27 @@ export async function GET(request: NextRequest) {
       whereConditions.push(`c.owner_id = $${paramIndex}`)
       params.push(decoded.id)
       paramIndex++
-      console.log('🔍 Admin Reviews API - Added owner filter for owner ID:', decoded.id)
     }
 
-    if (status !== 'all') {
-      whereConditions.push(`r.status = $${paramIndex}`)
-      params.push(status)
-      paramIndex++
-    }
+    // Only add sentiment-related filters if columns exist
+    if (hasSentimentColumns) {
+      if (status !== 'all') {
+        whereConditions.push(`r.status = $${paramIndex}`)
+        params.push(status)
+        paramIndex++
+      }
 
-    if (sentiment !== 'all') {
-      whereConditions.push(`r.sentiment_label = $${paramIndex}`)
-      params.push(sentiment)
-      paramIndex++
-    }
+      if (sentiment !== 'all') {
+        whereConditions.push(`r.sentiment_label = $${paramIndex}`)
+        params.push(sentiment)
+        paramIndex++
+      }
 
-    if (flagged !== 'all') {
-      whereConditions.push(`r.ai_flagged = $${paramIndex}`)
-      params.push(flagged === 'true')
-      paramIndex++
+      if (flagged !== 'all') {
+        whereConditions.push(`r.ai_flagged = $${paramIndex}`)
+        params.push(flagged === 'true')
+        paramIndex++
+      }
     }
 
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : ''
@@ -83,7 +100,6 @@ export async function GET(request: NextRequest) {
 
     params.push(limit, offset)
     const reviews = await query(reviewsQuery, params)
-    console.log('🔍 Admin Reviews API - Raw reviews count:', reviews.length)
 
     // Get total count
     const countQuery = `
@@ -95,55 +111,89 @@ export async function GET(request: NextRequest) {
     const countParams = params.slice(0, -2)
     const countResult = await query(countQuery, countParams)
     const total = parseInt(countResult[0].total)
-    console.log('🔍 Admin Reviews API - Total count:', total)
 
     // Get statistics (also filter by owner if needed)
-    let statsQuery = `
-      SELECT 
-        COUNT(*) as total_reviews,
-        COUNT(CASE WHEN r.status = 'visible' THEN 1 END) as visible_reviews,
-        COUNT(CASE WHEN r.status = 'hidden' THEN 1 END) as hidden_reviews,
-        COUNT(CASE WHEN r.status = 'pending_review' THEN 1 END) as pending_reviews,
-        COUNT(CASE WHEN r.ai_flagged = true THEN 1 END) as ai_flagged_reviews,
-        COUNT(CASE WHEN r.sentiment_label = 'negative' THEN 1 END) as negative_reviews,
-        COUNT(CASE WHEN r.admin_reviewed = false AND r.ai_flagged = true THEN 1 END) as needs_review
-      FROM reviews r
-    `
-    
+    let statsQuery = `SELECT COUNT(*) as total_reviews FROM reviews r`
     let statsParams: any[] = []
+    
     if (decoded.role === 'owner') {
       statsQuery += ` JOIN courts c ON r.court_id = c.id WHERE c.owner_id = $1`
       statsParams.push(decoded.id)
     }
     
-    const statsResult = await query(statsQuery, statsParams)
-    const stats = statsResult[0]
+    let stats: any = { total_reviews: 0 };
+    
+    if (hasSentimentColumns) {
+      // Full stats with sentiment data
+      statsQuery = `
+        SELECT 
+          COUNT(*) as total_reviews,
+          COUNT(CASE WHEN r.status = 'visible' THEN 1 END) as visible_reviews,
+          COUNT(CASE WHEN r.status = 'hidden' THEN 1 END) as hidden_reviews,
+          COUNT(CASE WHEN r.status = 'pending_review' THEN 1 END) as pending_reviews,
+          COUNT(CASE WHEN r.ai_flagged = true THEN 1 END) as ai_flagged_reviews,
+          COUNT(CASE WHEN r.sentiment_label = 'negative' THEN 1 END) as negative_reviews,
+          COUNT(CASE WHEN r.admin_reviewed = false AND r.ai_flagged = true THEN 1 END) as needs_review
+        FROM reviews r
+      `;
+      
+      if (decoded.role === 'owner') {
+        statsQuery += ` JOIN courts c ON r.court_id = c.id WHERE c.owner_id = $1`
+        statsParams = [decoded.id]
+      }
+      
+      const statsResult = await query(statsQuery, statsParams)
+      stats = statsResult[0]
+    } else {
+      // Basic stats without sentiment
+      const statsResult = await query(statsQuery, statsParams)
+      stats = {
+        total_reviews: parseInt(statsResult[0].total_reviews),
+        visible_reviews: parseInt(statsResult[0].total_reviews), // All reviews are considered visible
+        hidden_reviews: 0,
+        pending_reviews: 0,
+        ai_flagged_reviews: 0,
+        negative_reviews: 0,
+        needs_review: 0
+      }
+    }
 
     return NextResponse.json({
       success: true,
-      data: reviews.map(review => ({
-        _id: review.id,
-        user: {
-          name: review.user_name,
-          avatar: review.user_avatar
-        },
-        court: {
-          name: review.court_name,
-          type: review.court_type
-        },
-        rating: review.rating,
-        comment: review.comment,
-        sentimentScore: review.sentiment_score,
-        sentimentLabel: review.sentiment_label,
-        status: review.status,
-        aiFlagged: review.ai_flagged,
-        adminReviewed: review.admin_reviewed,
-        adminNotes: review.admin_notes,
-        hiddenBy: review.hidden_by_name,
-        hiddenAt: review.hidden_at,
-        createdAt: review.created_at,
-        updatedAt: review.updated_at
-      })),
+      data: reviews.map((review: any) => {
+        const baseReview = {
+          _id: review.id,
+          user: {
+            name: review.user_name,
+            avatar: review.user_avatar
+          },
+          court: {
+            name: review.court_name,
+            type: review.court_type
+          },
+          rating: review.rating,
+          comment: review.comment,
+          createdAt: review.created_at,
+          updatedAt: review.updated_at
+        };
+
+        // Add sentiment data only if columns exist
+        if (hasSentimentColumns) {
+          return {
+            ...baseReview,
+            sentimentScore: review.sentiment_score,
+            sentimentLabel: review.sentiment_label,
+            status: review.status,
+            aiFlagged: review.ai_flagged,
+            adminReviewed: review.admin_reviewed,
+            adminNotes: review.admin_notes,
+            hiddenBy: review.hidden_by_name,
+            hiddenAt: review.hidden_at,
+          };
+        }
+
+        return baseReview;
+      }),
       pagination: {
         page,
         limit,
@@ -151,13 +201,13 @@ export async function GET(request: NextRequest) {
         pages: Math.ceil(total / limit)
       },
       stats: {
-        totalReviews: parseInt(stats.total_reviews),
-        visibleReviews: parseInt(stats.visible_reviews),
-        hiddenReviews: parseInt(stats.hidden_reviews),
-        pendingReviews: parseInt(stats.pending_reviews),
-        aiFlaggedReviews: parseInt(stats.ai_flagged_reviews),
-        negativeReviews: parseInt(stats.negative_reviews),
-        needsReview: parseInt(stats.needs_review)
+        totalReviews: parseInt(stats.total_reviews || 0),
+        visibleReviews: parseInt(stats.visible_reviews || 0),
+        hiddenReviews: parseInt(stats.hidden_reviews || 0),
+        pendingReviews: parseInt(stats.pending_reviews || 0),
+        aiFlaggedReviews: parseInt(stats.ai_flagged_reviews || 0),
+        negativeReviews: parseInt(stats.negative_reviews || 0),
+        needsReview: parseInt(stats.needs_review || 0)
       }
     })
 
@@ -248,34 +298,8 @@ export async function PATCH(request: NextRequest) {
     if (reviewResult.length > 0) {
       const courtId = reviewResult[0].court_id
       
-      // Recalculate court rating with only visible reviews
-      const visibleReviewsResult = await query(`
-        SELECT rating FROM reviews WHERE court_id = $1 AND status = 'visible'
-      `, [courtId])
-      
-      const visibleReviews = visibleReviewsResult
-      if (visibleReviews.length > 0) {
-        const avgRating = visibleReviews.reduce((sum: number, r: any) => sum + r.rating, 0) / visibleReviews.length
-        
-        await query(`
-          UPDATE courts 
-          SET 
-            rating = $1, 
-            review_count = $2,
-            updated_at = CURRENT_TIMESTAMP
-          WHERE id = $3
-        `, [Math.round(avgRating * 100) / 100, visibleReviews.length, courtId])
-      } else {
-        // No visible reviews left, reset rating
-        await query(`
-          UPDATE courts 
-          SET 
-            rating = 0, 
-            review_count = 0,
-            updated_at = CURRENT_TIMESTAMP
-          WHERE id = $1
-        `, [courtId])
-      }
+      // Use centralized court rating calculation
+      await updateCourtRating(courtId, true); // Always use onlyVisible=true for admin updates
     }
 
     return NextResponse.json({
