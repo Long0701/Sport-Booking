@@ -43,6 +43,8 @@ interface Court {
   phone: string;
   openTime: string; // "06:00:00"
   closeTime: string; // "22:00:00"
+  latitude: number;
+  longitude: number;
   owner: { name: string; phone: string };
   bookedSlots: string[];
 }
@@ -109,7 +111,31 @@ export default function CourtDetailPage() {
   const [selEnd, setSelEnd] = useState<Date | null>(null);
 
   const [loading, setLoading] = useState(true);
-  const [weather, setWeather] = useState<any>(null);
+  const [weather, setWeather] = useState<{
+    current: {
+      temp: number;
+      feelsLike: number;
+      condition: string;
+      humidity: number;
+      windSpeed: number;
+      pressure: number;
+      visibility: number;
+      icon: string;
+    };
+    hourly: Array<{
+      time: string;
+      temp: number;
+      condition: string;
+      icon: string;
+    }>;
+    daily: Array<{
+      day: string;
+      temp: { min: number; max: number };
+      condition: string;
+      icon: string;
+    }>;
+  } | null>(null);
+  const [weatherLoading, setWeatherLoading] = useState(false);
   const [reviews, setReviews] = useState<any[]>([]);
   const [totalReviews, setTotalReviews] = useState<number>(0);
   const [reviewsLoading, setReviewsLoading] = useState(false);
@@ -146,17 +172,7 @@ export default function CourtDetailPage() {
       }
     })();
 
-    (async () => {
-      try {
-        const lat = 10.7769,
-          lon = 106.7009;
-        const res = await fetch(`/api/weather?lat=${lat}&lon=${lon}`);
-        const data = await res.json();
-        if (data.success) setWeather(data.data);
-      } catch (error) {
-        console.error("Error fetching weather:", error);
-      }
-    })();
+    // Weather will be fetched after court data is loaded
 
     (async () => {
       try {
@@ -176,6 +192,31 @@ export default function CourtDetailPage() {
       }
     })();
   }, [params.id]);
+
+  // Fetch weather after court data is loaded
+  useEffect(() => {
+    if (!court?.latitude || !court?.longitude) return;
+
+    (async () => {
+      try {
+        setWeatherLoading(true);
+        const res = await fetch(`/api/weather?lat=${court.latitude}&lon=${court.longitude}`);
+        const data = await res.json();
+        if (data.success) {
+          console.log(`Received ${data.data.daily?.length || 0} daily forecasts:`, data.data.daily?.map((d: any) => d.day));
+          setWeather(data.data);
+        } else {
+          console.error("Weather API error:", data.error);
+          setWeather(null);
+        }
+      } catch (error) {
+        console.error("Error fetching weather:", error);
+        setWeather(null);
+      } finally {
+        setWeatherLoading(false);
+      }
+    })();
+  }, [court?.latitude, court?.longitude]);
 
   // ===== UI helpers =====
   const getAmenityIcon = (amenity: string) => {
@@ -206,14 +247,36 @@ export default function CourtDetailPage() {
     return sportMap[type] || type;
   };
 
+  const getWeatherIcon = (iconCode: string) => {
+    if (iconCode.includes('01')) return '☀️';
+    if (iconCode.includes('02')) return '⛅';
+    if (iconCode.includes('03') || iconCode.includes('04')) return '☁️';
+    if (iconCode.includes('09') || iconCode.includes('10')) return '🌧️';
+    if (iconCode.includes('11')) return '⛈️';
+    if (iconCode.includes('13')) return '❄️';
+    if (iconCode.includes('50')) return '🌫️';
+    return '🌤️';
+  };
+
+  const getWeatherBackground = (iconCode: string) => {
+    if (iconCode.includes('01')) return 'from-yellow-50 to-orange-100';
+    if (iconCode.includes('02')) return 'from-blue-50 to-indigo-100';
+    if (iconCode.includes('03') || iconCode.includes('04')) return 'from-gray-50 to-blue-100';
+    if (iconCode.includes('09') || iconCode.includes('10')) return 'from-blue-50 to-gray-100';
+    if (iconCode.includes('11')) return 'from-purple-50 to-gray-100';
+    if (iconCode.includes('13')) return 'from-blue-50 to-white';
+    if (iconCode.includes('50')) return 'from-gray-50 to-white';
+    return 'from-blue-50 to-indigo-100';
+  };
+
   const slotMinTime = court?.openTime || "06:00:00";
   const slotMaxTime = court?.closeTime || "22:00:00";
 
   const formatTime = (d?: Date | null) =>
     d
       ? `${String(d.getHours()).padStart(2, "0")}:${String(
-          d.getMinutes()
-        ).padStart(2, "0")}:00`
+        d.getMinutes()
+      ).padStart(2, "0")}:00`
       : "";
 
   const hoursSelected = useMemo(() => {
@@ -366,7 +429,7 @@ export default function CourtDetailPage() {
 
         {/* Tabs */}
         <Tabs defaultValue="booking" className="space-y-6">
-          <div className="bg-white rounded-xl shadow-sm sticky top-16 z-10">
+          <div className="bg-white rounded-xl shadow-sm top-16 z-10">
             <TabsList className="w-full grid grid-cols-4 rounded-xl">
               <TabsTrigger value="booking">Đặt sân</TabsTrigger>
               <TabsTrigger value="info">Thông tin</TabsTrigger>
@@ -454,8 +517,8 @@ export default function CourtDetailPage() {
                       <span className="font-medium">
                         {selStart && selEnd
                           ? `${formatTime(selStart).slice(0, 5)} – ${formatTime(
-                              selEnd
-                            ).slice(0, 5)}`
+                            selEnd
+                          ).slice(0, 5)}`
                           : "—"}
                       </span>
                     </div>
@@ -533,50 +596,257 @@ export default function CourtDetailPage() {
 
           {/* Weather */}
           <TabsContent value="weather">
-            <Card>
-              <CardHeader>
-                <CardTitle>Thời tiết</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {weather ? (
-                  <>
-                    <div className="flex items-center gap-2">
-                      <Sun className="h-5 w-5 text-yellow-500" />
-                      <span className="font-semibold">
-                        Hiện tại: {weather.current.temp}°C –{" "}
-                        {weather.current.condition}
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {weather.forecast.map((item: any, idx: number) => (
-                        <Card key={idx}>
-                          <CardContent className="p-4 text-center">
-                            <div className="font-semibold">{item.time}</div>
-                            <div className="text-2xl my-2">
-                              {item.condition.includes("nắng")
-                                ? "☀️"
-                                : item.condition.includes("mưa")
-                                ? "🌧️"
-                                : "☁️"}
-                            </div>
-                            <div className="text-sm text-gray-600">
-                              {item.temp}°C
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {item.condition}
+            <div className="space-y-6">
+              {/* Current Weather */}
+              {weather && (
+                <Card className={`bg-gradient-to-br ${getWeatherBackground(weather.current.icon)} border-0 shadow-lg`}>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="text-6xl">
+                          {getWeatherIcon(weather.current.icon)}
+                        </div>
+                        <div>
+                          <div className="text-4xl font-bold text-gray-800">
+                            {weather.current.temp}°C
+                          </div>
+                          <div className="text-lg text-gray-600 capitalize">
+                            {weather.current.condition}
+                          </div>
+                          <div className="text-sm text-gray-500 mt-1">
+                            Cảm giác như {weather.current.feelsLike}°C
+                          </div>
+                          <div className="text-sm text-gray-600 my-2">Tại {court?.address}</div>
+                        </div>
+                      </div>
+
+
+                      {/* Weather Alert & Sports Recommendation */}
+                      {weather && (
+                        <Card className="bg-gradient-to-r from-blue-50 to-green-50 border-blue-200">
+                          <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-blue-800">
+                              <span>🎾</span>
+                              Khuyến nghị hoạt động thể thao
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-3">
+                              {weather.current.temp >= 25 && weather.current.temp <= 35 && !weather.current.condition.includes('mưa') && (
+                                <div className="flex items-center gap-3 p-3 rounded-lg">
+                                  <div>
+                                    <div className="font-medium text-green-800">Thời tiết lý tưởng!</div>
+                                    <div className="text-sm text-green-600">Nhiệt độ {weather.current.temp}°C phù hợp cho hoạt động thể thao ngoài trời</div>
+                                  </div>
+                                </div>
+                              )}
+                              {weather.current.temp > 35 && (
+                                <div className="flex items-center gap-3 p-3 bg-orange-100 rounded-lg">
+                                  <span className="text-2xl">⚠️</span>
+                                  <div>
+                                    <div className="font-medium text-orange-800">Nhiệt độ cao</div>
+                                    <div className="text-sm text-orange-600">Nhiệt độ {weather.current.temp}°C khá cao, nên chơi vào sáng sớm hoặc chiều tối</div>
+                                  </div>
+                                </div>
+                              )}
+                              {weather.current.condition.includes('mưa') && (
+                                <div className="flex items-center gap-3 p-3 bg-blue-100 rounded-lg">
+                                  <span className="text-2xl">🌧️</span>
+                                  <div>
+                                    <div className="font-medium text-blue-800">Có mưa</div>
+                                    <div className="text-sm text-blue-600">Thời tiết có mưa, nên kiểm tra sân có mái che hoặc đặt sân trong nhà</div>
+                                  </div>
+                                </div>
+                              )}
+                              {weather.current.windSpeed > 20 && (
+                                <div className="flex items-center gap-3 p-3 bg-yellow-100 rounded-lg">
+                                  <span className="text-2xl">💨</span>
+                                  <div>
+                                    <div className="font-medium text-yellow-800">Gió mạnh</div>
+                                    <div className="text-sm text-yellow-600">Gió {weather.current.windSpeed} km/h có thể ảnh hưởng đến một số môn thể thao</div>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           </CardContent>
                         </Card>
+                      )}
+
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+
+
+              {/* Weather Details */}
+              {weather && (
+                <div className="grid md:grid-cols-2 gap-6">
+                  {/* Hourly Forecast */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Clock className="h-5 w-5" />
+                        Dự báo theo giờ
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-4 gap-3">
+                        {weather.hourly.slice(0, 8).map((item, idx) => (
+                          <div key={idx} className="text-center p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                            <div className="text-sm font-medium text-gray-700 mb-1">
+                              {item.time}
+                            </div>
+                            <div className="text-2xl mb-2">
+                              {getWeatherIcon(item.icon)}
+                            </div>
+                            <div className="text-lg font-bold text-gray-800">
+                              {item.temp}°
+                            </div>
+                            <div className="text-xs text-gray-500 mt-1 capitalize">
+                              {item.condition}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Weather Stats */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <span>📊</span>
+                        Thông tin chi tiết
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <span className="text-2xl">💨</span>
+                            <div>
+                              <div className="font-medium">Gió</div>
+                              <div className="text-sm text-gray-500">{weather.current.windSpeed} km/h</div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <span className="text-2xl">💧</span>
+                            <div>
+                              <div className="font-medium">Độ ẩm</div>
+                              <div className="text-sm text-gray-500">{weather.current.humidity}%</div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <span className="text-2xl">👁️</span>
+                            <div>
+                              <div className="font-medium">Tầm nhìn</div>
+                              <div className="text-sm text-gray-500">{weather.current.visibility} km</div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <span className="text-2xl">🌡️</span>
+                            <div>
+                              <div className="font-medium">Áp suất</div>
+                              <div className="text-sm text-gray-500">{weather.current.pressure} hPa</div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              {/* Daily Forecast */}
+              {weather && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Sun className="h-5 w-5" />
+                      Dự báo 7 ngày
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
+                      {weather.daily.map((item, idx) => (
+                        <div key={idx} className="flex flex-col items-center p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                          <div className="text-sm font-medium text-gray-700 mb-2">
+                            {item.day}
+                          </div>
+                          <div className="text-2xl mb-2">
+                            {getWeatherIcon(item.icon)}
+                          </div>
+                          <div className="text-xs text-gray-500 capitalize text-center mb-2">
+                            {item.condition}
+                          </div>
+                          <div className="text-center">
+                            <div className="font-bold text-gray-800 text-sm">
+                              {item.temp.max}°
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {item.temp.min}°
+                            </div>
+                          </div>
+                        </div>
                       ))}
                     </div>
-                  </>
-                ) : (
-                  <div className="text-center text-gray-500">
-                    Đang tải thông tin thời tiết…
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                  </CardContent>
+                </Card>
+              )}
+
+
+              {weatherLoading && (
+                <Card>
+                  <CardContent className="p-8 text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                    <div className="text-gray-500">Đang tải thông tin thời tiết…</div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {!weather && !weatherLoading && (
+                <Card>
+                  <CardContent className="p-8 text-center">
+                    <div className="text-6xl mb-4">🌤️</div>
+                    <div className="text-xl font-semibold text-gray-800 mb-2">
+                      Không thể tải thông tin thời tiết
+                    </div>
+                    <div className="text-gray-500 mb-4">
+                      Vui lòng kiểm tra cấu hình API key hoặc thử lại sau
+                    </div>
+                    <Button
+                      onClick={async () => {
+                        if (court?.latitude && court?.longitude) {
+                          try {
+                            setWeatherLoading(true);
+                            const res = await fetch(`/api/weather?lat=${court.latitude}&lon=${court.longitude}`);
+                            const data = await res.json();
+                            if (data.success) {
+                              setWeather(data.data);
+                            }
+                          } catch (error) {
+                            console.error("Error:", error);
+                          } finally {
+                            setWeatherLoading(false);
+                          }
+                        }
+                      }}
+                      variant="outline"
+                      disabled={weatherLoading}
+                    >
+                      {weatherLoading ? 'Đang tải...' : 'Thử lại'}
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
           </TabsContent>
 
           {/* Reviews */}
