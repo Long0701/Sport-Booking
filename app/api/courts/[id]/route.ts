@@ -98,6 +98,8 @@ export async function GET(
         phone: court.phone,
         openTime: court.open_time,
         closeTime: court.close_time,
+        latitude: court.latitude,
+        longitude: court.longitude,
         owner: {
           name: court.owner_name,
           phone: court.owner_phone
