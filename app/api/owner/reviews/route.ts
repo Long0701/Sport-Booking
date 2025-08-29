@@ -30,17 +30,46 @@ export async function GET(request: NextRequest) {
 
     const ownerId = decoded.id
 
-    // Get reviews for all courts owned by this user
+    // Check if sentiment columns exist
+    let hasSentimentColumns = false;
+    try {
+      const columnCheck = await query(`
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_name = 'reviews' 
+        AND column_name IN ('sentiment_score', 'sentiment_label', 'status', 'ai_flagged')
+      `);
+      hasSentimentColumns = columnCheck.length >= 4;
+    } catch (error) {
+      console.warn('Could not check sentiment columns:', error);
+      hasSentimentColumns = false;
+    }
+
+    // Get reviews for all courts owned by this user (include all statuses for owner view)
+    let selectFields = `
+      r.id,
+      r.rating,
+      r.comment,
+      r.created_at,
+      u.name as user_name,
+      u.avatar as user_avatar,
+      c.name as court_name,
+      c.type as court_type
+    `;
+
+    if (hasSentimentColumns) {
+      selectFields += `,
+        r.sentiment_score,
+        r.sentiment_label,
+        r.status,
+        r.ai_flagged,
+        r.admin_reviewed
+      `;
+    }
+
     const reviewsQuery = `
       SELECT 
-        r.id,
-        r.rating,
-        r.comment,
-        r.created_at,
-        u.name as user_name,
-        u.avatar as user_avatar,
-        c.name as court_name,
-        c.type as court_type
+        ${selectFields}
       FROM reviews r
       JOIN users u ON r.user_id = u.id
       JOIN courts c ON r.court_id = c.id
@@ -62,20 +91,36 @@ export async function GET(request: NextRequest) {
     const total = parseInt(countResult[0].total)
 
     // Format reviews data
-    const formattedReviews = reviews.map((review: any) => ({
-      _id: review.id,
-      user: {
-        name: review.user_name,
-        avatar: review.user_avatar || '/diverse-user-avatars.png'
-      },
-      court: {
-        name: review.court_name,
-        type: review.court_type
-      },
-      rating: review.rating,
-      comment: review.comment,
-      createdAt: review.created_at
-    }))
+    const formattedReviews = reviews.map((review: any) => {
+      const baseReview = {
+        _id: review.id,
+        user: {
+          name: review.user_name,
+          avatar: review.user_avatar || '/diverse-user-avatars.png'
+        },
+        court: {
+          name: review.court_name,
+          type: review.court_type
+        },
+        rating: review.rating,
+        comment: review.comment,
+        createdAt: review.created_at
+      };
+
+      // Add sentiment data only if columns exist
+      if (hasSentimentColumns) {
+        return {
+          ...baseReview,
+          sentimentScore: review.sentiment_score || 0,
+          sentimentLabel: review.sentiment_label || 'neutral',
+          status: review.status || 'visible',
+          aiFlagged: review.ai_flagged || false,
+          adminReviewed: review.admin_reviewed || false,
+        };
+      }
+
+      return baseReview;
+    })
 
     return NextResponse.json({
       success: true,

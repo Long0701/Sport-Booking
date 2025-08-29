@@ -12,7 +12,21 @@ export async function GET(
     const limit = parseInt(searchParams.get('limit') || '10')
     const offset = (page - 1) * limit
 
-    // Fetch reviews for the specific court
+    // Check if status column exists
+    let hasStatusColumn = false;
+    try {
+      const columnCheck = await query(`
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_name = 'reviews' AND column_name = 'status'
+      `);
+      hasStatusColumn = columnCheck.length > 0;
+    } catch (error) {
+      console.warn('Could not check status column:', error);
+      hasStatusColumn = false;
+    }
+
+    // Fetch reviews for the specific court (visible only if status column exists)
     const reviewsQuery = `
       SELECT 
         r.id,
@@ -23,7 +37,7 @@ export async function GET(
         u.avatar as user_avatar
       FROM reviews r
       LEFT JOIN users u ON r.user_id = u.id
-      WHERE r.court_id = $1
+      WHERE r.court_id = $1${hasStatusColumn ? " AND r.status = 'visible'" : ''}
       ORDER BY r.created_at DESC
       LIMIT $2 OFFSET $3
     `
@@ -34,7 +48,7 @@ export async function GET(
     const countQuery = `
       SELECT COUNT(*) as total
       FROM reviews r
-      WHERE r.court_id = $1
+      WHERE r.court_id = $1${hasStatusColumn ? " AND r.status = 'visible'" : ''}
     `
     const countResult = await query(countQuery, [courtId])
     const total = parseInt(countResult[0].total)

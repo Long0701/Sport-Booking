@@ -5,16 +5,21 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   BarChart3,
+  Bot,
   Calendar,
+  ChevronDown,
+  ChevronRight,
   Home,
   LogOut,
   MapPin,
   Settings,
   Star,
+  Tag,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -34,10 +39,30 @@ const navigationItems = [
     description: "Xem và quản lý đặt sân",
   },
   {
-    name: "Đánh giá",
-    href: "/owner/reviews",
+    name: "Quản lý đánh giá",
     icon: Star,
-    description: "Quản lý đánh giá khách hàng",
+    description: "Hệ thống đánh giá và AI",
+    submenu: [
+      {
+        name: "Đánh giá khách hàng",
+        href: "/owner/reviews",
+        icon: Star,
+        description: "Xem và quản lý đánh giá",
+      },
+      {
+        name: "AI Reviews",
+        href: "/owner/ai-reviews", 
+        icon: Bot,
+        description: "AI phân tích đánh giá tiêu cực",
+      },
+      {
+        name: "Từ khóa Sentiment",
+        href: "/owner/sentiment-keywords",
+        icon: Tag,
+        description: "Quản lý từ khóa AI",
+      },
+
+    ],
   },
   {
     name: "Thống kê",
@@ -57,6 +82,20 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const { user, logout } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
+  const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
+
+  // Auto open submenu if user is on a submenu page
+  useEffect(() => {
+    for (const item of navigationItems) {
+      if (item.submenu) {
+        const isOnSubmenuPage = item.submenu.some(subItem => pathname === subItem.href);
+        if (isOnSubmenuPage && openSubmenu !== item.name) {
+          setOpenSubmenu(item.name);
+          break;
+        }
+      }
+    }
+  }, [pathname]);
 
   const handleLogout = () => {
     logout();
@@ -119,25 +158,81 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
         {/* Navigation */}
         <nav className="flex-1 p-[12px] space-y-2">
-                           {navigationItems.map((item) => {
-                   const isActive = pathname === item.href;
+          {navigationItems.map((item) => {
+            // Check if this item or its submenu items are active
+            const isActive = pathname === item.href || 
+              (item.submenu && item.submenu.some(subItem => pathname === subItem.href));
+            const isSubmenuOpen = openSubmenu === item.name;
             
             return (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={`flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  isActive
-                    ? "bg-green-50 text-green-700 border-r-2 border-green-600"
-                    : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
-                }`}
-              >
-                <item.icon className="h-5 w-5" />
-                <div className="flex-1">
-                  <div className="font-medium">{item.name}</div>
-                  <div className="text-xs text-gray-500">{item.description}</div>
-                </div>
-              </Link>
+              <div key={item.name}>
+                {item.submenu ? (
+                  // Item with submenu
+                  <>
+                    <button
+                      onClick={() => setOpenSubmenu(isSubmenuOpen ? null : item.name)}
+                      className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        isActive
+                          ? "bg-green-50 text-green-700 border-r-2 border-green-600"
+                          : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                      }`}
+                    >
+                      <item.icon className="h-5 w-5" />
+                      <div className="flex-1 text-left">
+                        <div className="font-medium">{item.name}</div>
+                        <div className="text-xs text-gray-500">{item.description}</div>
+                      </div>
+                      {isSubmenuOpen ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                    </button>
+                    
+                    {/* Submenu items */}
+                    {isSubmenuOpen && (
+                      <div className="ml-6 mt-1 space-y-1">
+                        {item.submenu.map((subItem) => {
+                          const isSubActive = pathname === subItem.href;
+                          return (
+                            <Link
+                              key={subItem.name}
+                              href={subItem.href}
+                              className={`flex items-center space-x-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                                isSubActive
+                                  ? "bg-green-100 text-green-800 font-medium"
+                                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-800"
+                              }`}
+                            >
+                              <subItem.icon className="h-4 w-4" />
+                              <div className="flex-1">
+                                <div className="font-medium text-xs">{subItem.name}</div>
+                                <div className="text-xs text-gray-500">{subItem.description}</div>
+                              </div>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  // Regular item without submenu
+                  <Link
+                    href={item.href}
+                    className={`flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      isActive
+                        ? "bg-green-50 text-green-700 border-r-2 border-green-600"
+                        : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                    }`}
+                  >
+                    <item.icon className="h-5 w-5" />
+                    <div className="flex-1">
+                      <div className="font-medium">{item.name}</div>
+                      <div className="text-xs text-gray-500">{item.description}</div>
+                    </div>
+                  </Link>
+                )}
+              </div>
             );
           })}
         </nav>
@@ -161,16 +256,40 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         <header className="bg-white border-b border-gray-200 px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
-                                   <h2 className="text-2xl font-bold text-gray-900">
-                       {navigationItems.find(item =>
-                         pathname === item.href
-                       )?.name || 'Admin Panel'}
-                     </h2>
-                     <p className="text-sm text-gray-600">
-                       {navigationItems.find(item =>
-                         pathname === item.href
-                       )?.description || 'Quản lý hệ thống đặt sân thể thao'}
-                     </p>
+              <h2 className="text-2xl font-bold text-gray-900">
+                {(() => {
+                  // Find current page title (check submenu items first)
+                  for (const item of navigationItems) {
+                    if (item.href === pathname) {
+                      return item.name;
+                    }
+                    if (item.submenu) {
+                      const subItem = item.submenu.find(sub => sub.href === pathname);
+                      if (subItem) {
+                        return subItem.name;
+                      }
+                    }
+                  }
+                  return 'Admin Panel';
+                })()}
+              </h2>
+              <p className="text-sm text-gray-600">
+                {(() => {
+                  // Find current page description (check submenu items first)
+                  for (const item of navigationItems) {
+                    if (item.href === pathname) {
+                      return item.description;
+                    }
+                    if (item.submenu) {
+                      const subItem = item.submenu.find(sub => sub.href === pathname);
+                      if (subItem) {
+                        return subItem.description;
+                      }
+                    }
+                  }
+                  return 'Quản lý hệ thống đặt sân thể thao';
+                })()}
+              </p>
             </div>
             <div className="flex items-center space-x-4">
               <Link href="/">

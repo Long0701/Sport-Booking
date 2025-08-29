@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { query, transaction } from '@/lib/db'
+import { analyzeSentiment } from '@/lib/sentiment-analysis'
+import { calculateCourtRatingInTransaction } from '@/lib/court-rating'
 
 export async function GET(request: NextRequest) {
   try {
@@ -9,6 +11,20 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '10')
     const offset = (page - 1) * limit
+
+    // Check if status column exists
+    let hasStatusColumn = false;
+    try {
+      const columnCheck = await query(`
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_name = 'reviews' AND column_name = 'status'
+      `);
+      hasStatusColumn = columnCheck.length > 0;
+    } catch (error) {
+      console.warn('Could not check status column:', error);
+      hasStatusColumn = false;
+    }
 
     let whereConditions = []
     let params: any[] = []
@@ -24,6 +40,11 @@ export async function GET(request: NextRequest) {
       whereConditions.push(`r.user_id = $${paramIndex}`)
       params.push(userId)
       paramIndex++
+    }
+
+    // Add status filter only if column exists
+    if (hasStatusColumn) {
+      whereConditions.push(`r.status = 'visible'`)
     }
 
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : ''
@@ -126,33 +147,78 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Check if sentiment columns exist in reviews table
+    let hasSentimentColumns = false;
+    try {
+      const columnCheck = await query(`
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_name = 'reviews' 
+        AND column_name IN ('sentiment_score', 'sentiment_label', 'status', 'ai_flagged')
+      `);
+      hasSentimentColumns = columnCheck.length >= 4;
+    } catch (error) {
+      console.warn('Could not check sentiment columns:', error);
+      hasSentimentColumns = false;
+    }
+
+    let sentimentResult = null;
+    let initialStatus = 'visible';
+
+    // Only analyze sentiment if columns exist
+    if (hasSentimentColumns) {
+      try {
+        sentimentResult = await analyzeSentiment(comment, true, 'vi');
+        initialStatus = sentimentResult.flagged ? 'pending_review' : 'visible';
+      } catch (error) {
+        console.warn('Sentiment analysis failed, using defaults:', error);
+        sentimentResult = null;
+        initialStatus = 'visible';
+      }
+    }
+
     // Use transaction to create review and update court rating
     const result = await transaction(async (client) => {
-      // Create review
-      const reviewResult = await client.query(`
-        INSERT INTO reviews (user_id, court_id, booking_id, rating, comment)
-        VALUES ($1, $2, $3, $4, $5)
-        RETURNING *
-      `, [userId, courtId, bookingId, rating, comment])
+      let reviewResult;
+      
+      if (hasSentimentColumns && sentimentResult) {
+        // Create review with sentiment analysis
+        reviewResult = await client.query(`
+          INSERT INTO reviews (
+            user_id, court_id, booking_id, rating, comment,
+            sentiment_score, sentiment_label, status, ai_flagged
+          )
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+          RETURNING *
+        `, [
+          userId, courtId, bookingId, rating, comment,
+          sentimentResult.score, sentimentResult.label, 
+          initialStatus, sentimentResult.flagged
+        ])
+      } else {
+        // Create review without sentiment analysis (legacy mode)
+        reviewResult = await client.query(`
+          INSERT INTO reviews (user_id, court_id, booking_id, rating, comment)
+          VALUES ($1, $2, $3, $4, $5)
+          RETURNING *
+        `, [userId, courtId, bookingId, rating, comment])
+      }
 
       const review = reviewResult.rows[0]
 
-      // Get all reviews for this court
-      const reviewsResult = await client.query(`
-        SELECT rating FROM reviews WHERE court_id = $1
-      `, [courtId])
+      // Calculate and update court rating using centralized utility within transaction
+      // Use onlyVisible=true if we have sentiment columns, false for legacy mode
+      const ratingData = await calculateCourtRatingInTransaction(client, courtId, hasSentimentColumns);
       
-      const reviews = reviewsResult.rows
-      const avgRating = reviews.reduce((sum: number, r: any) => sum + r.rating, 0) / reviews.length
-      
-      // Update court rating
+      // Update court in the same transaction
       await client.query(`
         UPDATE courts 
-        SET rating = $1, 
-            review_count = $2,
-            updated_at = CURRENT_TIMESTAMP
+        SET 
+          rating = $1, 
+          review_count = $2,
+          updated_at = CURRENT_TIMESTAMP
         WHERE id = $3
-      `, [Math.round(avgRating * 100) / 100, reviews.length, courtId])
+      `, [ratingData.finalRating, ratingData.reviewCount, courtId]);
 
       return review
     })
