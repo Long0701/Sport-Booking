@@ -128,11 +128,7 @@ export async function GET(request: NextRequest) {
     if (filterType === 'day') {
       // Single day - show hourly breakdown if available, otherwise single point
       const dayData = revenueData.find(
-<<<<<<< HEAD
-        (d) => d.date.toISOString().split('T')[0] === finalStartDate
-=======
-        (d: any) => d.date.toISOString().split('T')[0] === nextDateStr
->>>>>>> main
+        (d: any) => d.date.toISOString().split('T')[0] === finalStartDate
       );
       
       chartData.push({
@@ -148,7 +144,7 @@ export async function GET(request: NextRequest) {
       for (let d = new Date(startDateObj); d <= endDateObj; d.setDate(d.getDate() + 1)) {
         const dateStr = d.toISOString().split('T')[0];
         const dayData = revenueData.find(
-          (data) => data.date.toISOString().split('T')[0] === dateStr
+          (data: any) => data.date.toISOString().split('T')[0] === dateStr
         );
         
         chartData.push({
@@ -163,7 +159,7 @@ export async function GET(request: NextRequest) {
       // Year view - show monthly breakdown
       const monthlyData: { [key: string]: number } = {};
       
-      revenueData.forEach((data) => {
+      revenueData.forEach((data: any) => {
         const date = new Date(data.date);
         const monthKey = `${date.getMonth() + 1}/${date.getFullYear()}`;
         monthlyData[monthKey] = (monthlyData[monthKey] || 0) + parseInt(data.revenue);
@@ -185,7 +181,7 @@ export async function GET(request: NextRequest) {
         for (let d = new Date(startDateObj); d <= endDateObj; d.setDate(d.getDate() + 1)) {
           const dateStr = d.toISOString().split('T')[0];
           const dayData = revenueData.find(
-            (data) => data.date.toISOString().split('T')[0] === dateStr
+            (data: any) => data.date.toISOString().split('T')[0] === dateStr
           );
           
           chartData.push({
@@ -200,7 +196,7 @@ export async function GET(request: NextRequest) {
         // Show monthly for longer ranges
         const monthlyData: { [key: string]: number } = {};
         
-        revenueData.forEach((data) => {
+        revenueData.forEach((data: any) => {
           const date = new Date(data.date);
           const monthKey = `${date.getMonth() + 1}/${date.getFullYear()}`;
           monthlyData[monthKey] = (monthlyData[monthKey] || 0) + parseInt(data.revenue);
