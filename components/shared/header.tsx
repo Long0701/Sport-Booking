@@ -20,6 +20,9 @@ export default function Header() {
        
 
         <nav className="hidden md:flex items-center space-x-6">
+          <Link href="/" className="text-gray-600 hover:text-green-600">
+            Trang chủ
+          </Link>
           <Link href="/search" className="text-gray-600 hover:text-green-600">
             Tìm sân
           </Link>
