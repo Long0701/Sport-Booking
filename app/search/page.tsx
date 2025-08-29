@@ -12,6 +12,7 @@ import { Cloud, CloudRain, MapPin, Star, Sun } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import Link from "next/link"
 import { useEffect, useState } from "react"
+import { useSearchParams } from "next/navigation"
 
 // Dynamic import for map to avoid SSR issues
 const MapComponent = dynamic(() => import('@/components/map-component'), { 
@@ -37,6 +38,19 @@ interface Court {
   }
 }
 
+// Function to map Vietnamese sport names to English values
+const mapVietnameseToEnglish = (vietnameseName: string): string => {
+  const sportMap: { [key: string]: string } = {
+    'Bóng đá mini': 'football',
+    'Cầu lông': 'badminton', 
+    'Tennis': 'tennis',
+    'Bóng rổ': 'basketball',
+    'Bóng chuyền': 'volleyball',
+    'Pickleball': 'pickleball'
+  }
+  return sportMap[vietnameseName] || 'all'
+}
+
 export default function SearchPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedSport, setSelectedSport] = useState("all")
@@ -49,13 +63,28 @@ export default function SearchPage() {
 const [totalPages, setTotalPages] = useState(1)
 const [loadingMore, setLoadingMore] = useState(false)
 const [total, setTotal] = useState(0)
+const [isInitialized, setIsInitialized] = useState(false)
 const { user } = useAuth();
+const searchParams = useSearchParams();
 
-  // Fetch courts from API
+  // Read URL params on component mount
   useEffect(() => {
-    fetchCourts()
-    fetchWeather()
-  }, [selectedSport, searchQuery])
+    const sportParam = searchParams.get('sport');
+    if (sportParam) {
+      const decodedSport = decodeURIComponent(sportParam);
+      const englishSport = mapVietnameseToEnglish(decodedSport);
+      setSelectedSport(englishSport);
+    }
+    setIsInitialized(true);
+  }, [searchParams]);
+
+  // Fetch courts from API only after initialization
+  useEffect(() => {
+    if (isInitialized) {
+      fetchCourts()
+      fetchWeather()
+    }
+  }, [selectedSport, searchQuery, isInitialized])
 
 const fetchCourts = async (reset: boolean = true) => {
   try {

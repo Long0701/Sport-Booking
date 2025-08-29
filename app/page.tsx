@@ -12,6 +12,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { MapPin, Shield, Star, Users, Zap } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 function AuthButtons() {
   const { user, logout } = useAuth();
@@ -46,6 +47,12 @@ function AuthButtons() {
 
 export default function HomePage() {
   const { user } = useAuth();
+  const router = useRouter();
+  
+  const handleSportClick = (sportName: string) => {
+    router.push(`/search?sport=${encodeURIComponent(sportName)}`);
+  };
+
   const sports = [
     { name: "Bóng đá mini", icon: "⚽", count: "120+ sân" },
     { name: "Cầu lông", icon: "🏸", count: "85+ sân" },
@@ -167,6 +174,7 @@ export default function HomePage() {
               <Card
                 key={index}
                 className="text-center hover:shadow-lg transition-shadow cursor-pointer"
+                onClick={() => handleSportClick(sport.name)}
               >
                 <CardContent className="p-6">
                   <div className="text-4xl mb-3">{sport.icon}</div>

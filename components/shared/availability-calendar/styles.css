@@ -1,6 +1,30 @@
-/* Event đã đặt (background xám) */
+/* Event đã đặt (background đỏ) */
 .fc .booking-busy {
-  background-color: rgba(128, 128, 128, 0.4) !important; /* xám */
+  background-color: rgba(220, 38, 38, 0.7) !important; /* đỏ */
+  border: 1px solid rgba(220, 38, 38, 0.8) !important;
+}
+
+/* Event quá thời gian (background xám) */
+.fc .booking-past {
+  background-color: rgba(107, 114, 128, 0.6) !important; /* xám */
+  border: 1px solid rgba(107, 114, 128, 0.7) !important;
+}
+
+/* Slot quá thời gian (background xám) */
+.fc .slot-past {
+  background-color: rgba(156, 163, 175, 0.6) !important; /* xám rõ ràng */
+  border: none !important;
+  z-index: 1 !important;
+}
+
+/* Bỏ màu vàng của ngày hiện tại */
+.fc-day-today {
+  background-color: transparent !important;
+}
+
+/* Bỏ highlight màu vàng của các slot trong ngày hiện tại */
+.fc-timegrid-col.fc-day-today {
+  background-color: transparent !important;
 }
 
 /* Range user chọn (màu xanh lá nhẹ) */
