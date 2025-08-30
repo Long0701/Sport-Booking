@@ -50,7 +50,7 @@ interface Booking {
   id: number;
   user: {
     name: string;
-    email: string;
+    email: string | null;
     phone: string;
   };
   court: {
@@ -69,6 +69,7 @@ interface Booking {
   paymentMethod?: string;
   notes?: string;
   createdAt: string;
+  isGuest?: boolean;
 }
 
 export default function OwnerBookingsPage() {
@@ -298,6 +299,11 @@ export default function OwnerBookingsPage() {
               <div className="flex items-center space-x-1">
                 <User className="h-4 w-4" />
                 <span>{booking.user.name}</span>
+                {booking.isGuest && (
+                  <Badge variant="outline" className="ml-2 text-xs bg-blue-50 text-blue-700 border-blue-200">
+                    Khách vãng lai
+                  </Badge>
+                )}
               </div>
               <div className="flex items-center space-x-1">
                 <Phone className="h-4 w-4" />
@@ -475,14 +481,21 @@ export default function OwnerBookingsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 px-4 pb-4">
-                <div className="grid grid-cols-3  items-start">
+                <div className="grid grid-cols-3 items-start">
                   <div>
                     <label className="text-sm font-medium text-gray-600">
                       Tên khách hàng
                     </label>
-                    <p className="text-lg font-semibold">
-                      {bookingDetails.user.name}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-lg font-semibold">
+                        {bookingDetails.user.name}
+                      </p>
+                      {bookingDetails.isGuest && (
+                        <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                          Khách vãng lai
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-600">
@@ -496,7 +509,9 @@ export default function OwnerBookingsPage() {
                     <label className="text-sm font-medium text-gray-600">
                       Email
                     </label>
-                    <p className="text-lg">{bookingDetails.user.email}</p>
+                    <p className="text-lg">
+                      {bookingDetails.user.email || (bookingDetails.isGuest ? "Không có" : bookingDetails.user.email)}
+                    </p>
                   </div>
                 </div>
               </CardContent>

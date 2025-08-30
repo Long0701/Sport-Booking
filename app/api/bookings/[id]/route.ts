@@ -37,9 +37,9 @@ export async function GET(
       data: {
         _id: booking.id,
         user: {
-          name: booking.user_name,
-          email: booking.user_email,
-          phone: booking.user_phone
+          name: booking.user_name || booking.guest_name,
+          email: booking.user_email || null,
+          phone: booking.user_phone || booking.guest_phone
         },
         court: {
           id: booking.court_id,
@@ -57,7 +57,8 @@ export async function GET(
         paymentStatus: booking.payment_status,
         paymentMethod: booking.payment_method,
         notes: booking.notes,
-        createdAt: booking.created_at
+        createdAt: booking.created_at,
+        isGuest: booking.user_id === null
       }
     })
 
@@ -141,9 +142,9 @@ export async function PUT(
       data: {
         _id: bookingWithDetails.id,
         user: {
-          name: bookingWithDetails.user_name,
-          email: bookingWithDetails.user_email,
-          phone: bookingWithDetails.user_phone
+          name: bookingWithDetails.user_name || bookingWithDetails.guest_name,
+          email: bookingWithDetails.user_email || null,
+          phone: bookingWithDetails.user_phone || bookingWithDetails.guest_phone
         },
         court: {
           name: bookingWithDetails.court_name,
@@ -159,7 +160,8 @@ export async function PUT(
         paymentStatus: bookingWithDetails.payment_status,
         paymentMethod: bookingWithDetails.payment_method,
         notes: bookingWithDetails.notes,
-        createdAt: bookingWithDetails.created_at
+        createdAt: bookingWithDetails.created_at,
+        isGuest: bookingWithDetails.user_id === null
       }
     })
 

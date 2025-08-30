@@ -100,9 +100,9 @@ export async function GET(request: NextRequest) {
       data: bookings.map((booking: any) => ({
         id: booking.id,
         user: {
-          name: booking.user_name,
-          email: booking.user_email,
-          phone: booking.user_phone
+          name: booking.user_name || booking.guest_name,
+          email: booking.user_email || null,
+          phone: booking.user_phone || booking.guest_phone
         },
         court: {
           id: booking.court_id,
@@ -119,7 +119,8 @@ export async function GET(request: NextRequest) {
         paymentStatus: booking.payment_status,
         paymentMethod: booking.payment_method,
         notes: booking.notes,
-        createdAt: booking.created_at
+        createdAt: booking.created_at,
+        isGuest: booking.user_id === null
       })),
       pagination: {
         page,
