@@ -165,7 +165,7 @@ YÊU CẦU:
           <h1 className="text-3xl font-bold text-gray-900">Fireworks AI Integration Test</h1>
         </div>
         <p className="text-gray-600 max-w-2xl mx-auto">
-          Test the complete AI suggestions flow: API call → Prompt generation → FireworksAI → Results
+          Test the complete AI suggestions flow:<br></br>API call → Prompt generation → FireworksAI → Results
         </p>
       </div>
       
@@ -174,7 +174,7 @@ YÊU CẦU:
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <Zap className="h-5 w-5 text-blue-500" />
-            <span>Step 1: Select Sport Type</span>
+            <span>Select Sport Type</span>
           </CardTitle>
           <CardDescription>
             Choose the sport type to get AI suggestions for
