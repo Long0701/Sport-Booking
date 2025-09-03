@@ -5,7 +5,6 @@ const FIREWORKS_API_URL = 'https://api.fireworks.ai/inference/v1/chat/completion
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🎯 AI Suggestions API called')
     const body = await request.json()
     const { courts, weather, userLocation, sportType } = body
 
@@ -72,8 +71,6 @@ Trả về kết quả theo format JSON sau:
 
 Chỉ trả về JSON, không có text khác.`
 
-    console.log('🚀 Calling Fireworks AI API...')
-    console.log('📝 Prompt length:', prompt.length, 'characters')
     
     // Prepare the request payload for Fireworks
     const fireworksPayload = {
@@ -91,12 +88,6 @@ Chỉ trả về JSON, không có text khác.`
         }
       ]
     }
-
-    console.log('📤 INPUT TO FIREWORKS AI:')
-    console.log('==================================================')
-    console.log('Request Payload:')
-    console.log(JSON.stringify(fireworksPayload, null, 2))
-    console.log('==================================================')
     
     // Call Fireworks AI API
     const response = await fetch(FIREWORKS_API_URL, {
@@ -108,9 +99,6 @@ Chỉ trả về JSON, không có text khác.`
       body: JSON.stringify(fireworksPayload)
     })
 
-    console.log('📡 Fireworks API Response Status:', response.status)
-    console.log('📡 Fireworks API Response Headers:', Object.fromEntries(response.headers.entries()))
-
     if (!response.ok) {
       const errorText = await response.text()
       console.error('❌ Fireworks API Error Response:')
@@ -121,18 +109,7 @@ Chỉ trả về JSON, không có text khác.`
     }
 
     const aiResponse = await response.json()
-    console.log('📥 OUTPUT FROM FIREWORKS AI:')
-    console.log('==================================================')
-    console.log('Raw API Response:')
-    console.log(JSON.stringify(aiResponse, null, 2))
-    console.log('==================================================')
-
     const aiContent = aiResponse.choices[0]?.message?.content
-
-    console.log('🤖 AI Response Content:')
-    console.log('Content exists:', !!aiContent)
-    console.log('Content length:', aiContent?.length || 0)
-    console.log('Content preview:', aiContent?.substring(0, 200) + '...')
 
     if (!aiContent) {
       console.error('❌ No content in AI response')
@@ -146,11 +123,7 @@ Chỉ trả về JSON, không có text khác.`
       // Try to extract JSON from the response
       const jsonMatch = aiContent.match(/\{[\s\S]*\}/)
       if (jsonMatch) {
-        console.log('🔍 Found JSON match in AI response')
-        console.log('JSON content:', jsonMatch[0])
         suggestions = JSON.parse(jsonMatch[0])
-        console.log('✅ Successfully parsed AI response')
-        console.log('Parsed suggestions:', JSON.stringify(suggestions, null, 2))
       } else {
         console.error('❌ No JSON found in AI response')
         console.error('Full AI content:', aiContent)
@@ -158,7 +131,6 @@ Chỉ trả về JSON, không có text khác.`
       }
     } catch (parseError) {
       console.error('❌ Error parsing AI response:', parseError)
-      console.log('🔍 AI Response content:', aiContent)
       
       // Don't use fallback - throw error instead
       throw new Error(`Failed to parse AI response: ${parseError instanceof Error ? parseError.message : 'Unknown parsing error'}`)

@@ -24,8 +24,6 @@ export default function TestFireworksIOPage() {
     setFireworksResponse(null)
 
     try {
-      console.log('🎯 Calling AI suggestions API for sport type:', selectedSport)
-      
       const response = await fetch(`/api/courts/ai-suggestions?type=${selectedSport}`)
       const data = await response.json()
 
@@ -33,7 +31,6 @@ export default function TestFireworksIOPage() {
         throw new Error(data.error || 'Failed to fetch AI suggestions')
       }
 
-      console.log('📥 AI Suggestions API response:', data)
       setAiSuggestionsData(data)
 
       // Task 2: Create strong prompt for FireworksAI
@@ -44,7 +41,6 @@ export default function TestFireworksIOPage() {
       await callFireworksAI(prompt, data)
 
     } catch (err) {
-      console.error('❌ Error:', err)
       setError(err instanceof Error ? err.message : 'Unknown error')
     } finally {
       setLoading(false)
@@ -115,8 +111,6 @@ YÊU CẦU:
   // Task 3: Call FireworksAI
   const callFireworksAI = async (prompt: string, aiData: any) => {
     try {
-      console.log('🚀 Calling FireworksAI with prompt...')
-      
       const response = await fetch("https://api.fireworks.ai/inference/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -142,7 +136,6 @@ YÊU CẦU:
       })
 
       const data = await response.json()
-      console.log('🎆 FireworksAI response:', data)
       setFireworksResponse(data)
 
       // Task 4: Parse and display the result
@@ -328,7 +321,7 @@ YÊU CẦU:
               {fireworksResponse.choices && fireworksResponse.choices[0] && fireworksResponse.choices[0].message && (
                 <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                   <h4 className="font-semibold text-green-800 mb-2">AI Generated Content:</h4>
-                  <div className="bg-white border border-green-100 rounded-lg p-4">
+                  <div className="border border-green-100 rounded-lg p-4">
                     <pre className="text-sm text-green-800 overflow-x-auto whitespace-pre-wrap max-h-96 overflow-y-auto">
                       {fireworksResponse.choices[0].message.content}
                     </pre>
@@ -359,10 +352,6 @@ YÊU CẦU:
             </div>
             
             <div className="flex items-center space-x-4">
-              <ArrowRight className="h-6 w-6 text-gray-400" />
-            </div>
-            
-            <div className="flex items-center space-x-4">
               <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white font-bold">2</div>
               <div>
                 <h4 className="font-semibold">Prompt Generation</h4>
@@ -371,19 +360,11 @@ YÊU CẦU:
             </div>
             
             <div className="flex items-center space-x-4">
-              <ArrowRight className="h-6 w-6 text-gray-400" />
-            </div>
-            
-            <div className="flex items-center space-x-4">
               <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-bold">3</div>
               <div>
                 <h4 className="font-semibold">FireworksAI Processing</h4>
                 <p className="text-sm text-gray-600">Send prompt to FireworksAI GPT-OSS-20B model for intelligent analysis</p>
               </div>
-            </div>
-            
-            <div className="flex items-center space-x-4">
-              <ArrowRight className="h-6 w-6 text-gray-400" />
             </div>
             
             <div className="flex items-center space-x-4">
