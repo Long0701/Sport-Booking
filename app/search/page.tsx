@@ -16,7 +16,7 @@ import { useEffect, useState, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 
 // Dynamic import for map to avoid SSR issues
-const MapComponent = dynamic(() => import('@/components/map-component'), { 
+const MapComponent = dynamic(() => import('@/components/map-component'), {
   ssr: false,
   loading: () => <div className="h-96 bg-gray-100 rounded-lg flex items-center justify-center">Đang tải bản đồ...</div>
 })
@@ -56,7 +56,7 @@ interface AISuggestion {
 const mapVietnameseToEnglish = (vietnameseName: string): string => {
   const sportMap: { [key: string]: string } = {
     'Bóng đá mini': 'football',
-    'Cầu lông': 'badminton', 
+    'Cầu lông': 'badminton',
     'Tennis': 'tennis',
     'Bóng rổ': 'basketball',
     'Bóng chuyền': 'volleyball',
@@ -97,16 +97,18 @@ function SearchPageContent() {
     }>;
   } | null>(null)
   const [page, setPage] = useState(1)
-const [totalPages, setTotalPages] = useState(1)
-const [loadingMore, setLoadingMore] = useState(false)
-const [total, setTotal] = useState(0)
-const [isInitialized, setIsInitialized] = useState(false)
-const [aiSuggestions, setAiSuggestions] = useState<AISuggestion[]>([])
-const [showAISuggestions, setShowAISuggestions] = useState(false)
-const [aiLoading, setAiLoading] = useState(false)
-const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null)
-const { user } = useAuth();
-const searchParams = useSearchParams();
+  const [totalPages, setTotalPages] = useState(1)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [total, setTotal] = useState(0)
+  const [isInitialized, setIsInitialized] = useState(false)
+  const [aiSuggestions, setAiSuggestions] = useState<AISuggestion[]>([])
+  const [showAISuggestions, setShowAISuggestions] = useState(false)
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiError, setAiError] = useState<string | null>(null)
+  const [aiSummary, setAiSummary] = useState<string>("")
+  const [userLocation, setUserLocation] = useState<{ lat: number, lng: number } | null>(null)
+  const { user } = useAuth();
+  const searchParams = useSearchParams();
 
   // Read URL params on component mount
   useEffect(() => {
@@ -127,51 +129,51 @@ const searchParams = useSearchParams();
     }
   }, [selectedSport, searchQuery, isInitialized])
 
-const fetchCourts = async (reset: boolean = true) => {
-  try {
-    if (reset) {
-      setLoading(true)
-      setPage(1)
-    } else {
-      setLoadingMore(true)
-    }
-
-    const params = new URLSearchParams()
-    const limit = viewMode === 'list' ? 10 : 100
-    params.append('limit', limit.toString())
-    params.append('page', reset ? '1' : (page + 1).toString())
-
-    if (selectedSport !== 'all') params.append('type', selectedSport)
-    if (searchQuery) params.append('search', searchQuery)
-
-    const response = await fetch(`/api/courts?${params}`)
-    const data = await response.json()
-
-    if (data.success) {
+  const fetchCourts = async (reset: boolean = true) => {
+    try {
       if (reset) {
-        setCourts(data.data)
+        setLoading(true)
+        setPage(1)
       } else {
-        setCourts(prev => [...prev, ...data.data])
+        setLoadingMore(true)
       }
-      setPage(reset ? 1 : page + 1)
-      setTotalPages(data.pagination.pages)
-      setTotal(data.pagination.total)
 
+      const params = new URLSearchParams()
+      const limit = viewMode === 'list' ? 10 : 100
+      params.append('limit', limit.toString())
+      params.append('page', reset ? '1' : (page + 1).toString())
+
+      if (selectedSport !== 'all') params.append('type', selectedSport)
+      if (searchQuery) params.append('search', searchQuery)
+
+      const response = await fetch(`/api/courts?${params}`)
+      const data = await response.json()
+
+      if (data.success) {
+        if (reset) {
+          setCourts(data.data)
+        } else {
+          setCourts(prev => [...prev, ...data.data])
+        }
+        setPage(reset ? 1 : page + 1)
+        setTotalPages(data.pagination.pages)
+        setTotal(data.pagination.total)
+
+      }
+    } catch (error) {
+      console.error('Error fetching courts:', error)
+    } finally {
+      setLoading(false)
+      setLoadingMore(false)
     }
-  } catch (error) {
-    console.error('Error fetching courts:', error)
-  } finally {
-    setLoading(false)
-    setLoadingMore(false)
   }
-}
 
   const fetchWeather = async () => {
     try {
       // Get user location or use default (Ho Chi Minh City)
       const lat = 10.7769
       const lon = 106.7009
-      
+
       const response = await fetch(`/api/weather?lat=${lat}&lon=${lon}`)
       const data = await response.json()
 
@@ -257,152 +259,213 @@ const fetchCourts = async (reset: boolean = true) => {
     const R = 6371 // Earth's radius in kilometers
     const dLat = (lat2 - lat1) * Math.PI / 180
     const dLon = (lon2 - lon1) * Math.PI / 180
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-              Math.sin(dLon/2) * Math.sin(dLon/2)
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2)
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
     return R * c
   }
 
-  // Generate AI suggestions based on multiple factors
-  const generateAISuggestions = () => {
+  // Generate AI suggestions using Fireworks AI
+  const generateAISuggestions = async () => {
     if (!courts.length || !weather || !userLocation) return
-    
+
     setAiLoading(true)
+    setAiError(null) // Clear any previous errors
+    setAiSummary("") // Clear previous summary
 
-    const suggestions: AISuggestion[] = courts.map(court => {
-      // Calculate distance score (closer is better)
-      const courtLat = parseFloat(court.location.coordinates[1])
-      const courtLng = parseFloat(court.location.coordinates[0])
-      const distance = calculateDistance(userLocation.lat, userLocation.lng, courtLat, courtLng)
-      const distanceScore = Math.max(0, 100 - (distance * 10)) // 10 points per km
+    try {
+      // Step 1: Get court data with weather information
+      const courtsResponse = await fetch(`/api/courts/ai-suggestions?type=${selectedSport}&lat=${userLocation.lat}&lng=${userLocation.lng}`)
+      const courtsData = await courtsResponse.json()
 
-      // Weather score (indoor sports are better in bad weather)
-      let weatherScore = 50 // Base score
-      const isIndoor = court.amenities?.includes('indoor') || court.type === 'badminton'
-      if (weather.current.condition.includes('mưa') || weather.current.condition.includes('rain')) {
-        weatherScore = isIndoor ? 90 : 30
-      } else if (weather.current.condition.includes('nắng') || weather.current.condition.includes('sun')) {
-        weatherScore = isIndoor ? 70 : 80
+      if (!courtsData.success) {
+        throw new Error('Failed to fetch court data')
       }
 
-      // Rating score
-      const ratingScore = court.rating * 20 // 5 stars = 100 points
+      // Step 2: Create strong prompt for FireworksAI
+      const prompt = createFireworksPrompt(courtsData)
 
-      // Price score (lower price is better, but not too cheap)
-      const avgPrice = 200000 // Average price in VND
-      const priceDiff = Math.abs(court.pricePerHour - avgPrice)
-      const priceScore = Math.max(0, 100 - (priceDiff / 1000)) // 1000 VND difference = 1 point
+      // Step 3: Call FireworksAI
+      const aiResponse = await fetch('https://api.fireworks.ai/inference/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          "Accept": "application/json",
+          "Content-Type": "application/json",
+          "Authorization": "Bearer gdhFtHMfmQZgRPTmQnOk1heFBVZ6X6T2NNBYNE64o7c3uoz1"
+        },
+        body: JSON.stringify({
+          model: "accounts/fireworks/models/gpt-oss-20b",
+          max_tokens: 4096,
+          top_p: 1,
+          top_k: 40,
+          presence_penalty: 0,
+          frequency_penalty: 0,
+          temperature: 0.6,
+          messages: [
+            {
+              role: "user",
+              content: prompt
+            }
+          ]
+        })
+      })
 
-      // Utility score based on amenities
-      let utilityScore = 50 // Base score
-      if (court.amenities) {
-        if (court.amenities.includes('parking')) utilityScore += 10
-        if (court.amenities.includes('shower')) utilityScore += 10
-        if (court.amenities.includes('equipment')) utilityScore += 10
-        if (court.amenities.includes('lighting')) utilityScore += 10
-        if (court.amenities.includes('air_conditioning')) utilityScore += 10
+      const aiData = await aiResponse.json()
+
+      // Step 4: Parse and display the result
+      if (aiData.choices && aiData.choices[0] && aiData.choices[0].message) {
+        try {
+          const content = aiData.choices[0].message.content
+          const parsedContent = JSON.parse(content)
+
+          // Extract the summary from the AI response
+          if (parsedContent.summary) {
+            // Store the AI summary
+            setAiSummary(parsedContent.summary)
+
+            // Transform AI suggestions to match our interface
+            const transformedSuggestions: AISuggestion[] = courtsData.data.slice(0, 3).map((court: any, index: number) => {
+              const courtLat = parseFloat(court.location.coordinates[1])
+              const courtLng = parseFloat(court.location.coordinates[0])
+              const distance = calculateDistance(userLocation.lat, userLocation.lng, courtLat, courtLng)
+
+              return {
+                court,
+                score: 100 - (index * 10), // Score based on rank
+                reasons: [], // No individual reasons, only general summary
+                weatherScore: 80,
+                ratingScore: court.rating * 20,
+                priceScore: 80,
+                distanceScore: Math.max(0, 100 - (distance * 10)),
+                utilityScore: 70,
+                distance: Math.round(distance * 10) / 10
+              }
+            })
+
+            setAiSuggestions(transformedSuggestions)
+            setShowAISuggestions(true)
+          }
+        } catch (parseError) {
+          console.log('⚠️ Could not parse JSON response, showing raw content')
+          // Fallback to raw content
+          const transformedSuggestions: AISuggestion[] = courtsData.data.slice(0, 3).map((court: any, index: number) => {
+            const courtLat = parseFloat(court.location.coordinates[1])
+            const courtLng = parseFloat(court.location.coordinates[0])
+            const distance = calculateDistance(userLocation.lat, userLocation.lng, courtLat, courtLng)
+
+            return {
+              court,
+              score: 100 - (index * 10),
+              reasons: [], // No individual reasons, only general summary
+              weatherScore: 80,
+              ratingScore: court.rating * 20,
+              priceScore: 80,
+              distanceScore: Math.max(0, 100 - (distance * 10)),
+              utilityScore: 70,
+              distance: Math.round(distance * 10) / 10
+            }
+          })
+
+          setAiSuggestions(transformedSuggestions)
+          setShowAISuggestions(true)
+        }
       }
 
-      // Calculate total score
-      const totalScore = (weatherScore * 0.25 + ratingScore * 0.25 + priceScore * 0.2 + distanceScore * 0.2 + utilityScore * 0.1)
+    } catch (error) {
+      console.error('Error generating AI suggestions:', error)
 
-      // Generate reasons
-      const reasons: string[] = []
-      if (weatherScore > 80) reasons.push('Thời tiết phù hợp')
-      if (ratingScore > 80) reasons.push('Đánh giá cao')
-      if (priceScore > 80) reasons.push('Giá cả hợp lý')
-      if (distanceScore > 80) reasons.push('Gần vị trí của bạn')
-      if (utilityScore > 70) reasons.push('Tiện ích tốt')
+      setAiSuggestions([])
+      setShowAISuggestions(false)
+      setAiSummary("")
+      setAiError('Xin lỗi, không thể kết nối với FireworksAI. Vui lòng thử lại sau.')
+      console.error('Failed to connect to FireworksAI. Please try again later.')
+    } finally {
+      setAiLoading(false)
+    }
+  }
 
-      return {
-        court,
-        score: Math.round(totalScore),
-        reasons,
-        weatherScore: Math.round(weatherScore),
-        ratingScore: Math.round(ratingScore),
-        priceScore: Math.round(priceScore),
-        distanceScore: Math.round(distanceScore),
-        utilityScore: Math.round(utilityScore),
-        distance: Math.round(distance * 10) / 10 // Distance in km with 1 decimal place
-      }
+  // Create strong prompt for FireworksAI
+  const createFireworksPrompt = (data: any): string => {
+    const courts = data.data || []
+    const weather = data.weather
+    const sportType = selectedSport
+
+    const sportTypeVietnamese = {
+      'football': 'bóng đá mini',
+      'badminton': 'cầu lông',
+      'tennis': 'tennis',
+      'basketball': 'bóng rổ',
+      'volleyball': 'bóng chuyền',
+      'pickleball': 'pickleball'
+    }[sportType] || sportType
+
+    let prompt = `Bạn là một chuyên gia tư vấn thể thao thông minh. Dựa trên danh sách sân ${sportTypeVietnamese} sau đây, hãy chọn ra TOP 3 sân tốt nhất để đặt và giải thích lý do chi tiết.
+
+DANH SÁCH SÂN ${sportTypeVietnamese.toUpperCase()}:
+`
+
+    courts.forEach((court: any, index: number) => {
+      prompt += `${index + 1}. ${court.name}
+   - Địa chỉ: ${court.address}
+   - Giá: ${court.pricePerHour.toLocaleString('vi-VN')} VNĐ/giờ
+   - Đánh giá: ${court.rating}/5 (${court.reviewCount} đánh giá)
+   - Khoảng cách: ${court.distance}km
+   - Tiện ích: ${court.amenities?.join(', ') || 'Không có'}
+   - Mô tả: ${court.description || 'Không có mô tả'}
+`
     })
 
-    // Sort by score and take top 3
-    const topSuggestions = suggestions
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 3)
+    if (weather) {
+      prompt += `
+THÔNG TIN THỜI TIẾT HIỆN TẠI:
+- Nhiệt độ: ${weather.temp}°C
+- Điều kiện: ${weather.condition}
+- Độ ẩm: ${weather.humidity}%
+- Gió: ${weather.windSpeed} km/h
+`
+    }
 
-    setAiSuggestions(topSuggestions)
-    setShowAISuggestions(true)
-    setAiLoading(false)
+    prompt += `
+YÊU CẦU:
+1. Chọn TOP 3 sân tốt nhất dựa trên các tiêu chí: giá cả hợp lý, đánh giá cao, khoảng cách gần, tiện ích đầy đủ, phù hợp với thời tiết
+2. Sắp xếp theo thứ tự ưu tiên (1 = tốt nhất)
+3. Tạo một phân tích tổng quan chi tiết giải thích lý do tại sao 3 sân này được chọn (giải thích tối đa 300 ký tự), bao gồm:
+   - So sánh về giá cả, chất lượng và vị trí
+   - Phù hợp với thời tiết hiện tại
+   - Điểm mạnh của từng sân
+   - Lý do tổng thể cho việc gợi ý 3 sân này
+4. Trả lời bằng tiếng Việt, format JSON như sau:
+{
+  "top3_courts": [
+    {
+      "rank": 1,
+      "court_name": "Tên sân"
+    }
+  ],
+  "summary": "Phân tích chi tiết lý do AI gợi ý 3 sân này, bao gồm so sánh về giá cả, chất lượng, vị trí và phù hợp với thời tiết"
+}`
+
+    return prompt
   }
 
   const generateAIReasoning = () => {
     if (aiSuggestions.length === 0) {
       return 'Không có gợi ý AI nào được tìm thấy.';
     }
-    
+
     const avgScore = Math.round(aiSuggestions.reduce((sum, s) => sum + s.score, 0) / aiSuggestions.length);
     const avgDistance = Math.round(aiSuggestions.reduce((sum, s) => sum + s.distance, 0) / aiSuggestions.length * 10) / 10;
     const avgPrice = Math.round(aiSuggestions.reduce((sum, s) => sum + s.court.pricePerHour, 0) / aiSuggestions.length);
     const avgRating = Math.round(aiSuggestions.reduce((sum, s) => sum + s.court.rating, 0) / aiSuggestions.length * 10) / 10;
-    
+
     let reasoning = `Dựa trên phân tích thông minh, AI đã chọn ra ${aiSuggestions.length} sân ${getSportTypeInVietnamese(selectedSport).toLowerCase()} tốt nhất cho bạn. `;
     reasoning += `Các sân này có điểm trung bình ${avgScore}đ, khoảng cách trung bình ${avgDistance}km, `;
     reasoning += `giá thuê trung bình ${avgPrice.toLocaleString("vi-VN")}đ/giờ và đánh giá trung bình ${avgRating}⭐. `;
     reasoning += `Gợi ý này dựa trên thời tiết hiện tại (${weather?.current?.condition || 'không xác định'}), `;
     reasoning += `vị trí của bạn và các tiêu chí về chất lượng, giá cả và tiện ích.`;
-    
-    return reasoning.substring(0, 400) + (reasoning.length > 400 ? '...' : '');
-  };
 
-  const generateIndividualReasoning = (suggestion: AISuggestion) => {
-    const reasons: string[] = [];
-    
-    // Add specific reasons based on scores
-    if (suggestion.weatherScore > 80) {
-      const isIndoor = suggestion.court.amenities?.includes('indoor') || suggestion.court.type === 'badminton';
-      if (weather?.current?.condition.includes('mưa') || weather?.current?.condition.includes('rain')) {
-        reasons.push(isIndoor ? 'Sân trong nhà phù hợp với thời tiết mưa hiện tại, giúp bạn chơi thể thao mà không bị ảnh hưởng bởi thời tiết' : 'Mặc dù thời tiết mưa, nhưng sân ngoài trời này vẫn là lựa chọn tốt với hệ thống thoát nước hiệu quả');
-      } else if (weather?.current?.condition.includes('nắng') || weather?.current?.condition.includes('sun')) {
-        reasons.push(isIndoor ? 'Sân trong nhà mát mẻ với hệ thống điều hòa, phù hợp với thời tiết nắng nóng hiện tại' : 'Thời tiết nắng đẹp hoàn hảo cho sân ngoài trời, không gian thoáng đãng và ánh sáng tự nhiên');
-      }
-    }
-    
-    if (suggestion.ratingScore > 80) {
-      reasons.push(`Sân có đánh giá rất cao từ người dùng (${suggestion.court.rating}⭐), chứng tỏ chất lượng dịch vụ và cơ sở vật chất xuất sắc`);
-    }
-    
-    if (suggestion.priceScore > 80) {
-      reasons.push(`Giá thuê ${suggestion.court.pricePerHour.toLocaleString("vi-VN")}đ/giờ rất hợp lý so với chất lượng và vị trí của sân`);
-    }
-    
-    if (suggestion.distanceScore > 80) {
-      reasons.push(`Chỉ cách vị trí của bạn ${suggestion.distance}km, thuận tiện cho việc di chuyển và tiết kiệm thời gian`);
-    }
-    
-    if (suggestion.utilityScore > 70) {
-      const amenities = suggestion.court.amenities || [];
-      const amenityList = [];
-      if (amenities.includes('parking')) amenityList.push('bãi đỗ xe rộng rãi');
-      if (amenities.includes('shower')) amenityList.push('phòng tắm sạch sẽ');
-      if (amenities.includes('equipment')) amenityList.push('trang thiết bị đầy đủ');
-      if (amenities.includes('lighting')) amenityList.push('ánh sáng tốt');
-      if (amenities.includes('air_conditioning')) amenityList.push('điều hòa mát mẻ');
-      
-      if (amenityList.length > 0) {
-        reasons.push(`Sân được trang bị ${amenityList.slice(0, 3).join(', ')} giúp trải nghiệm chơi thể thao hoàn hảo hơn`);
-      }
-    }
-    
-    // If no specific reasons, provide a general one
-    if (reasons.length === 0) {
-      reasons.push('Sân phù hợp với tiêu chí của bạn về chất lượng, giá cả và vị trí thuận tiện');
-    }
-    
-    const fullReasoning = reasons.join('. ') + '.';
-    return fullReasoning.length > 400 ? fullReasoning.substring(0, 400) + '...' : fullReasoning;
+    return reasoning.substring(0, 400) + (reasoning.length > 400 ? '...' : '');
   };
 
   return (
@@ -412,7 +475,7 @@ const fetchCourts = async (reset: boolean = true) => {
         <div className="absolute top-20 left-20 w-40 h-40 bg-emerald-500/10 rounded-full blur-3xl animate-bounce" style={{ animationDelay: '0s', animationDuration: '10s' }}></div>
         <div className="absolute bottom-40 right-20 w-32 h-32 bg-cyan-500/10 rounded-full blur-2xl animate-bounce" style={{ animationDelay: '3s', animationDuration: '8s' }}></div>
         <div className="absolute top-1/2 left-10 w-24 h-24 bg-teal-500/10 rounded-full blur-xl animate-bounce" style={{ animationDelay: '6s', animationDuration: '12s' }}></div>
-        
+
         {/* Floating Sports Icons */}
         <div className="absolute top-32 right-32 text-5xl animate-spin opacity-10" style={{ animationDuration: '30s' }}>🔍</div>
         <div className="absolute bottom-32 left-32 text-4xl animate-pulse opacity-10" style={{ animationDelay: '2s' }}>🏟️</div>
@@ -429,7 +492,7 @@ const fetchCourts = async (reset: boolean = true) => {
           <div className="absolute top-10 left-10 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl animate-bounce" style={{ animationDelay: '0s', animationDuration: '12s' }}></div>
           <div className="absolute bottom-10 right-10 w-36 h-36 bg-cyan-500/10 rounded-full blur-2xl animate-bounce" style={{ animationDelay: '4s', animationDuration: '10s' }}></div>
           <div className="absolute top-1/2 right-20 w-28 h-28 bg-teal-500/10 rounded-full blur-xl animate-bounce" style={{ animationDelay: '8s', animationDuration: '14s' }}></div>
-          
+
           {/* Hero Sports Icons */}
           <div className="absolute top-16 right-16 text-6xl animate-spin opacity-20" style={{ animationDuration: '40s' }}>🔍</div>
           <div className="absolute bottom-20 left-20 text-5xl animate-pulse opacity-20" style={{ animationDelay: '2s' }}>🏟️</div>
@@ -443,7 +506,7 @@ const fetchCourts = async (reset: boolean = true) => {
             <div className="inline-flex items-center px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full border border-white/20 text-emerald-200 text-sm font-medium animate-fade-in">
               🔍 Tìm kiếm sân thể thao
               <div className="ml-2 w-2 h-2 bg-emerald-400 rounded-full animate-ping"></div>
-              </div>
+            </div>
 
             {/* Main Title */}
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-white via-emerald-100 to-white bg-clip-text text-transparent animate-fade-in" style={{ animationDelay: '0.2s' }}>
@@ -458,28 +521,28 @@ const fetchCourts = async (reset: boolean = true) => {
             {/* View Mode Toggle */}
             <div className="flex items-center justify-center space-x-4 animate-fade-in" style={{ animationDelay: '0.6s' }}>
               <div className="flex items-center bg-white/10 backdrop-blur-sm rounded-xl p-1 border border-white/20">
-              <Button
+                <Button
                   variant={viewMode === "list" ? "default" : "ghost"}
-                onClick={() => setViewMode("list")}
-                size="sm"
-                  className={viewMode === "list" 
-                    ? "bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg" 
+                  onClick={() => setViewMode("list")}
+                  size="sm"
+                  className={viewMode === "list"
+                    ? "bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg"
                     : "text-emerald-100 hover:text-white hover:bg-white/10"
                   }
-              >
+                >
                   📋 Danh sách
-              </Button>
-              <Button
+                </Button>
+                <Button
                   variant={viewMode === "map" ? "default" : "ghost"}
-                onClick={() => setViewMode("map")}
-                size="sm"
-                  className={viewMode === "map" 
-                    ? "bg-gradient-to-r from-cyan-500 to-cyan-600 text-white shadow-lg" 
+                  onClick={() => setViewMode("map")}
+                  size="sm"
+                  className={viewMode === "map"
+                    ? "bg-gradient-to-r from-cyan-500 to-cyan-600 text-white shadow-lg"
                     : "text-cyan-100 hover:text-white hover:bg-white/10"
                   }
-              >
+                >
                   🗺️ Bản đồ
-              </Button>
+                </Button>
               </div>
             </div>
           </div>
@@ -495,60 +558,60 @@ const fetchCourts = async (reset: boolean = true) => {
             </h2>
             <p className="text-gray-600">Sử dụng bộ lọc để tìm sân phù hợp với nhu cầu của bạn</p>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div className="md:col-span-2">
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 🏟️ Tên hoặc địa chỉ sân
               </label>
               <div className="relative group">
-              <Input
+                <Input
                   placeholder="Nhập tên sân hoặc địa chỉ..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-white/50 border-white/30 focus:border-emerald-400 focus:ring-emerald-400/20 hover:bg-white/70 transition-all duration-300 pl-4 py-3 text-lg"
-              />
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-white/50 border-white/30 border-emerald-400 focus:ring-emerald-400/20 hover:bg-white/70 transition-all duration-300 pl-4 py-3 text-lg"
+                />
                 <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                   <span className="text-emerald-500 text-xl">🔍</span>
                 </div>
               </div>
             </div>
-            
+
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 ⚽ Môn thể thao
               </label>
-            <Select value={selectedSport} onValueChange={setSelectedSport}>
-                <SelectTrigger className="bg-white/50 border-white/30 hover:bg-white/70 focus:border-emerald-400 focus:ring-emerald-400/20 transition-all duration-300 py-3">
-                <SelectValue placeholder="Chọn môn thể thao" />
-              </SelectTrigger>
+              <Select value={selectedSport} onValueChange={setSelectedSport}>
+                <SelectTrigger className="bg-white/50 border-white/30 hover:bg-white/70 border-emerald-400 focus:ring-emerald-400/20 transition-all duration-300 py-3">
+                  <SelectValue placeholder="Chọn môn thể thao" />
+                </SelectTrigger>
                 <SelectContent className="bg-white/95 backdrop-blur-md border border-white/20">
-                <SelectItem value="all">Tất cả môn</SelectItem>
+                  <SelectItem value="all">Tất cả môn</SelectItem>
                   <SelectItem value="football">⚽ Bóng đá mini</SelectItem>
                   <SelectItem value="badminton">🏸 Cầu lông</SelectItem>
                   <SelectItem value="tennis">🎾 Tennis</SelectItem>
                   <SelectItem value="basketball">🏀 Bóng rổ</SelectItem>
                   <SelectItem value="volleyball">🏐 Bóng chuyền</SelectItem>
                   <SelectItem value="pickleball">🏓 Pickleball</SelectItem>
-              </SelectContent>
-            </Select>
+                </SelectContent>
+              </Select>
             </div>
-            
+
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 ⏰ Khung thời gian
               </label>
-            <Select value={selectedTime} onValueChange={setSelectedTime}>
-                <SelectTrigger className="bg-white/50 border-white/30 hover:bg-white/70 focus:border-emerald-400 focus:ring-emerald-400/20 transition-all duration-300 py-3">
-                <SelectValue placeholder="Khung giờ" />
-              </SelectTrigger>
+              <Select value={selectedTime} onValueChange={setSelectedTime}>
+                <SelectTrigger className="bg-white/50 border-white/30 hover:bg-white/70 border-emerald-400 focus:ring-emerald-400/20 transition-all duration-300 py-3">
+                  <SelectValue placeholder="Khung giờ" />
+                </SelectTrigger>
                 <SelectContent className="bg-white/95 backdrop-blur-md border border-white/20">
-                <SelectItem value="all">Tất cả giờ</SelectItem>
+                  <SelectItem value="all">Tất cả giờ</SelectItem>
                   <SelectItem value="morning">🌅 Sáng (6-12h)</SelectItem>
                   <SelectItem value="afternoon">☀️ Chiều (12-18h)</SelectItem>
                   <SelectItem value="evening">🌙 Tối (18-22h)</SelectItem>
-              </SelectContent>
-            </Select>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -594,16 +657,16 @@ const fetchCourts = async (reset: boolean = true) => {
                       <Sparkles className="h-6 w-6 text-white" />
                     </div>
                     <div>
-                      <h3 className="text-xl font-bold text-white">🤖 AI Gợi Ý Thông Minh</h3>
+                      <h3 className="text-xl font-bold text-white">AI Gợi Ý Thông Minh</h3>
                       <p className="text-purple-100 text-sm">Chọn môn thể thao để nhận gợi ý tối ưu</p>
                     </div>
                   </div>
                 </div>
 
-                                {/* Sport Selection */}
+                {/* Sport Selection */}
                 <div className="mb-6">
                   <label className="block text-sm font-semibold text-white mb-3">
-                    ⚽ Chọn môn thể thao bạn muốn chơi:
+                    Chọn môn thể thao bạn muốn chơi:
                   </label>
                   <Select value={selectedSport} onValueChange={setSelectedSport}>
                     <SelectTrigger className="w-full bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/15 focus:border-white/40 focus:ring-white/20 transition-all duration-300">
@@ -623,7 +686,7 @@ const fetchCourts = async (reset: boolean = true) => {
 
                 {/* Generate Button */}
                 <div className="mb-6">
-                  <Button 
+                  <Button
                     onClick={generateAISuggestions}
                     disabled={aiLoading || selectedSport === 'all'}
                     className="w-full bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 hover:from-yellow-500 hover:via-orange-600 hover:to-red-600 text-white font-bold py-4 shadow-2xl hover:shadow-orange-500/25 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
@@ -637,143 +700,139 @@ const fetchCourts = async (reset: boolean = true) => {
                       <>
                         <Zap className="h-5 w-5 mr-2" />
                         <span className="text-lg">
-                          {selectedSport === 'all' ? '💭 Vui lòng chọn môn thể thao' : '🚀 Xem gợi ý AI'}
+                          {selectedSport === 'all' ? 'Vui lòng chọn môn thể thao' : 'Xem gợi ý AI'}
                         </span>
                       </>
                     )}
                   </Button>
                 </div>
 
-                                 {/* AI Suggestions Results */}
-                 {showAISuggestions && aiSuggestions.length > 0 && (
-                   <div className="space-y-6">
-                     {/* AI Results Header */}
-                     <div className="text-center">
-                       <h4 className="text-xl font-bold text-white mb-2">🎯 Top 3 Gợi Ý Tốt Nhất</h4>
-                       <div className="w-24 h-1 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full mx-auto"></div>
-                     </div>
-                     
-                     {/* Top 3 Suggestions */}
-                     <div className="space-y-4">
-                                               {aiSuggestions.map((suggestion, index) => (
-                          <Card key={suggestion.court._id} className="group relative overflow-hidden bg-white/10 backdrop-blur-sm border border-white/20 shadow-2xl hover:shadow-3xl transition-all duration-500 transform hover:scale-[1.02] hover:-translate-y-1">
-                            {/* Rank Badge */}
-                            <div className="absolute top-4 right-4 z-20">
-                              <div className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg ${
-                                index === 0 ? 'bg-gradient-to-br from-yellow-400 to-orange-500 animate-pulse' :
-                                index === 1 ? 'bg-gradient-to-br from-slate-400 to-gray-500 animate-pulse' :
-                                'bg-gradient-to-br from-orange-400 to-red-500 animate-pulse'
-                              }`} style={{ animationDelay: `${index * 0.2}s` }}>
-                                <span className="text-2xl">{index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}</span>
-                              </div>
-                            </div>
+                {/* AI Suggestions Results */}
+                {showAISuggestions && aiSuggestions.length > 0 && (
+                  <div className="space-y-6">
+                    {/* AI Results Header */}
+                    <div className="text-center">
+                      <h4 className="text-xl font-bold text-white mb-2">🎯 Top 3 Gợi Ý Tốt Nhất</h4>
+                      <div className="w-24 h-1 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full mx-auto"></div>
+                    </div>
 
-                            <div className="relative z-10 p-6">
-                              {/* AI Score */}
-                              <div className="mb-4">
-                                <div className="flex items-center justify-between mb-3">
-                                  <div className="text-2xl font-black text-white">#{index + 1}</div>
-                                  <div className={`px-3 py-1 rounded-full text-xs font-bold ${
-                                    suggestion.score >= 90 ? 'bg-green-500/20 text-green-300 border border-green-400/30' :
-                                    suggestion.score >= 70 ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-400/30' :
-                                    'bg-orange-500/20 text-orange-300 border border-orange-400/30'
-                                  }`}>
-                                    🎯 Điểm AI: {suggestion.score}
-                                  </div>
-                                </div>
-                                
-                                <h5 className="font-bold text-white text-xl mb-2 group-hover:text-yellow-100 transition-colors">
-                                  {suggestion.court.name}
-                                </h5>
-                                
-                                <Badge className="bg-white/20 text-white border-white/30 hover:bg-white/30 transition-colors">
+                    {/* AI Summary Section */}
+                    {aiSummary ? (
+                      <div className="bg-gradient-to-r from-blue-500/20 to-indigo-500/20 backdrop-blur-sm rounded-xl p-6 border border-blue-400/30">
+                        <div className="flex items-center space-x-3 mb-4">
+                          <div className="w-4 h-4 bg-blue-400 rounded-full animate-pulse"></div>
+                          <h6 className="font-bold text-white text-lg">Tóm tắt từ AI</h6>
+                        </div>
+                        <div className="text-white/90 text-base leading-relaxed">
+                          {aiSummary}
+                        </div>
+                        <div className="mt-4 pt-4 border-t border-blue-400/20">
+                          <div className="flex items-center justify-center space-x-2 text-blue-200 text-sm">
+                            <Sparkles className="h-4 w-4" />
+                            <span>AI đã phân tích dựa trên thời tiết, vị trí, giá cả và đánh giá</span>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="bg-gradient-to-r from-orange-500/20 to-red-500/20 backdrop-blur-sm rounded-xl p-4 border border-orange-400/30">
+                        <div className="flex items-center space-x-2 text-orange-200 text-sm">
+                          <div className="w-3 h-3 bg-orange-400 rounded-full animate-pulse"></div>
+                          <span>Đang tải phân tích tóm tắt. Vui lòng đợi một chút!</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Top 3 Suggestions */}
+                    <div className="space-y-4">
+                      {aiSuggestions.map((suggestion, index) => (
+                        <Card key={suggestion.court._id} className="group relative overflow-hidden bg-white/10 backdrop-blur-sm border border-white/20 shadow-2xl hover:shadow-3xl transition-all duration-500 transform hover:scale-[1.02] hover:-translate-y-1">
+                          <div className="relative z-10 p-6">
+                            {/* AI Score */}
+                            <div className="mb-4">
+                              <div className="flex items-center justify-between mb-3">
+                                <div className="text-2xl font-black text-white">#{index + 1}</div>
+                                <Badge className="bg-white/20 text-white text-sm border-white/30 hover:bg-white/30 transition-colors">
                                   {getSportTypeInVietnamese(suggestion.court.type)}
                                 </Badge>
                               </div>
 
-                              {/* Quick Stats */}
-                              <div className="grid grid-cols-2 gap-3 mb-4">
-                                <div className="bg-white/5 backdrop-blur-sm rounded-lg p-3 border border-white/10 group-hover:bg-white/10 transition-colors">
-                                  <div className="flex items-center space-x-2 mb-1">
-                                    <Star className="h-4 w-4 text-yellow-400" />
-                                    <span className="text-xs font-medium text-white/80">Đánh giá</span>
-                                  </div>
-                                  <p className="text-sm font-bold text-white">{suggestion.court.rating} ⭐ ({suggestion.court.reviewCount})</p>
-                                </div>
-                                
-                                <div className="bg-white/5 backdrop-blur-sm rounded-lg p-3 border border-white/10 group-hover:bg-white/10 transition-colors">
-                                  <div className="flex items-center space-x-2 mb-1">
-                                    <DollarSign className="h-4 w-4 text-green-400" />
-                                    <span className="text-xs font-medium text-white/80">Giá thuê</span>
-                                  </div>
-                                  <p className="text-sm font-bold text-green-300">{suggestion.court.pricePerHour.toLocaleString("vi-VN")}đ/h</p>
-                                </div>
-                                
-                                <div className="bg-white/5 backdrop-blur-sm rounded-lg p-3 border border-white/10 group-hover:bg-white/10 transition-colors">
-                                  <div className="flex items-center space-x-2 mb-1">
-                                    <Navigation className="h-4 w-4 text-purple-400" />
-                                    <span className="text-xs font-medium text-white/80">Khoảng cách</span>
-                                  </div>
-                                  <p className="text-sm font-bold text-purple-300">{suggestion.distance}km</p>
-                                </div>
-
-                                <div className="bg-white/5 backdrop-blur-sm rounded-lg p-3 border border-white/10 group-hover:bg-white/10 transition-colors">
-                                  <div className="flex items-center space-x-2 mb-1">
-                                    <MapPin className="h-4 w-4 text-cyan-400" />
-                                    <span className="text-xs font-medium text-white/80">Vị trí</span>
-                                  </div>
-                                  <p className="text-xs text-cyan-300 truncate">{suggestion.court.address}</p>
-                                </div>
-                              </div>
-
-                              {/* AI Reasoning */}
-                              <div className="bg-gradient-to-r from-blue-500/10 to-indigo-500/10 backdrop-blur-sm rounded-xl p-4 border border-blue-400/20 mb-4">
-                                <div className="flex items-center space-x-2 mb-3">
-                                  <div className="w-3 h-3 bg-blue-400 rounded-full animate-pulse"></div>
-                                  <h6 className="font-semibold text-white text-sm">🧠 Lý do AI gợi ý</h6>
-                                </div>
-                                <div className="space-y-2">
-                                  {suggestion.reasons.map((reason, idx) => (
-                                    <div key={idx} className="flex items-center space-x-2 text-white/90 text-sm">
-                                      <span className="w-1.5 h-1.5 bg-yellow-400 rounded-full"></span>
-                                      <span>{reason}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-
-                              {/* Action Button */}
-                              <Link href={`/court/${suggestion.court._id}`}>
-                                <Button className="w-full bg-gradient-to-r from-emerald-400 via-cyan-500 to-teal-500 hover:from-emerald-500 hover:via-cyan-600 hover:to-teal-600 text-white font-bold py-3 shadow-xl hover:shadow-cyan-500/25 transition-all duration-300 transform hover:scale-105">
-                                  <span className="mr-2">🏟️</span>
-                                  Xem chi tiết & Đặt sân
-                                </Button>
-                              </Link>
+                              <h5 className="font-bold text-white text-xl mb-2 group-hover:text-yellow-100 transition-colors">
+                                {suggestion.court.name}
+                              </h5>
                             </div>
-                          </Card>
-                        ))}
-                     </div>
+
+                            {/* Quick Stats */}
+                            <div className="grid grid-cols-2 gap-3 mb-4">
+                              <div className="bg-white/5 backdrop-blur-sm rounded-lg p-3 border border-white/10 group-hover:bg-white/10 transition-colors">
+                                <div className="flex items-center space-x-2 mb-1">
+                                  <Star className="h-4 w-4 text-yellow-400" />
+                                  <span className="text-xs font-medium text-white/80">Đánh giá</span>
+                                </div>
+                                <p className="text-sm font-bold text-white">{suggestion.court.rating} sao ({suggestion.court.reviewCount})</p>
+                              </div>
+
+                              <div className="bg-white/5 backdrop-blur-sm rounded-lg p-3 border border-white/10 group-hover:bg-white/10 transition-colors">
+                                <div className="flex items-center space-x-2 mb-1">
+                                  <DollarSign className="h-4 w-4 text-green-400" />
+                                  <span className="text-xs font-medium text-white/80">Giá thuê</span>
+                                </div>
+                                <p className="text-sm font-bold text-green-300">{suggestion.court.pricePerHour.toLocaleString("vi-VN")}đ/h</p>
+                              </div>
+
+                              <div className="bg-white/5 backdrop-blur-sm rounded-lg p-3 border border-white/10 group-hover:bg-white/10 transition-colors">
+                                <div className="flex items-center space-x-2 mb-1">
+                                  <Navigation className="h-4 w-4 text-purple-400" />
+                                  <span className="text-xs font-medium text-white/80">Khoảng cách</span>
+                                </div>
+                                <p className="text-sm font-bold text-white">{suggestion.distance}km</p>
+                              </div>
+
+                              <div className="bg-white/5 backdrop-blur-sm rounded-lg p-3 border border-white/10 group-hover:bg-white/10 transition-colors">
+                                <div className="flex items-center space-x-2 mb-1">
+                                  <MapPin className="h-4 w-4 text-cyan-400" />
+                                  <span className="text-xs font-medium text-white/80">Vị trí</span>
+                                </div>
+                                <p className="text-xs text-cyan-300 truncate">{suggestion.court.address}</p>
+                              </div>
+                            </div>
+
+
+
+                            {/* Action Button */}
+                            <Link href={`/court/${suggestion.court._id}`}>
+                              <Button className="w-full bg-gradient-to-r from-emerald-400 via-cyan-500 to-teal-500 hover:from-emerald-500 hover:via-cyan-600 hover:to-teal-600 text-white font-bold py-3 shadow-xl hover:shadow-cyan-500/25 transition-all duration-300 transform hover:scale-105">
+                                <span className="mr-2">🏟️</span>
+                                Xem chi tiết & Đặt sân
+                              </Button>
+                            </Link>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
 
                     {/* Reset Button */}
                     <div className="text-center">
-                      <Button 
+                      <Button
                         variant="ghost"
-                        onClick={() => setShowAISuggestions(false)}
+                        onClick={() => {
+                          setShowAISuggestions(false)
+                          setAiSummary("")
+                        }}
                         className="bg-white/10 hover:bg-white/20 text-white border-white/20 hover:border-white/30 transition-all duration-300"
                       >
                         <Clock className="h-4 w-4 mr-2" />
-                        🔄 Làm mới gợi ý
+                        Làm mới gợi ý
                       </Button>
                     </div>
                   </div>
                 )}
-            </div>
-          )}
-        </div>
+              </div>
+            )}
+          </div>
 
           {/* Results Section - Right Side */}
           <div className="lg:col-span-2">
-{viewMode === "list" ? (
+            {viewMode === "list" ? (
               <div className="space-y-6 animate-fade-in" style={{ animationDelay: '0.6s' }}>
                 {/* Results Header */}
                 <div className="bg-white/70 backdrop-blur-sm border border-white/20 rounded-2xl shadow-xl p-6">
@@ -914,8 +973,8 @@ const fetchCourts = async (reset: boolean = true) => {
                               </div>
                               <div className="flex space-x-3">
                                 <Link href={`/court/${court._id}`}>
-                                  <Button 
-                                    variant="outline" 
+                                  <Button
+                                    variant="outline"
                                     size="sm"
                                     className="border-emerald-200 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-300 transition-colors"
                                   >
@@ -923,7 +982,7 @@ const fetchCourts = async (reset: boolean = true) => {
                                   </Button>
                                 </Link>
                                 <Link href={`/court/${court._id}`}>
-                                  <Button 
+                                  <Button
                                     size="sm"
                                     className="bg-gradient-to-r from-emerald-500 to-cyan-600 hover:from-emerald-600 hover:to-cyan-700 text-white shadow-lg hover:shadow-emerald-500/25 transition-all duration-300 transform hover:scale-105"
                                   >
@@ -979,7 +1038,7 @@ const fetchCourts = async (reset: boolean = true) => {
           </div>
         </div>
       </div>
-      
+
       <Footer />
     </div>
   );
