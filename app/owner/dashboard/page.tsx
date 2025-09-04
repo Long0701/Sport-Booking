@@ -10,12 +10,17 @@ import {
   CardTitle
 } from "@/components/ui/card";
 import { Tabs } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Calendar,
   DollarSign,
   Star,
-  TrendingUp
+  TrendingUp,
+  ChevronLeft,
+  ChevronRight,
+  CalendarDays
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -38,6 +43,15 @@ interface DashboardStats {
   occupancyRate: number;
   revenueChart: Array<{ day: string; revenue: number }>;
   hourlyChart: Array<{ hour: string; bookings: number }>;
+}
+
+type FilterType = "day" | "month" | "year" | "range";
+
+interface DateFilter {
+  type: FilterType;
+  startDate: string;
+  endDate: string;
+  currentDate: Date;
 }
 
 interface Booking {
@@ -80,6 +94,14 @@ export default function OwnerDashboard() {
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const { user } = useAuth();
 
+  // Date filter state
+  const [dateFilter, setDateFilter] = useState<DateFilter>({
+    type: "month",
+    startDate: "",
+    endDate: "",
+    currentDate: new Date()
+  });
+
   useEffect(() => {
     if (user?.role === "owner") {
       fetchDashboardData();
@@ -88,10 +110,27 @@ export default function OwnerDashboard() {
     }
   }, [user]);
 
-  const fetchDashboardData = async () => {
+  // Refetch data when date filter changes
+  useEffect(() => {
+    if (user?.role === "owner") {
+      fetchDashboardData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dateFilter, user?.role]);
+
+  const fetchDashboardData = async (filterOverride?: DateFilter) => {
     try {
       setLoading(true);
-      const response = await fetch("/api/owner/dashboard/stats", {
+      const filter = filterOverride || dateFilter;
+      const { startDate, endDate } = getDateRangeForFilter(filter);
+      
+      const params = new URLSearchParams({
+        startDate,
+        endDate,
+        filterType: filter.type
+      });
+
+      const response = await fetch(`/api/owner/dashboard/stats?${params}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -194,6 +233,82 @@ export default function OwnerDashboard() {
     return date.toLocaleDateString("vi-VN");
   };
 
+  // Date filter helper functions
+  const getDateRangeForFilter = (filter: DateFilter) => {
+    const current = new Date(filter.currentDate);
+    let startDate: Date;
+    let endDate: Date;
+
+    switch (filter.type) {
+      case "day":
+        startDate = new Date(current.getFullYear(), current.getMonth(), current.getDate());
+        endDate = new Date(current.getFullYear(), current.getMonth(), current.getDate(), 23, 59, 59);
+        break;
+      case "month":
+        startDate = new Date(current.getFullYear(), current.getMonth(), 1);
+        endDate = new Date(current.getFullYear(), current.getMonth() + 1, 0, 23, 59, 59);
+        break;
+      case "year":
+        startDate = new Date(current.getFullYear(), 0, 1);
+        endDate = new Date(current.getFullYear(), 11, 31, 23, 59, 59);
+        break;
+      case "range":
+        return {
+          startDate: filter.startDate,
+          endDate: filter.endDate
+        };
+      default:
+        startDate = new Date(current.getFullYear(), current.getMonth(), 1);
+        endDate = new Date(current.getFullYear(), current.getMonth() + 1, 0, 23, 59, 59);
+    }
+
+    return {
+      startDate: startDate.toISOString().split('T')[0],
+      endDate: endDate.toISOString().split('T')[0]
+    };
+  };
+
+  const navigateDate = (direction: "prev" | "next") => {
+    const current = new Date(dateFilter.currentDate);
+    
+    switch (dateFilter.type) {
+      case "day":
+        current.setDate(current.getDate() + (direction === "next" ? 1 : -1));
+        break;
+      case "month":
+        current.setMonth(current.getMonth() + (direction === "next" ? 1 : -1));
+        break;
+      case "year":
+        current.setFullYear(current.getFullYear() + (direction === "next" ? 1 : -1));
+        break;
+    }
+
+    setDateFilter(prev => ({
+      ...prev,
+      currentDate: current
+    }));
+  };
+
+  const getFilterDisplayText = () => {
+    const current = dateFilter.currentDate;
+    
+    switch (dateFilter.type) {
+      case "day":
+        return current.toLocaleDateString("vi-VN");
+      case "month":
+        return `Tháng ${current.getMonth() + 1}/${current.getFullYear()}`;
+      case "year":
+        return `Năm ${current.getFullYear()}`;
+      case "range":
+        if (dateFilter.startDate && dateFilter.endDate) {
+          return `${new Date(dateFilter.startDate).toLocaleDateString("vi-VN")} - ${new Date(dateFilter.endDate).toLocaleDateString("vi-VN")}`;
+        }
+        return "Chọn khoảng thời gian";
+      default:
+        return "";
+    }
+  };
+
   if (user?.role !== "owner") {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -224,6 +339,137 @@ export default function OwnerDashboard() {
             <TabsTrigger value="schedule">Lịch hôm nay</TabsTrigger>
             <TabsTrigger value="reviews">Đánh giá</TabsTrigger>
           </TabsList> */}
+
+          {/* Date Filter Section */}
+          <Card className="border-green-200">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <CalendarDays className="h-5 w-5 text-green-600" />
+                Bộ lọc thời gian
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center">
+                {/* Filter Type Selector */}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-gray-600 min-w-fit">Loại filter:</span>
+                  <Select
+                    value={dateFilter.type}
+                    onValueChange={(value: FilterType) => {
+                      setDateFilter(prev => ({
+                        ...prev,
+                        type: value,
+                        currentDate: new Date() // Reset to current date when changing filter type
+                      }));
+                    }}
+                  >
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="day">Ngày</SelectItem>
+                      <SelectItem value="month">Tháng</SelectItem>
+                      <SelectItem value="year">Năm</SelectItem>
+                      <SelectItem value="range">Khoảng thời gian</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Navigation for day/month/year */}
+                {dateFilter.type !== "range" && (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigateDate("prev")}
+                      className="h-8 w-8 p-0"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    
+                    <div className="min-w-fit px-3 py-1 bg-green-50 rounded text-sm font-medium text-green-800">
+                      {getFilterDisplayText()}
+                    </div>
+                    
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigateDate("next")}
+                      className="h-8 w-8 p-0"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+
+                {/* Date Range Picker */}
+                {dateFilter.type === "range" && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600">Từ:</span>
+                    <Input
+                      type="date"
+                      value={dateFilter.startDate}
+                      onChange={(e) => {
+                        setDateFilter(prev => ({
+                          ...prev,
+                          startDate: e.target.value
+                        }));
+                      }}
+                      className="w-40"
+                    />
+                    <span className="text-sm text-gray-600">Đến:</span>
+                    <Input
+                      type="date"
+                      value={dateFilter.endDate}
+                      onChange={(e) => {
+                        setDateFilter(prev => ({
+                          ...prev,
+                          endDate: e.target.value
+                        }));
+                      }}
+                      className="w-40"
+                    />
+                  </div>
+                )}
+
+                {/* Quick Actions */}
+                <div className="flex gap-2 ml-auto">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setDateFilter({
+                        type: "day",
+                        startDate: "",
+                        endDate: "",
+                        currentDate: new Date()
+                      });
+                    }}
+                    className="text-xs"
+                  >
+                    Hôm nay
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const lastMonth = new Date();
+                      lastMonth.setMonth(lastMonth.getMonth() - 1);
+                      setDateFilter({
+                        type: "month",
+                        startDate: "",
+                        endDate: "",
+                        currentDate: lastMonth
+                      });
+                    }}
+                    className="text-xs"
+                  >
+                    Tháng trước
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Overview Tab */}
           {/**/}
@@ -301,7 +547,9 @@ export default function OwnerDashboard() {
               {/* Revenue Chart */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Doanh thu 7 ngày qua</CardTitle>
+                  <CardTitle>
+                    Doanh thu - {getFilterDisplayText()}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   {loading ? (
@@ -330,7 +578,9 @@ export default function OwnerDashboard() {
               {/* Hourly Bookings Chart */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Lượt đặt theo giờ</CardTitle>
+                  <CardTitle>
+                    Lượt đặt theo giờ - {getFilterDisplayText()}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   {loading ? (

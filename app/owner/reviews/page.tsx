@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatRating } from "@/lib/utils";
-import { Filter, RefreshCw, Search, Star } from "lucide-react";
+import { Filter, RefreshCw, Search, Star, TrendingDown, TrendingUp, AlertTriangle, Eye, EyeOff } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface Review {
@@ -23,6 +23,11 @@ interface Review {
   };
   rating: number;
   comment: string;
+  sentimentScore?: number;
+  sentimentLabel?: 'positive' | 'negative' | 'neutral';
+  status?: 'visible' | 'hidden' | 'pending_review';
+  aiFlagged?: boolean;
+  adminReviewed?: boolean;
   createdAt: string;
 }
 
@@ -105,6 +110,42 @@ export default function AdminReviewsPage() {
     if (diffInDays < 7) return `${diffInDays} ngày trước`;
 
     return date.toLocaleDateString("vi-VN");
+  };
+
+  const getSentimentIcon = (label?: string, score?: number) => {
+    if (label === 'positive') {
+      return <TrendingUp className="h-4 w-4 text-green-600" />;
+    } else if (label === 'negative') {
+      return <TrendingDown className="h-4 w-4 text-red-600" />;
+    }
+    return <span className="h-4 w-4 text-gray-600">-</span>;
+  };
+
+  const getSentimentBadge = (label?: string, score?: number) => {
+    if (!label) return null;
+    
+    const color = label === 'positive' ? 'bg-green-100 text-green-800' :
+                  label === 'negative' ? 'bg-red-100 text-red-800' :
+                  'bg-gray-100 text-gray-800';
+    
+    return (
+      <Badge className={color}>
+        {label} {score ? `(${(score * 100).toFixed(0)}%)` : ''}
+      </Badge>
+    );
+  };
+
+  const getStatusBadge = (status?: string) => {
+    if (!status || status === 'visible') return null;
+    
+    switch (status) {
+      case 'hidden':
+        return <Badge className="bg-red-100 text-red-800">Ẩn</Badge>;
+      case 'pending_review':
+        return <Badge className="bg-yellow-100 text-yellow-800">Chờ duyệt</Badge>;
+      default:
+        return <Badge variant="secondary">{status}</Badge>;
+    }
   };
 
   const filteredReviews = reviews.filter((review) => {
@@ -295,7 +336,7 @@ export default function AdminReviewsPage() {
                         ))}
                       </div>
                     </div>
-                    <Badge variant="secondary">{ratingDistribution[rating as keyof typeof ratingDistribution] || 0}</Badge>
+                    <Badge variant="secondary">{ratingDistribution[rating as keyof typeof ratingDistribution]}</Badge>
                   </div>
                 ))}
               </CardContent>
@@ -341,7 +382,7 @@ export default function AdminReviewsPage() {
                 ) : (
                   <div className="space-y-6 overflow-auto h-[calc(100vh-300px)]">
                     {filteredReviews.map((review) => (
-                      <div key={review._id} className="flex space-x-4 p-4 border rounded-lg hover:bg-gray-50">
+                      <div key={review._id} className={`flex space-x-4 p-4 border rounded-lg hover:bg-gray-50 ${review.aiFlagged ? 'border-orange-200 bg-orange-50' : ''}`}>
                         <Avatar>
                           <AvatarImage
                             src={review.user.avatar || "/placeholder.svg"}
@@ -354,9 +395,16 @@ export default function AdminReviewsPage() {
                         <div className="flex-1">
                           <div className="flex items-center justify-between mb-2">
                             <div>
-                              <h4 className="font-semibold text-gray-900">
-                                {review.user.name}
-                              </h4>
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-semibold text-gray-900">
+                                  {review.user.name}
+                                </h4>
+                                {review.aiFlagged && (
+                                  <div title="AI Flagged">
+                                    <AlertTriangle className="h-4 w-4 text-orange-600" />
+                                  </div>
+                                )}
+                              </div>
                               <p className="text-sm text-gray-600">
                                 {review.court.name} •{" "}
                                 {getSportTypeInVietnamese(review.court.type)}
@@ -381,9 +429,25 @@ export default function AdminReviewsPage() {
                             </div>
                           </div>
 
-                          <p className="text-gray-700 bg-gray-50 p-3 rounded-lg">
+                          <p className="text-gray-700 bg-gray-50 p-3 rounded-lg mb-2">
                             {review.comment}
                           </p>
+
+                          {/* Sentiment and Status Info */}
+                          <div className="flex items-center gap-2 mb-2">
+                            {getSentimentIcon(review.sentimentLabel, review.sentimentScore)}
+                            {getSentimentBadge(review.sentimentLabel, review.sentimentScore)}
+                            {getStatusBadge(review.status)}
+                            {review.status === 'visible' ? (
+                              <div title="Đang hiển thị">
+                                <Eye className="h-4 w-4 text-green-600" />
+                              </div>
+                            ) : review.status === 'hidden' ? (
+                              <div title="Đã ẩn">
+                                <EyeOff className="h-4 w-4 text-red-600" />
+                              </div>
+                            ) : null}
+                          </div>
                         </div>
                       </div>
                     ))}
