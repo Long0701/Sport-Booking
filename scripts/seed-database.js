@@ -79,20 +79,58 @@ async function seedDatabase() {
         reviewCount: 15
       },
       {
-        name: 'Sân cầu lông Victory',
-        type: 'badminton',
-        description: 'Sân cầu lông trong nhà với sàn gỗ chuyên nghiệp, điều hòa mát mẻ.',
+        name: 'Sân bóng đá Victory Park',
+        type: 'football',
+        description: 'Sân bóng đá mini trong công viên với cỏ tự nhiên, không gian thoáng mát, phù hợp cho gia đình và nhóm bạn.',
         address: '456 Lê Văn Việt, Quận 9, TP.HCM',
         location: {
           type: 'Point',
           coordinates: [106.7560, 10.8231]
+        },
+        images: ['/soccer-field.png', '/soccer-field-night.png'],
+        amenities: ['Chỗ đậu xe', 'Ghế ngồi', 'Căng tin', 'Nhà vệ sinh'],
+        pricePerHour: 180000,
+        openTime: '06:00',
+        closeTime: '21:00',
+        phone: '0901234568',
+        owner: users[2]._id,
+        rating: 4.5,
+        reviewCount: 8
+      },
+      {
+        name: 'Sân bóng đá Champions League',
+        type: 'football',
+        description: 'Sân bóng đá mini chuyên nghiệp với cỏ nhân tạo cao cấp, hệ thống đèn LED tiết kiệm năng lượng.',
+        address: '789 Võ Văn Tần, Quận 3, TP.HCM',
+        location: {
+          type: 'Point',
+          coordinates: [106.6934, 10.7829]
+        },
+        images: ['/soccer-field-main.png'],
+        amenities: ['Wifi miễn phí', 'Chỗ đậu xe', 'Phòng thay đồ', 'Vòi sen', 'Phòng tập gym'],
+        pricePerHour: 220000,
+        openTime: '05:30',
+        closeTime: '23:00',
+        phone: '0901234569',
+        owner: users[3]._id,
+        rating: 4.7,
+        reviewCount: 12
+      },
+      {
+        name: 'Sân cầu lông Victory',
+        type: 'badminton',
+        description: 'Sân cầu lông trong nhà với sàn gỗ chuyên nghiệp, điều hòa mát mẻ.',
+        address: '321 Điện Biên Phủ, Quận Bình Thạnh, TP.HCM',
+        location: {
+          type: 'Point',
+          coordinates: [106.7108, 10.8015]
         },
         images: ['/badminton-court.png'],
         amenities: ['Điều hòa', 'Wifi miễn phí', 'Chỗ đậu xe', 'Căng tin'],
         pricePerHour: 80000,
         openTime: '06:00',
         closeTime: '23:00',
-        phone: '0901234568',
+        phone: '0901234570',
         owner: users[2]._id,
         rating: 4.6,
         reviewCount: 12
@@ -101,17 +139,17 @@ async function seedDatabase() {
         name: 'Sân tennis Sunrise',
         type: 'tennis',
         description: 'Sân tennis ngoài trời với mặt sân chuẩn quốc tế, view đẹp.',
-        address: '789 Võ Văn Tần, Quận 3, TP.HCM',
+        address: '654 Lý Thường Kiệt, Quận 10, TP.HCM',
         location: {
           type: 'Point',
-          coordinates: [106.6934, 10.7829]
+          coordinates: [106.6734, 10.7629]
         },
         images: ['/outdoor-tennis-court.png'],
         amenities: ['Chỗ đậu xe', 'Phòng thay đồ', 'Vòi sen', 'Căng tin'],
         pricePerHour: 150000,
         openTime: '05:30',
         closeTime: '22:30',
-        phone: '0901234569',
+        phone: '0901234571',
         owner: users[3]._id,
         rating: 4.9,
         reviewCount: 8
@@ -120,17 +158,17 @@ async function seedDatabase() {
         name: 'Sân bóng rổ Champions',
         type: 'basketball',
         description: 'Sân bóng rổ ngoài trời với rổ chuẩn NBA, mặt sân cao su chống trượt.',
-        address: '321 Điện Biên Phủ, Quận Bình Thạnh, TP.HCM',
+        address: '987 Cách Mạng Tháng 8, Quận 1, TP.HCM',
         location: {
           type: 'Point',
-          coordinates: [106.7108, 10.8015]
+          coordinates: [106.6908, 10.7715]
         },
         images: ['/outdoor-basketball-court.png'],
         amenities: ['Chỗ đậu xe', 'Nước uống', 'Ghế ngồi'],
         pricePerHour: 120000,
         openTime: '06:00',
         closeTime: '21:00',
-        phone: '0901234570',
+        phone: '0901234572',
         owner: users[3]._id,
         rating: 4.5,
         reviewCount: 6
