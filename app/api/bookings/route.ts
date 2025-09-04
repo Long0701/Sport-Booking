@@ -72,9 +72,9 @@ export async function GET(request: NextRequest) {
       data: bookings.map((booking: any) => ({
         _id: booking.id,
         user: {
-          name: booking.user_name,
-          email: booking.user_email,
-          phone: booking.user_phone
+          name: booking.user_name || booking.guest_name,
+          email: booking.user_email || null,
+          phone: booking.user_phone || booking.guest_phone
         },
         court: {
           id: booking.court_id,
@@ -91,7 +91,8 @@ export async function GET(request: NextRequest) {
         paymentStatus: booking.payment_status,
         paymentMethod: booking.payment_method,
         notes: booking.notes,
-        createdAt: booking.created_at
+        createdAt: booking.created_at,
+        isGuest: booking.user_id === null
       })),
       pagination: {
         page,
@@ -113,25 +114,38 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userId, courtId, date, startTime, endTime, notes } = body;
+    const { userId, courtId, date, startTime, endTime, notes, guestName, guestPhone } = body;
 
-    // Validate required fields
-    if (!userId || !courtId || !date || !startTime || !endTime) {
+    // Validate required fields - either userId OR (guestName AND guestPhone)
+    if (!courtId || !date || !startTime || !endTime) {
       return NextResponse.json(
         { success: false, error: "Vui lòng điền đầy đủ thông tin" },
         { status: 400 }
       );
     }
 
-    // Check if user exists
-    const userResult = await query("SELECT id FROM users WHERE id = $1", [
-      userId,
-    ]);
-    if (userResult.length === 0) {
+    // Validate that either userId OR guest info is provided
+    const isGuestBooking = !userId && guestName && guestPhone;
+    const isUserBooking = userId && !guestName && !guestPhone;
+    
+    if (!isGuestBooking && !isUserBooking) {
       return NextResponse.json(
-        { success: false, error: "Không tìm thấy người dùng" },
-        { status: 404 }
+        { success: false, error: "Vui lòng đăng nhập hoặc điền thông tin khách hàng" },
+        { status: 400 }
       );
+    }
+
+    // Check if user exists (only for registered user bookings)
+    if (isUserBooking) {
+      const userResult = await query("SELECT id FROM users WHERE id = $1", [
+        userId,
+      ]);
+      if (userResult.length === 0) {
+        return NextResponse.json(
+          { success: false, error: "Không tìm thấy người dùng" },
+          { status: 404 }
+        );
+      }
     }
 
     // Check if court exists
@@ -181,15 +195,28 @@ export async function POST(request: NextRequest) {
     const totalAmount = court.price_per_hour * hours;
 
     // Insert booking
-    const bookingResult = await query(
-      `
-      INSERT INTO bookings
-        (user_id, court_id, booking_date, start_time, end_time, total_amount, notes)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING *
-      `,
-      [userId, courtId, date, startTime, endTime, totalAmount, notes]
-    );
+    let bookingResult;
+    if (isGuestBooking) {
+      bookingResult = await query(
+        `
+        INSERT INTO bookings
+          (court_id, booking_date, start_time, end_time, total_amount, notes, guest_name, guest_phone)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        RETURNING *
+        `,
+        [courtId, date, startTime, endTime, totalAmount, notes, guestName, guestPhone]
+      );
+    } else {
+      bookingResult = await query(
+        `
+        INSERT INTO bookings
+          (user_id, court_id, booking_date, start_time, end_time, total_amount, notes)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        RETURNING *
+        `,
+        [userId, courtId, date, startTime, endTime, totalAmount, notes]
+      );
+    }
     const booking = bookingResult[0];
 
     // Get booking with related data
@@ -219,9 +246,9 @@ export async function POST(request: NextRequest) {
         data: {
           _id: bookingWithDetails.id,
           user: {
-            name: bookingWithDetails.user_name,
-            email: bookingWithDetails.user_email,
-            phone: bookingWithDetails.user_phone,
+            name: bookingWithDetails.user_name || bookingWithDetails.guest_name,
+            email: bookingWithDetails.user_email || null,
+            phone: bookingWithDetails.user_phone || bookingWithDetails.guest_phone,
           },
           court: {
             id: bookingWithDetails.court_id,
@@ -239,6 +266,7 @@ export async function POST(request: NextRequest) {
           paymentMethod: bookingWithDetails.payment_method,
           notes: bookingWithDetails.notes,
           createdAt: bookingWithDetails.created_at,
+          isGuest: bookingWithDetails.user_id === null,
         },
       },
       { status: 201 }

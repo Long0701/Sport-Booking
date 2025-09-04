@@ -30,6 +30,7 @@ import "./styles.css";
 import AvailabilityCalendar from "@/components/shared/availability-calendar/index";
 import Header from "@/components/shared/header";
 import Footer from "@/components/shared/footer";
+import GuestBookingModal from "@/components/GuestBookingModal";
 
 interface Court {
   _id: string;
@@ -148,6 +149,9 @@ export default function CourtDetailPage() {
 
   const [bookedByDate, setBookedByDate] = useState<BookedByDate>({});
   const [availLoading, setAvailLoading] = useState(false);
+
+  // Guest booking modal state
+  const [showGuestModal, setShowGuestModal] = useState(false);
 
   // Nhớ khoảng đã fetch lần gần nhất để tránh fetch lặp
   const lastRangeRef = useRef<{
@@ -293,9 +297,23 @@ export default function CourtDetailPage() {
 
   const handleBooking = async () => {
     if (!selStart || !selEnd) return alert("Vui lòng chọn khoảng thời gian");
+    
+    // If user is logged in, book directly
+    if (user) {
+      await bookForUser();
+    } else {
+      // If not logged in, show guest booking modal
+      setShowGuestModal(true);
+    }
+  };
+
+  const bookForUser = async () => {
+    if (!selStart || !selEnd) return;
+    
     const userId = user?.id;
     const d = selStart;
     const selectedDateStr = ymd(d);
+    
     try {
       const response = await fetch("/api/bookings", {
         method: "POST",
@@ -312,6 +330,46 @@ export default function CourtDetailPage() {
       if (data.success) {
         alert("Đặt sân thành công!");
         router.push("/bookings");
+      } else {
+        alert(data.error || "Có lỗi xảy ra");
+      }
+    } catch (error) {
+      console.error("Error creating booking:", error);
+      alert("Có lỗi xảy ra khi đặt sân");
+    }
+  };
+
+  const handleGuestBooking = async (guestData: { 
+    guestName: string; 
+    guestPhone: string; 
+    notes?: string; 
+  }) => {
+    if (!selStart || !selEnd) return;
+    
+    const d = selStart;
+    const selectedDateStr = ymd(d);
+    
+    try {
+      const response = await fetch("/api/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          courtId: court?._id,
+          date: selectedDateStr,
+          startTime: formatTime(selStart),
+          endTime: formatTime(selEnd),
+          guestName: guestData.guestName,
+          guestPhone: guestData.guestPhone,
+          notes: guestData.notes,
+        }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setShowGuestModal(false);
+        alert("Đặt sân thành công! Cảm ơn bạn đã sử dụng dịch vụ.");
+        // Reset selection
+        setSelStart(null);
+        setSelEnd(null);
       } else {
         alert(data.error || "Có lỗi xảy ra");
       }
@@ -966,8 +1024,12 @@ export default function CourtDetailPage() {
                               <span className="text-xl">🚀</span>
                             </div>
                             <div className="text-left">
-                              <div className="text-xl font-black">Đặt sân ngay lập tức</div>
-                              <div className="text-xs text-emerald-100 font-semibold">Xác nhận trong 3 giây</div>
+                              <div className="text-xl font-black">
+                                {user ? "Đặt sân ngay lập tức" : "Đặt sân nhanh chóng"}
+                              </div>
+                              <div className="text-xs text-emerald-100 font-semibold">
+                                {user ? "Xác nhận trong 3 giây" : "Không cần tạo tài khoản"}
+                              </div>
                             </div>
                           </span>
                   </Button>
@@ -1545,6 +1607,23 @@ export default function CourtDetailPage() {
           </TabsContent>
         </Tabs>
       </main>
+      
+      {/* Guest Booking Modal */}
+      {showGuestModal && selStart && selEnd && court && (
+        <GuestBookingModal
+          isOpen={showGuestModal}
+          onClose={() => setShowGuestModal(false)}
+          onConfirm={handleGuestBooking}
+          bookingDetails={{
+            courtName: court.name,
+            date: selStart.toLocaleDateString("vi-VN"),
+            startTime: formatTime(selStart).slice(0, 5),
+            endTime: formatTime(selEnd).slice(0, 5),
+            totalPrice: totalPrice,
+            hours: hoursSelected
+          }}
+        />
+      )}
       
       <Footer />
     </div>
