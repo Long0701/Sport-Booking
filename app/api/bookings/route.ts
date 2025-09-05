@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
+import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
   try {
@@ -164,10 +164,9 @@ export async function POST(request: NextRequest) {
     // ✅ Check overlapping bookings
     const existingBookingResult = await query(
       `
-      SELECT id FROM bookings
+      SELECT id, status FROM bookings
       WHERE court_id = $1
         AND booking_date = $2
-        AND status IN ('pending', 'confirmed')
         AND NOT (
           end_time <= $3 OR start_time >= $4
         )
@@ -175,7 +174,16 @@ export async function POST(request: NextRequest) {
       [courtId, date, startTime, endTime]
     );
 
-    if (existingBookingResult.length > 0) {
+    // Nếu có booking bị hủy cùng slot, xóa nó để tránh lỗi unique
+    for (const booking of existingBookingResult) {
+      if (booking.status === 'cancelled') {
+        await query('DELETE FROM bookings WHERE id = $1', [booking.id]);
+      }
+    }
+
+    // Sau khi xóa booking bị hủy, kiểm tra lại các booking còn lại có status pending/confirmed
+    const activeBookingResult = existingBookingResult.filter(b => b.status === 'pending' || b.status === 'confirmed');
+    if (activeBookingResult.length > 0) {
       return NextResponse.json(
         { success: false, error: "Khung giờ này đã được đặt" },
         { status: 400 }
