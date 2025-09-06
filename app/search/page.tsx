@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useAuth } from "@/contexts/AuthContext"
 import { formatRating } from "@/lib/utils"
-import { Cloud, CloudRain, MapPin, Star, Sun, Sparkles, Zap, Clock, TrendingUp, DollarSign, Navigation } from 'lucide-react'
+import { Cloud, CloudRain, MapPin, Star, Sun, Sparkles, Zap, Clock, TrendingUp, DollarSign, Navigation, Map } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import Link from "next/link"
 import { useEffect, useState, Suspense } from "react"
@@ -405,6 +405,22 @@ const fetchCourts = async (reset: boolean = true) => {
     return fullReasoning.length > 400 ? fullReasoning.substring(0, 400) + '...' : fullReasoning;
   };
 
+  // Function to open Google Maps with court location
+  const openOnGoogleMaps = (court: Court) => {
+    const lat = parseFloat(court.location.coordinates[1]);
+    const lng = parseFloat(court.location.coordinates[0]);
+    
+    // Use coordinates if available, otherwise use address
+    if (!isNaN(lat) && !isNaN(lng)) {
+      const googleMapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+      window.open(googleMapsUrl, '_blank');
+    } else {
+      // Fallback to address search
+      const googleMapsUrl = `https://www.google.com/maps?q=${encodeURIComponent(court.address)}`;
+      window.open(googleMapsUrl, '_blank');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-cyan-50/30 relative overflow-hidden">
       {/* Animated Background Elements */}
@@ -742,13 +758,22 @@ const fetchCourts = async (reset: boolean = true) => {
                                 </div>
                               </div>
 
-                              {/* Action Button */}
-                              <Link href={`/court/${suggestion.court._id}`}>
-                                <Button className="w-full bg-gradient-to-r from-emerald-400 via-cyan-500 to-teal-500 hover:from-emerald-500 hover:via-cyan-600 hover:to-teal-600 text-white font-bold py-3 shadow-xl hover:shadow-cyan-500/25 transition-all duration-300 transform hover:scale-105">
-                                  <span className="mr-2">🏟️</span>
-                                  Xem chi tiết & Đặt sân
+                              {/* Action Buttons */}
+                              <div className="flex space-x-2">
+                                <Button 
+                                  onClick={() => openOnGoogleMaps(suggestion.court)}
+                                  className="bg-gradient-to-r from-blue-400 to-cyan-500 hover:from-blue-500 hover:to-cyan-600 text-white font-bold py-3 px-4 shadow-xl hover:shadow-cyan-500/25 transition-all duration-300 transform hover:scale-105"
+                                  title="Xem trên bản đồ"
+                                >
+                                  <Map className="h-4 w-4" />
                                 </Button>
-                              </Link>
+                                <Link href={`/court/${suggestion.court._id}`} className="flex-1">
+                                  <Button className="w-full bg-gradient-to-r from-emerald-400 via-cyan-500 to-teal-500 hover:from-emerald-500 hover:via-cyan-600 hover:to-teal-600 text-white font-bold py-3 shadow-xl hover:shadow-cyan-500/25 transition-all duration-300 transform hover:scale-105">
+                                    <span className="mr-2">🏟️</span>
+                                    Xem chi tiết & Đặt sân
+                                  </Button>
+                                </Link>
+                              </div>
                             </div>
                           </Card>
                         ))}
@@ -912,7 +937,16 @@ const fetchCourts = async (reset: boolean = true) => {
                               <div className="text-sm text-gray-500">
                                 Cập nhật: hôm nay
                               </div>
-                              <div className="flex space-x-3">
+                              <div className="flex space-x-2">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => openOnGoogleMaps(court)}
+                                  className="border-cyan-200 text-cyan-600 hover:bg-cyan-50 hover:border-cyan-300 transition-colors"
+                                  title="Xem trên bản đồ"
+                                >
+                                  <Map className="h-4 w-4" />
+                                </Button>
                                 <Link href={`/court/${court._id}`}>
                                   <Button 
                                     variant="outline" 

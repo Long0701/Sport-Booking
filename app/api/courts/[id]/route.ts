@@ -1,4 +1,5 @@
 import { query } from '@/lib/db'
+import { getCoordinatesFromAddress } from '@/lib/geocoding'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(
@@ -100,6 +101,10 @@ export async function GET(
         closeTime: court.close_time,
         latitude: court.latitude,
         longitude: court.longitude,
+        // Add location object for consistency with search page interface
+        location: {
+          coordinates: [court.longitude?.toString() || '0', court.latitude?.toString() || '0']
+        },
         owner: {
           name: court.owner_name,
           phone: court.owner_phone
@@ -134,14 +139,25 @@ export async function PUT(
     const values: any[] = []
     let paramIndex = 1
 
+    // Check if address is being updated to handle geocoding
+    let needsGeocoding = false
+    let addressToGeocode = ''
+
     for (const [key, value] of Object.entries(body)) {
       if (value !== undefined) {
         const dbField = key === 'pricePerHour' ? 'price_per_hour' :
           key === 'openTime' ? 'open_time' :
             key === 'closeTime' ? 'close_time' : key
+        
         updateFields.push(`${dbField} = $${paramIndex}`)
         values.push(value)
         paramIndex++
+
+        // Track address changes for geocoding
+        if (key === 'address' && typeof value === 'string') {
+          needsGeocoding = true
+          addressToGeocode = value
+        }
       }
     }
 
@@ -150,6 +166,30 @@ export async function PUT(
         { success: false, error: 'Không có dữ liệu để cập nhật' },
         { status: 400 }
       )
+    }
+
+    // If address is being updated, geocode it and add coordinates to update
+    if (needsGeocoding && addressToGeocode) {
+      console.log('Address updated, performing geocoding for:', addressToGeocode)
+      
+      try {
+        const coordinates = await getCoordinatesFromAddress(addressToGeocode)
+        
+        if (coordinates) {
+          // Add latitude and longitude to the update
+          updateFields.push(`latitude = $${paramIndex}`, `longitude = $${paramIndex + 1}`)
+          values.push(coordinates.lat, coordinates.lng)
+          paramIndex += 2
+          
+          console.log('Successfully geocoded address to coordinates:', coordinates)
+        } else {
+          console.log('Geocoding failed for address:', addressToGeocode)
+          // Continue with update even if geocoding fails
+        }
+      } catch (geocodingError) {
+        console.error('Geocoding error, continuing with update:', geocodingError)
+        // Continue with update even if geocoding fails
+      }
     }
 
     const updateQuery = `
