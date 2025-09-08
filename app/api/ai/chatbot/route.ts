@@ -59,7 +59,7 @@ async function getOrCreateConversation(sessionId: string, userId?: number): Prom
   try {
     // Try to find existing conversation
     const existingConversations = await query(
-      'SELECT id FROM chat_conversations WHERE session_id = $1',
+      'SELECT id FROM chatbot_sessions WHERE session_id = $1 AND is_active = true',
       [sessionId]
     )
 
@@ -69,7 +69,7 @@ async function getOrCreateConversation(sessionId: string, userId?: number): Prom
 
     // Create new conversation
     const newConversation = await query(
-      'INSERT INTO chat_conversations (user_id, session_id) VALUES ($1, $2) RETURNING id',
+      'INSERT INTO chatbot_sessions (user_id, session_id, is_active) VALUES ($1, $2, true) RETURNING id',
       [userId || null, sessionId]
     )
 
@@ -82,10 +82,32 @@ async function getOrCreateConversation(sessionId: string, userId?: number): Prom
 
 async function saveMessage(conversationId: number, role: string, content: string) {
   try {
-    await query(
-      'INSERT INTO chat_messages (conversation_id, role, content) VALUES ($1, $2, $3)',
-      [conversationId, role, content]
-    )
+    // Map role to message/response for chatbot_messages table
+    if (role === 'user') {
+      await query(
+        'INSERT INTO chatbot_messages (session_id, message, response, created_at) VALUES ($1, $2, $3, NOW())',
+        [conversationId, content, ''] // We'll update response later for user messages
+      )
+    } else if (role === 'assistant') {
+      // Update the last message with the response
+      const lastMessageResult = await query(
+        'SELECT id FROM chatbot_messages WHERE session_id = $1 AND response = \'\' ORDER BY created_at DESC LIMIT 1',
+        [conversationId]
+      )
+      
+      if (lastMessageResult.length > 0) {
+        await query(
+          'UPDATE chatbot_messages SET response = $1 WHERE id = $2',
+          [content, lastMessageResult[0].id]
+        )
+      } else {
+        // If no pending message, create a new entry
+        await query(
+          'INSERT INTO chatbot_messages (session_id, message, response, created_at) VALUES ($1, $2, $3, NOW())',
+          [conversationId, '', content]
+        )
+      }
+    }
   } catch (error) {
     console.error('Error saving message:', error)
     throw error
@@ -234,9 +256,9 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Get conversation and messages
+    // Get conversation and messages from chatbot tables
     const conversations = await query(
-      'SELECT id FROM chat_conversations WHERE session_id = $1',
+      'SELECT id FROM chatbot_sessions WHERE session_id = $1',
       [sessionId]
     )
 
@@ -249,13 +271,32 @@ export async function GET(request: NextRequest) {
 
     const conversationId = conversations[0].id
     const messages = await query(
-      'SELECT role, content, created_at FROM chat_messages WHERE conversation_id = $1 ORDER BY created_at ASC LIMIT $2',
+      'SELECT message, response, created_at FROM chatbot_messages WHERE session_id = $1 ORDER BY created_at ASC LIMIT $2',
       [conversationId, limit]
     )
 
+    // Transform messages to match expected format
+    const formattedMessages = []
+    for (const msg of messages) {
+      if (msg.message) {
+        formattedMessages.push({
+          role: 'user',
+          content: msg.message,
+          created_at: msg.created_at
+        })
+      }
+      if (msg.response) {
+        formattedMessages.push({
+          role: 'assistant', 
+          content: msg.response,
+          created_at: msg.created_at
+        })
+      }
+    }
+
     return NextResponse.json({
       success: true,
-      data: { messages }
+      data: { messages: formattedMessages }
     })
 
   } catch (error) {
