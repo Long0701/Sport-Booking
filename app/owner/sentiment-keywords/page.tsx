@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/AuthContext";
-import { Search, Plus, Edit, Trash2, Download, Upload, RefreshCw, TrendingUp, TrendingDown, AlertTriangle, Eye, EyeOff } from "lucide-react";
+import { Search, Plus, Edit, Trash2, Download, Upload, RefreshCw, TrendingUp, TrendingDown, AlertTriangle, Eye, EyeOff, RotateCcw } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface SentimentKeyword {
@@ -244,6 +244,35 @@ export default function SentimentKeywordsPage() {
     }
   };
 
+  const reseedAllKeywords = async () => {
+    try {
+      setBulkActionLoading(true);
+      const response = await fetch("/api/admin/sentiment-keywords/bulk", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({
+          action: "reseed_all_keywords"
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        alert(`✅ ${data.message}`);
+        fetchKeywords(); // Refresh the list
+      } else {
+        alert(`❌ Error: ${data.error}`);
+      }
+    } catch (error) {
+      console.error("Error reseeding keywords:", error);
+      alert("❌ Lỗi khi reseed keywords");
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'positive':
@@ -466,6 +495,45 @@ export default function SentimentKeywordsPage() {
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
+
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      disabled={bulkActionLoading}
+                      className="bg-orange-50 hover:bg-orange-100 text-orange-700 border-orange-300"
+                    >
+                      <RotateCcw className="h-4 w-4 mr-1" />
+                      Seed Keywords Lại
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>🔄 Seed Keywords Lại</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        ⚠️ CẢNH BÁO: Điều này sẽ XÓA TẤT CẢ keywords hiện tại và seed lại từ đầu với bộ dữ liệu mặc định (~242 keywords). Hành động này không thể hoàn tác!
+                        <br/><br/>
+                        <strong>Chỉ nên dùng khi muốn reset hoàn toàn hệ thống keywords về trạng thái mặc định.</strong>
+                        <br/><br/>
+                        📊 Sẽ seed:
+                        <br/>• 88 từ khóa tích cực
+                        <br/>• 86 từ khóa tiêu cực  
+                        <br/>• 68 từ khóa rất tiêu cực
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel disabled={bulkActionLoading}>Hủy</AlertDialogCancel>
+                      <AlertDialogAction 
+                        onClick={reseedAllKeywords}
+                        disabled={bulkActionLoading}
+                        className="bg-orange-600 hover:bg-orange-700"
+                      >
+                        {bulkActionLoading ? "Đang reseed..." : "Xóa và Seed Lại"}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
 
                 <Button onClick={exportKeywords} variant="outline" size="sm">
                   <Download className="h-4 w-4 mr-1" />
