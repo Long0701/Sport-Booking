@@ -60,7 +60,7 @@ const mapVietnameseToEnglish = (vietnameseName: string): string => {
     'Tennis': 'tennis',
     'Bóng rổ': 'basketball',
     'Bóng chuyền': 'volleyball',
-    'Pickleball': 'pickleball'
+    'Pickleball': 'pickleballll'
   }
   return sportMap[vietnameseName] || 'all'
 }
