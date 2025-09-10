@@ -47,10 +47,32 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<Stats | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
+  const [registrationSuccess, setRegistrationSuccess] = useState<any>(null);
   
   const handleSportClick = (sportName: string) => {
     router.push(`/search?sport=${encodeURIComponent(sportName)}`);
   };
+
+  // Check for registration success
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const registrationParam = urlParams.get('registration');
+    
+    if (registrationParam === 'success') {
+      const successData = localStorage.getItem('registrationSuccess');
+      if (successData) {
+        try {
+          const data = JSON.parse(successData);
+          setRegistrationSuccess(data);
+          // Clear from localStorage and URL
+          localStorage.removeItem('registrationSuccess');
+          window.history.replaceState({}, '', '/');
+        } catch (error) {
+          console.error('Error parsing registration success data:', error);
+        }
+      }
+    }
+  }, []);
 
   useEffect(() => {
     fetchSportsStats();
@@ -149,6 +171,49 @@ export default function HomePage() {
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
       {/* Header */}
       <Header />
+
+      {/* Registration Success Banner */}
+      {registrationSuccess && (
+        <div className="bg-green-100 border-l-4 border-green-500 p-4 mb-6">
+          <div className="container mx-auto px-4">
+            <div className="flex items-start space-x-3">
+              <div className="flex-shrink-0">
+                <Badge className="bg-green-600 hover:bg-green-600">
+                  Thành công
+                </Badge>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-green-800 font-semibold mb-1">
+                  Đăng ký làm chủ sân thành công!
+                </h3>
+                <p className="text-green-700 text-sm mb-2">
+                  {registrationSuccess.message}
+                </p>
+                <div className="text-green-600 text-xs space-y-1">
+                  <p>• Doanh nghiệp: <strong>{registrationSuccess.businessName}</strong></p>
+                  <p>• Email: <strong>{registrationSuccess.email}</strong></p>
+                  <p>• Ngày gửi: {new Date(registrationSuccess.submittedAt).toLocaleDateString('vi-VN')}</p>
+                </div>
+                <div className="mt-3 space-x-3">
+                  <Link href={`/owner/registration-status?email=${encodeURIComponent(registrationSuccess.email)}`}>
+                    <Button size="sm" variant="outline" className="border-green-600 text-green-700 hover:bg-green-50">
+                      Theo dõi trạng thái
+                    </Button>
+                  </Link>
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    className="text-green-600 hover:bg-green-50"
+                    onClick={() => setRegistrationSuccess(null)}
+                  >
+                    Đóng
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden">

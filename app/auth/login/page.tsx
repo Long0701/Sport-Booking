@@ -22,17 +22,34 @@ export default function LoginPage() {
     e.preventDefault()
     setLoading(true)
     
-    const success = await login(email, password)
-    
-    if (success) {
-      // Redirect based on user role
-      if (user?.role === 'owner') {
-        window.location.href = '/owner/dashboard'
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        localStorage.setItem("token", data.token);
+        
+        // Redirect based on user role from API response
+        if (data.user.role === 'admin') {
+          window.location.href = '/admin/dashboard'
+        } else if (data.user.role === 'owner') {
+          window.location.href = '/owner/dashboard'
+        } else {
+          window.location.href = '/'
+        }
       } else {
-        window.location.href = '/'
+        alert(data.error || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.')
       }
-    } else {
-      alert('Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.')
+    } catch (error) {
+      console.error("Login error:", error);
+      alert('Có lỗi xảy ra. Vui lòng thử lại.')
     }
     
     setLoading(false)

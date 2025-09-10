@@ -35,6 +35,24 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // IMPORTANT: Check owner approval status - owners must be approved to login
+    if (user.role === 'owner' && user.approval_status !== 'approved') {
+      let errorMessage = 'Tài khoản chủ sân chưa được duyệt'
+      
+      if (user.approval_status === 'pending') {
+        errorMessage = 'Tài khoản của bạn đang chờ quản trị viên duyệt. Vui lòng chờ email thông báo.'
+      } else if (user.approval_status === 'rejected') {
+        errorMessage = 'Tài khoản chủ sân đã bị từ chối. Vui lòng liên hệ hỗ trợ.'
+      } else {
+        errorMessage = 'Tài khoản chủ sân chưa được kích hoạt. Vui lòng liên hệ quản trị viên.'
+      }
+      
+      return NextResponse.json(
+        { success: false, error: errorMessage },
+        { status: 401 }
+      )
+    }
+
     // Generate JWT token
     const token = generateToken(user)
 
