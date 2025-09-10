@@ -28,17 +28,43 @@ export default function RegisterPage() {
     e.preventDefault()
     setLoading(true)
     
-    const success = await register(formData)
-    
-    if (success) {
-      // Redirect based on user role
-      if (formData.role === 'owner') {
-        window.location.href = '/owner/dashboard'
+    try {
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        if (data.isOwnerRegistration) {
+          // Owner registration - no immediate login, show success message
+          alert(data.message)
+          
+          // Save registration info for homepage banner
+          localStorage.setItem('registrationSuccess', JSON.stringify({
+            message: data.message,
+            businessName: `${formData.name} Business`,
+            email: data.data.registration.email,
+            submittedAt: data.data.registration.submittedAt
+          }))
+          
+          // Redirect to homepage with success banner
+          window.location.href = '/?registration=success'
+        } else {
+          // Regular user registration - login immediately
+          localStorage.setItem("token", data.token);
+          window.location.href = '/'
+        }
       } else {
-        window.location.href = '/'
+        alert(data.error || 'Đăng ký thất bại. Vui lòng thử lại.')
       }
-    } else {
-      alert('Đăng ký thất bại. Vui lòng thử lại.')
+    } catch (error) {
+      console.error("Registration error:", error);
+      alert('Có lỗi xảy ra. Vui lòng thử lại.')
     }
     
     setLoading(false)
